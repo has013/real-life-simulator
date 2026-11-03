@@ -1,0 +1,9 @@
+{
+  "name": "real-life-simulator-public-multiplayer",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Servidor de mundo público para Real Life Simulator (máximo 20 jugadores)",
+  "main": "server.js",
+  "scripts": {"start": "node server.js"},
+  "dependencies": {"ws": "^8.18.0"}
+}
