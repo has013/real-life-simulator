@@ -17,7 +17,7 @@ const server = http.createServer((req, res) => {
   }
   res.writeHead(404); res.end('Not found');
 });
-const wss = new WebSocketServer({ server, maxPayload: 2048 });
+const wss = new WebSocketServer({ server, maxPayload: 16384 });
 function send(ws, data) { if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(data)); }
 function broadcast(data, except) { for (const [ws] of players) if (ws !== except) send(ws, data); }
 function cleanName(v) { return String(v || 'Jugador').replace(/[<>\u0000-\u001f]/g, '').trim().slice(0,18) || 'Jugador'; }
@@ -31,7 +31,7 @@ wss.on('connection', ws => {
     if (!ws.joined) {
       if (msg.type !== 'join') return;
       ws.joined = true;
-      const player = { id, name: cleanName(msg.name), x:24, y:0, z:1.5, yaw:0, vehicle:false };
+      const player = { id, name: cleanName(msg.name), x:24, y:0, z:1.5, yaw:0, vehicle:false, vType:null, vCol:0x4477aa, outfit:{}, pets:[] };
       players.set(ws, player);
       send(ws, {type:'welcome', id, players:[...players.values()], chat:chatHistory, world:{tod:world.tod,wx:world.wx}});
       broadcast({type:'joined', player}, ws);
@@ -49,7 +49,18 @@ wss.on('connection', ws => {
     }
     if (msg.type !== 'state') return;
     const n = v => Number.isFinite(Number(v)) ? Math.max(-1000, Math.min(2000, Number(v))) : 0;
-    p.x=n(msg.x); p.y=Math.max(-30,Math.min(300,n(msg.y))); p.z=n(msg.z); p.yaw=n(msg.yaw); p.vehicle=!!msg.vehicle;
+    p.x=n(msg.x); p.y=Math.max(-30,Math.min(300,n(msg.y))); p.z=n(msg.z); p.yaw=n(msg.yaw);
+    p.vehicle=!!msg.vehicle;
+    p.vType=['hatch','sport','van','moto','bici','patinete','bus'].includes(msg.vType)?msg.vType:null;
+    p.vCol=Number.isFinite(Number(msg.vCol))?Math.max(0,Math.min(0xffffff,Number(msg.vCol))):0x4477aa;
+    p.outfit=(msg.outfit&&typeof msg.outfit==='object')?Object.fromEntries(Object.entries(msg.outfit).slice(0,12).map(([k,v])=>[String(k).slice(0,12),String(v).slice(0,50)])):{};
+    p.pets=Array.isArray(msg.pets)?msg.pets.slice(0,3).map(q=>({
+      t:['dog','cat','rabbit'].includes(q.t)?q.t:'dog',
+      name:String(q.name||'Mascota').replace(/[<>\\u0000-\\u001f]/g,'').slice(0,14),
+      col:Number.isFinite(Number(q.col))?Math.max(0,Math.min(0xffffff,Number(q.col))):0x999999,
+      x:n(q.x),y:Math.max(-30,Math.min(300,n(q.y))),z:n(q.z),
+      wear:q.wear&&typeof q.wear==='object'?Object.fromEntries(Object.entries(q.wear).slice(0,8).map(([k,v])=>[String(k).slice(0,12),String(v).slice(0,50)])):{}
+    })):[]; 
     broadcast({type:'state', player:p}, ws);
   });
   ws.on('close', () => { const p=players.get(ws); if(p){players.delete(ws);broadcast({type:'left',id:p.id});} });
