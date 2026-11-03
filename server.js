@@ -31,7 +31,7 @@ wss.on('connection', ws => {
     if (!ws.joined) {
       if (msg.type !== 'join') return;
       ws.joined = true;
-      const player = { id, name: cleanName(msg.name), x:24, y:0, z:1.5, yaw:0, vehicle:false, vType:null, vCol:0x4477aa, outfit:{}, pets:[] };
+      const player = { id, name: cleanName(msg.name), x:24, y:0, z:1.5, yaw:0, vehicle:false, vType:null, vCol:0x4477aa, outfit:{}, pets:[], profile:{money:0,properties:[],businesses:[],pets:[],career:[]} };
       players.set(ws, player);
       send(ws, {type:'welcome', id, players:[...players.values()], chat:chatHistory, world:{tod:world.tod,wx:world.wx}});
       broadcast({type:'joined', player}, ws);
@@ -61,6 +61,16 @@ wss.on('connection', ws => {
       x:n(q.x),y:Math.max(-30,Math.min(300,n(q.y))),z:n(q.z),
       wear:q.wear&&typeof q.wear==='object'?Object.fromEntries(Object.entries(q.wear).slice(0,8).map(([k,v])=>[String(k).slice(0,12),String(v).slice(0,50)])):{}
     })):[]; 
+    if (msg.profile && typeof msg.profile === 'object') {
+      const pr=msg.profile;
+      p.profile={
+        money:Number.isFinite(Number(pr.money))?Math.max(0,Math.min(1e12,Number(pr.money))):0,
+        properties:Array.isArray(pr.properties)?pr.properties.slice(0,30).map(v=>String(v).slice(0,70)) : [],
+        businesses:Array.isArray(pr.businesses)?pr.businesses.slice(0,20).map(v=>String(v).slice(0,70)) : [],
+        pets:Array.isArray(pr.pets)?pr.pets.slice(0,3).map(v=>String(v).slice(0,40)) : [],
+        career:Array.isArray(pr.career)?pr.career.slice(0,20).map(v=>String(v).slice(0,100)) : []
+      };
+    }
     broadcast({type:'state', player:p}, ws);
   });
   ws.on('close', () => { const p=players.get(ws); if(p){players.delete(ws);broadcast({type:'left',id:p.id});} });

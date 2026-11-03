@@ -27,6 +27,8 @@ canvas{display:block}
 
 /* CHAT MULTIJUGADOR */
 #chatToggle{position:fixed;right:16px;bottom:58px;z-index:40;border:1px solid #ffffff66;border-radius:22px;background:rgba(12,25,38,.92);color:#fff;padding:10px 15px;font:600 14px system-ui;cursor:pointer;box-shadow:0 3px 12px #0005}
+#playerCard{display:none;position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:80;width:min(390px,calc(100vw - 30px));max-height:75vh;overflow:auto;background:rgba(10,20,31,.97);color:#fff;border:1px solid #d5b66b;border-radius:16px;padding:18px;box-shadow:0 12px 40px #000b;font:14px system-ui}
+#playerCard h2{margin:0 0 10px;color:#f4d58a}#playerCard h3{margin:13px 0 5px;color:#9fc9ff;font-size:14px}#playerCard .pcClose{float:right;background:#704b31;color:#fff;border:0;border-radius:8px;padding:6px 10px;cursor:pointer}
 #chatPanel{display:none;position:fixed;right:14px;bottom:108px;z-index:40;width:min(340px,calc(100vw - 28px));height:290px;background:rgba(9,18,29,.94);color:#fff;border:1px solid #ffffff55;border-radius:14px;box-shadow:0 8px 28px #0008;overflow:hidden;font:13px system-ui;pointer-events:auto;flex-direction:column}
 #chatHead{padding:10px 12px;background:rgba(55,91,125,.55);display:flex;align-items:center;justify-content:space-between;font-weight:700}
 #chatClose{border:0;background:transparent;color:#fff;font-size:19px;cursor:pointer}
@@ -42,7 +44,7 @@ canvas{display:block}
 <div id="hud"><div id="money"></div><div id="obj"></div><div id="prompt"></div><div id="toast"></div><div id="clk" style="top:132px;left:14px;font-size:15px"></div><div id="hb" style="top:100px;left:14px;width:210px;padding:2px 8px;border:2px solid #fff;border-radius:8px;font-size:13px;box-sizing:border-box"></div><div id="tb" style="top:164px;left:14px;width:210px;padding:2px 8px;border:2px solid #fff;border-radius:8px;font-size:13px;box-sizing:border-box"></div><div id="eb" style="top:192px;left:14px;width:210px;padding:2px 8px;border:2px solid #fff;border-radius:8px;font-size:13px;box-sizing:border-box"></div><div id="spd"></div><div id="fuel" style="display:none;bottom:56px;right:16px;width:190px;padding:2px 8px;border:2px solid #fff;border-radius:8px;font-size:13px;box-sizing:border-box"></div><div id="radio" style="display:none;bottom:90px;right:16px;width:190px;padding:2px 8px;border:2px solid #fff;border-radius:8px;font-size:13px;box-sizing:border-box;background:rgba(0,0,0,.5)"></div><div id="hint" style="bottom:14px;left:14px;font-size:14px">I: inventario · F: comer · E: interactuar · R: repostar · M: mapa · X: cancelar trabajo · N: sonido · C: radio (en coche) · T: mascotas</div></div>
 <canvas id="mm"></canvas><div id="dlg"></div><div id="inv"></div>
 <button id="chatToggle" type="button" title="Abrir o cerrar el chat (tecla P)">P · Chat</button>
-<div id="chatPanel" aria-label="Chat del mundo">
+<div id="playerCard" role="dialog" aria-label="Ficha del jugador"></div>\n<div id="chatPanel" aria-label="Chat del mundo">
  <div id="chatHead"><span>💬 Chat del mundo</span><button id="chatClose" type="button" aria-label="Cerrar chat">×</button></div>
  <div id="chatMessages" aria-live="polite"><div style="color:#b8c5d4">Conectando al chat...</div></div>
  <form id="chatForm"><input id="chatInput" maxlength="180" autocomplete="off" placeholder="Escribe un mensaje..." aria-label="Mensaje"><button id="chatSend" type="submit">Enviar</button></form>
@@ -1553,6 +1555,9 @@ addEventListener('keydown',e=>{
  if(e.code==='KeyF'&&playing()){eatQuick();return}
  if(e.code==='KeyM'&&playing()){toggleMap();return}
  if(e.code==='KeyX'&&playing()&&task){endTask('Trabajo cancelado');return}
+ if(e.code==='Escape'&&chatPanel.style.display==='flex'){chatOpen(false);e.preventDefault();return}
+ if(e.code==='Escape'&&playerCard.style.display==='block'){closePlayerCard();e.preventDefault();return}
+ if(e.code==='KeyO'&&!e.repeat&&playing()){toggleNearbyProfile();e.preventDefault();return}
  if(e.code==='Escape'&&started&&ov.style.display==='none'&&!dlgOpen){ov.style.display='flex';return}
  if(!playing())return;K[e.code]=true;
  if(e.code==='KeyE')interact();if(e.code==='KeyR'&&inCar)refuelKey();if(e.code==='KeyI')toggleInv();
@@ -1770,8 +1775,26 @@ function mpUpsert(d){if(!d||!d.id)return;let p=MP.players.get(d.id);if(!p){p=mpM
  const incoming=Array.isArray(d.pets)?d.pets.slice(0,3):[],seen=new Set();incoming.forEach((q,i)=>{const key=String(i);seen.add(key);let rp=p.pets.get(key);if(!rp||rp.t!==q.t){if(rp){MP.remoteRoot.remove(rp.mesh);mpDispose(rp.mesh)}const mesh=petMesh(q.t,q.col);MP.remoteRoot.add(mesh);rp={mesh,t:q.t,wearKey:''};p.pets.set(key,rp)}const wk=JSON.stringify(q.wear||{});if(rp.wearKey!==wk){if(rp.mesh.userData.wg){rp.mesh.remove(rp.mesh.userData.wg);mpDispose(rp.mesh.userData.wg)}const wg=new THREE.Group(),A=PET_A[q.t];Object.keys(q.wear||{}).forEach(sl=>{const c=PET_CLOTH[q.wear[sl]];if(c)c.mk(wg,A)});rp.mesh.add(wg);rp.mesh.userData.wg=wg;rp.wearKey=wk}rp.mesh.position.set(Number(q.x)||0,Number(q.y)||0,Number(q.z)||0);rp.mesh.rotation.y=Number(d.yaw)||0;rp.mesh.visible=!vt});
  for(const [key,rp] of p.pets)if(!seen.has(key)){MP.remoteRoot.remove(rp.mesh);mpDispose(rp.mesh);p.pets.delete(key)}
  mpCount()}
+
+function mpProfileSnapshot(){
+ const properties=HOUSES.filter(x=>x.owned&&!x.local).map(x=>'Vivienda · '+(x.apt?'Apartamento':'Casa')+' ('+x.x+', '+x.z+')');
+ const businesses=HOUSES.filter(x=>x.owned&&x.local).map(x=>'Negocio · '+(x.bizName||x.name||'Local comercial')+' ('+x.x+', '+x.z+')');
+ const career=Object.keys(jx).map(q=>{const[a,b]=q.split(':');return jname(a,b)+' · '+jdone(a,b)+' tareas'});
+ return {money,properties,businesses,pets:pets.slice(0,3).map(q=>(q.name||'Mascota')+' ('+({dog:'Perro',cat:'Gato',rabbit:'Conejo'}[q.t]||'Mascota')+')'),career};
+}
+const playerCard=document.getElementById('playerCard');
+function pcEsc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function closePlayerCard(){playerCard.style.display='none';playerCard.dataset.player=''}
+function showPlayerCard(p){
+ if(!p)return;const d=p.profile||{},list=(a,empty)=>Array.isArray(a)&&a.length?a.map(v=>'<div>• '+pcEsc(v)+'</div>').join(''):'<div style="color:#aab4c0">'+empty+'</div>';
+ playerCard.dataset.player=p.id;
+ playerCard.innerHTML='<button class="pcClose" onclick="closePlayerCard()">Cerrar (O / ESC)</button><h2>👤 '+pcEsc(p.name)+'</h2><div style="font-size:20px;color:#f4d58a;font-weight:700">€ '+Math.round(Number(d.money)||0).toLocaleString('es-ES')+'</div><h3>🏠 Propiedades</h3>'+list(d.properties,'No tiene propiedades registradas')+'<h3>🏪 Negocios</h3>'+list(d.businesses,'No tiene negocios registrados')+'<h3>🐾 Mascotas</h3>'+list(d.pets,'No tiene mascotas')+'<h3>💼 Carrera laboral</h3>'+list(d.career,'Todavía no tiene experiencia laboral')+'<div style="margin-top:12px;color:#aab4c0;font-size:12px">Ficha visible para jugadores cercanos</div>';
+ playerCard.style.display='block';
+}
+function nearestRemotePlayer(maxDist=10){let best=null,bd=maxDist;for(const p of MP.players.values()){const d=Math.hypot(p.target.x-pl.x,p.target.z-pl.z);if(d<bd){bd=d;best=p}}return best}
+function toggleNearbyProfile(){if(playerCard.style.display==='block'){closePlayerCard();return}const p=nearestRemotePlayer(12);if(!p){toast('No hay ningún jugador cerca (12 m)');return}showPlayerCard(p)}
 function mpTick(dt){if(MP.connected&&MP.ws&&MP.ws.readyState===1&&started&&ov.style.display==='none'){
- const now=performance.now();if(now-MP.lastSend>180){MP.lastSend=now;try{const px=inCar?inCar.x:(riding?riding.x:pl.x),pz=inCar?inCar.z:(riding?riding.z:pl.z),pyy=inCar?(inCar.y||0):(riding?(riding.alt||0):py),ph=inCar?inCar.h:(riding?riding.h:yaw),vt=inCar?inCar.t:(riding?'bus':null),vc=inCar?(inCar.col||inCar.m?.userData?.col||0x4477aa):0x4477aa;MP.ws.send(JSON.stringify({type:'state',x:px,y:pyy,z:pz,yaw:ph,vehicle:!!(inCar||riding),vType:vt,vCol:vc,outfit:worn,pets:pets.slice(0,3).map(q=>({t:q.t,name:q.name,col:q.col,x:q.x,y:q.y,z:q.z,wear:q.wear||{}}))}))}catch(e){}}
+ const now=performance.now();if(now-MP.lastSend>180){MP.lastSend=now;try{const px=inCar?inCar.x:(riding?riding.x:pl.x),pz=inCar?inCar.z:(riding?riding.z:pl.z),pyy=inCar?(inCar.y||0):(riding?(riding.alt||0):py),ph=inCar?inCar.h:(riding?riding.h:yaw),vt=inCar?inCar.t:(riding?'bus':null),vc=inCar?(inCar.col||inCar.m?.userData?.col||0x4477aa):0x4477aa;MP.ws.send(JSON.stringify({type:'state',x:px,y:pyy,z:pz,yaw:ph,vehicle:!!(inCar||riding),vType:vt,vCol:vc,outfit:worn,profile:mpProfileSnapshot(),pets:pets.slice(0,3).map(q=>({t:q.t,name:q.name,col:q.col,x:q.x,y:q.y,z:q.z,wear:q.wear||{}}))}))}catch(e){}}
  }
  const now=performance.now();for(const [id,p] of MP.players){p.mesh.position.lerp(p.target,Math.min(1,dt*12));let df=Math.atan2(Math.sin(p.yaw-p.mesh.rotation.y),Math.cos(p.yaw-p.mesh.rotation.y));p.mesh.rotation.y+=df*Math.min(1,dt*10);if(now-p.last>15000)mpRemove(id)}
 }
