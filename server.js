@@ -5,6 +5,8 @@ const { WebSocketServer, WebSocket } = require('ws');
 const PORT = Number(process.env.PORT || 3000);
 const MAX_PLAYERS = 20;
 const players = new Map();
+const chatHistory = [];
+const world = { tod: 9, wx: 0, weatherTimer: 0, nextWeather: 90 };
 let nextId = 1;
 const gameFile = path.join(__dirname, 'index.html');
 const server = http.createServer((req, res) => {
@@ -31,11 +33,21 @@ wss.on('connection', ws => {
       ws.joined = true;
       const player = { id, name: cleanName(msg.name), x:24, y:0, z:1.5, yaw:0, vehicle:false };
       players.set(ws, player);
-      send(ws, {type:'welcome', id, players:[...players.values()]});
+      send(ws, {type:'welcome', id, players:[...players.values()], chat:chatHistory, world:{tod:world.tod,wx:world.wx}});
       broadcast({type:'joined', player}, ws);
       return;
     }
-    const p = players.get(ws); if (!p || msg.type !== 'state') return;
+    const p = players.get(ws); if (!p) return;
+    if (msg.type === 'chat') {
+      const text = String(msg.text || '').replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, 180);
+      if (!text) return;
+      const message = {name:p.name, text, time:Date.now()};
+      chatHistory.push(message);
+      if (chatHistory.length > 40) chatHistory.shift();
+      for (const client of players.keys()) send(client, {type:'chat', message});
+      return;
+    }
+    if (msg.type !== 'state') return;
     const n = v => Number.isFinite(Number(v)) ? Math.max(-1000, Math.min(2000, Number(v))) : 0;
     p.x=n(msg.x); p.y=Math.max(-30,Math.min(300,n(msg.y))); p.z=n(msg.z); p.yaw=n(msg.yaw); p.vehicle=!!msg.vehicle;
     broadcast({type:'state', player:p}, ws);
@@ -43,6 +55,17 @@ wss.on('connection', ws => {
   ws.on('close', () => { const p=players.get(ws); if(p){players.delete(ws);broadcast({type:'left',id:p.id});} });
   ws.on('error', () => {});
 });
+// Reloj y clima únicos para todo el servidor. Un día del juego dura 12 minutos reales.
+const worldTick = setInterval(() => {
+  world.tod = (world.tod + 1 / 30) % 24; // 1 segundo real = 2 minutos de juego
+  world.weatherTimer += 1;
+  if (world.weatherTimer >= world.nextWeather) {
+    world.weatherTimer = 0;
+    world.nextWeather = 70 + Math.floor(Math.random() * 81);
+    world.wx = Math.floor(Math.random() * 3);
+  }
+  if (players.size) broadcast({type:'world', tod:world.tod, wx:world.wx});
+}, 1000);
 const heartbeat = setInterval(() => { for (const ws of wss.clients) { if (!ws.isAlive) { ws.terminate(); continue; } ws.isAlive=false; ws.ping(); } }, 30000);
 server.listen(PORT, '0.0.0.0', () => console.log(`Real Life Simulator multiplayer: http://localhost:${PORT} (max ${MAX_PLAYERS})`));
-process.on('SIGINT',()=>{clearInterval(heartbeat);server.close(()=>process.exit(0));});
+process.on('SIGINT',()=>{clearInterval(heartbeat);clearInterval(worldTick);server.close(()=>process.exit(0));});

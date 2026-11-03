@@ -24,9 +24,30 @@ canvas{display:block}
 .card img{width:100px;height:125px;border-radius:8px;background:linear-gradient(#d9cdf0,#a592cc)}.card small{color:#9fe3a8}.card b{color:#ffd966}
 .ic{font-style:normal;font-size:34px;width:46px;text-align:center}.ti{width:34px;height:42px;border-radius:6px;background:#a592cc;vertical-align:middle}
 #inv{display:none;top:50%;left:50%;transform:translate(-50%,-50%);padding:16px 22px;border-radius:12px;min-width:320px;max-height:80vh;overflow:auto;font-size:15px}#inv h2,#inv h3{margin:8px 0 4px}#inv button{padding:6px 12px;border:0;border-radius:6px;background:#2f7fe0;color:#fff;cursor:pointer;margin-top:6px}
+
+/* CHAT MULTIJUGADOR */
+#chatToggle{position:fixed;right:16px;bottom:58px;z-index:40;border:1px solid #ffffff66;border-radius:22px;background:rgba(12,25,38,.92);color:#fff;padding:10px 15px;font:600 14px system-ui;cursor:pointer;box-shadow:0 3px 12px #0005}
+#chatPanel{display:none;position:fixed;right:14px;bottom:108px;z-index:40;width:min(340px,calc(100vw - 28px));height:290px;background:rgba(9,18,29,.94);color:#fff;border:1px solid #ffffff55;border-radius:14px;box-shadow:0 8px 28px #0008;overflow:hidden;font:13px system-ui;pointer-events:auto;flex-direction:column}
+#chatHead{padding:10px 12px;background:rgba(55,91,125,.55);display:flex;align-items:center;justify-content:space-between;font-weight:700}
+#chatClose{border:0;background:transparent;color:#fff;font-size:19px;cursor:pointer}
+#chatMessages{flex:1;overflow-y:auto;padding:9px 11px;display:flex;flex-direction:column;gap:7px;overflow-wrap:anywhere}
+.chatLine{line-height:1.35}.chatLine b{color:#ffd36a}.chatLine small{color:#9eacbd;margin-left:5px;font-size:10px}
+#chatForm{display:flex;gap:6px;padding:8px;border-top:1px solid #ffffff22}
+#chatInput{min-width:0;flex:1;border:1px solid #ffffff44;border-radius:8px;background:#182638;color:#fff;padding:9px;font:13px system-ui;outline:none}
+#chatInput:focus{border-color:#79b9ff}
+#chatSend{border:0;border-radius:8px;background:#2f7fe0;color:#fff;padding:0 13px;font-weight:700;cursor:pointer}
+@media(max-width:600px){#chatToggle{right:10px;bottom:62px}#chatPanel{right:8px;bottom:108px;height:260px}}
+
 </style></head><body>
 <div id="hud"><div id="money"></div><div id="obj"></div><div id="prompt"></div><div id="toast"></div><div id="clk" style="top:132px;left:14px;font-size:15px"></div><div id="hb" style="top:100px;left:14px;width:210px;padding:2px 8px;border:2px solid #fff;border-radius:8px;font-size:13px;box-sizing:border-box"></div><div id="tb" style="top:164px;left:14px;width:210px;padding:2px 8px;border:2px solid #fff;border-radius:8px;font-size:13px;box-sizing:border-box"></div><div id="eb" style="top:192px;left:14px;width:210px;padding:2px 8px;border:2px solid #fff;border-radius:8px;font-size:13px;box-sizing:border-box"></div><div id="spd"></div><div id="fuel" style="display:none;bottom:56px;right:16px;width:190px;padding:2px 8px;border:2px solid #fff;border-radius:8px;font-size:13px;box-sizing:border-box"></div><div id="radio" style="display:none;bottom:90px;right:16px;width:190px;padding:2px 8px;border:2px solid #fff;border-radius:8px;font-size:13px;box-sizing:border-box;background:rgba(0,0,0,.5)"></div><div id="hint" style="bottom:14px;left:14px;font-size:14px">I: inventario · F: comer · E: interactuar · R: repostar · M: mapa · X: cancelar trabajo · N: sonido · C: radio (en coche) · T: mascotas</div></div>
 <canvas id="mm"></canvas><div id="dlg"></div><div id="inv"></div>
+<button id="chatToggle" type="button" title="Abrir o cerrar el chat (tecla P)">P · Chat</button>
+<div id="chatPanel" aria-label="Chat del mundo">
+ <div id="chatHead"><span>💬 Chat del mundo</span><button id="chatClose" type="button" aria-label="Cerrar chat">×</button></div>
+ <div id="chatMessages" aria-live="polite"><div style="color:#b8c5d4">Conectando al chat...</div></div>
+ <form id="chatForm"><input id="chatInput" maxlength="180" autocomplete="off" placeholder="Escribe un mensaje..." aria-label="Mensaje"><button id="chatSend" type="submit">Enviar</button></form>
+</div>
+
 <div id="ov"><h1>REAL LIFE SIMULATOR</h1>
 <p><b>WASD / flechas</b> moverse · <b>Ratón</b> cámara · <b>Espacio</b> saltar (freno en coche) · <b>Shift</b> correr · <b>H</b> sombras sí/no · <b>Y</b> tono de cine sí/no · <b>T</b> panel de mascotas<br>
 <b>En coche:</b> <b>A/D</b> girar · <b>clic izquierdo</b> acelerar · <b>clic derecho</b> frenar / marcha atrás<br>
@@ -1687,7 +1708,7 @@ let shdT=9;
 function shadowify(){scene.traverse(o=>{if(!o.isMesh||o.userData._sh||o.userData.sp!==undefined)return;o.userData._sh=1;for(const q of[].concat(o.material)){if(q&&q.map&&EMM.has(q.map.image)&&!q.userData._w){q.userData._w=1;q.emissiveMap=EMM.get(q.map.image);q.emissive.setHex(0xffd9a0);q.emissiveIntensity=0;q.needsUpdate=true;WINM.push(q)}}const m=Array.isArray(o.material)?o.material[0]:o.material,g=o.geometry;if(!m||!g||m.transparent)return;if(!g.boundingBox)g.computeBoundingBox();const b=g.boundingBox,sy=b.max.y-b.min.y;o.receiveShadow=true;if(sy>.6&&Math.max(b.max.x-b.min.x,b.max.z-b.min.z)<400)o.castShadow=true})}
 addEventListener('keydown',e=>{if(e.code==='KeyY'&&started){ren.toneMapping=ren.toneMapping?THREE.NoToneMapping:THREE.ACESFilmicToneMapping;scene.traverse(o=>{if(o.material)[].concat(o.material).forEach(m=>m.needsUpdate=true)});toast('Tono de cine: '+(ren.toneMapping?'activado':'desactivado'))}if(e.code==='KeyH'&&started){ren.shadowMap.enabled=!ren.shadowMap.enabled;scene.traverse(o=>{if(o.material)[].concat(o.material).forEach(m=>m.needsUpdate=true)});toast('Sombras: '+(ren.shadowMap.enabled?'activadas':'desactivadas'))}});
 function updEnv(dt){qMon();
- const ug=py<-1.5||(inCar&&(inCar.y||0)<-1.5);tod=(tod+dt*24/720)%24;bankTick();wxT+=dt;if(wxT>wxNext){wxT=0;wxNext=rr(70,150);wx=Math.floor(Math.random()*3)}
+ const ug=py<-1.5||(inCar&&(inCar.y||0)<-1.5);bankTick();
  const T=WX[wx];for(const k in cur)cur[k]+=(T[k]-cur[k])*Math.min(1,.4*dt);
  const s=Math.sin((tod-6)/24*2*Math.PI),d=clamp((s+.15)/.5,0,1),tw=clamp(1-Math.abs(s)/.3,0,1),night=1-d;
  C1.set(0x0a1230).lerp(C2.set(0x9ccbe8),d).lerp(C3.set(0xf0a070),tw*.55).lerp(C4.set(0x7b8794).multiplyScalar(.15+.85*d),cur.gr*.8);
@@ -1715,19 +1736,30 @@ function mpStatus(t,ok){const e=document.getElementById('mpStatus');if(e){e.text
 function mpRemove(id){const p=MP.players.get(id);if(!p)return;MP.remoteRoot.remove(p.mesh);p.mesh.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){if(Array.isArray(o.material))o.material.forEach(m=>m.dispose());else o.material.dispose()}});MP.players.delete(id);mpCount()}
 function mpCount(){const e=document.getElementById('mpCount');if(e)e.textContent=(MP.players.size+1)+' / 20 jugadores'}
 function mpConnect(){mpHud();if(location.protocol==='file:'){mpStatus('Abre el juego desde el servidor online',false);return}
- let name='';try{name=localStorage.getItem('rls_mp_name')||''}catch(e){}if(!name){name=(prompt('¿Qué nombre quieres usar en el mundo público?')||'Jugador').replace(/[<>]/g,'').trim().slice(0,18)||'Jugador';try{localStorage.setItem('rls_mp_name',name)}catch(e){}}MP.name=name;
+ let name=MP.name||'';while(!name){const entered=prompt('Antes de entrar, escribe tu nombre (máximo 18 caracteres):');if(entered===null){alert('Necesitas escribir un nombre para entrar al mundo.');continue}name=entered.replace(/[<>]/g,'').trim().slice(0,18);if(!name)alert('El nombre no puede estar vacío.')}MP.name=name;if(!body.userData.mpNameLabel){const ownLabel=mpLabel(MP.name);ownLabel.userData.mpNameLabel=true;body.add(ownLabel);}
  const proto=location.protocol==='https:'?'wss://':'ws://';let ws;try{ws=new WebSocket(proto+location.host)}catch(e){mpStatus('No se pudo conectar',false);return}MP.ws=ws;
  ws.onopen=()=>{MP.connected=true;MP.retry=0;ws.send(JSON.stringify({type:'join',name:MP.name}));mpStatus('Conectado',true)};
  ws.onmessage=e=>{let m;try{m=JSON.parse(e.data)}catch(_){return}
-  if(m.type==='welcome'){MP.id=m.id;(m.players||[]).forEach(d=>{if(d.id!==MP.id)mpUpsert(d)});mpCount()}
+  if(m.type==='welcome'){MP.id=m.id;if(m.world){tod=m.world.tod;wx=m.world.wx} (m.players||[]).forEach(d=>{if(d.id!==MP.id)mpUpsert(d)});(m.chat||[]).forEach(chatAdd);mpCount()}
+  else if(m.type==='world'){if(Number.isFinite(m.tod))tod=m.tod;if(Number.isInteger(m.wx)&&m.wx>=0&&m.wx<WX.length)wx=m.wx}
   else if(m.type==='joined'){if(m.player&&m.player.id!==MP.id)mpUpsert(m.player);mpCount()}
   else if(m.type==='state'){if(m.player&&m.player.id!==MP.id)mpUpsert(m.player)}
   else if(m.type==='left'){mpRemove(m.id)}
+  else if(m.type==='chat'){chatAdd(m.message)}
   else if(m.type==='full'){MP.full=true;mpStatus('Servidor lleno (máximo 20)',false);ws.close()}
  };
  ws.onclose=()=>{MP.connected=false;mpStatus('Desconectado. Reintentando...',false);MP.players.forEach((_,id)=>mpRemove(id));if(!MP.full&&MP.retry<20){const wait=Math.min(10000,1500+MP.retry*500);MP.retry++;setTimeout(mpConnect,wait)}};
  ws.onerror=()=>mpStatus('Error de conexión',false);
 }
+// Chat público: los mensajes pasan por el mismo WebSocket que sincroniza jugadores.
+const chatPanel=document.getElementById('chatPanel'),chatMessages=document.getElementById('chatMessages'),chatInput=document.getElementById('chatInput');
+function chatOpen(open){chatPanel.style.display=open?'flex':'none';if(open){chatInput.focus();chatMessages.scrollTop=chatMessages.scrollHeight}}
+function chatAdd(m){if(!m||typeof m.text!=='string')return;const row=document.createElement('div');row.className='chatLine';const who=document.createElement('b');who.textContent=(m.name||'Jugador').slice(0,18)+': ';const msg=document.createElement('span');msg.textContent=m.text.slice(0,180);const time=document.createElement('small');time.textContent=new Date(m.time||Date.now()).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});row.append(who,msg,time);chatMessages.appendChild(row);while(chatMessages.children.length>60)chatMessages.removeChild(chatMessages.firstChild);chatMessages.scrollTop=chatMessages.scrollHeight}
+document.getElementById('chatToggle').addEventListener('click',()=>chatOpen(chatPanel.style.display!=='flex'));
+addEventListener('keydown',e=>{if(e.code!=='KeyP'||e.repeat||!started)return;const a=document.activeElement;if(a&&(a.tagName==='INPUT'||a.tagName==='TEXTAREA'||a.tagName==='SELECT'||a.isContentEditable))return;e.preventDefault();chatOpen(chatPanel.style.display!=='flex')});
+document.getElementById('chatClose').addEventListener('click',()=>chatOpen(false));
+document.getElementById('chatForm').addEventListener('submit',e=>{e.preventDefault();const text=chatInput.value.trim();if(!text)return;if(!MP.connected||!MP.ws||MP.ws.readyState!==1){chatAdd({name:'Sistema',text:'No estás conectado al servidor.',time:Date.now()});return}MP.ws.send(JSON.stringify({type:'chat',text}));chatInput.value='';chatInput.focus()});
+chatInput.addEventListener('keydown',e=>{e.stopPropagation();if(e.key==='Escape'){chatOpen(false);chatInput.blur()}});
 function mpUpsert(d){if(!d||!d.id)return;let p=MP.players.get(d.id);if(!p){p=mpMakePlayer(d);MP.players.set(d.id,p)}p.target.set(Number(d.x)||0,Number(d.y)||0,Number(d.z)||0);p.yaw=Number(d.yaw)||0;p.last=performance.now();if(p.name!==d.name){p.name=d.name;const old=p.mesh.children.find(o=>o.isSprite);if(old){p.mesh.remove(old);old.material.map.dispose();old.material.dispose()}p.mesh.add(mpLabel(d.name))}mpCount()}
 function mpTick(dt){if(MP.connected&&MP.ws&&MP.ws.readyState===1&&started&&ov.style.display==='none'){
  const now=performance.now();if(now-MP.lastSend>100){MP.lastSend=now;try{MP.ws.send(JSON.stringify({type:'state',x:inCar?inCar.x:(riding?riding.x:pl.x),y:inCar?(inCar.y||0):(riding?(riding.alt||0):py),z:inCar?inCar.z:(riding?riding.z:pl.z),yaw:inCar?inCar.h:(riding?riding.h:yaw),vehicle:!!(inCar||riding)}))}catch(e){}}
