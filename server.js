@@ -47,6 +47,23 @@ wss.on('connection', ws => {
       for (const client of players.keys()) send(client, {type:'chat', message});
       return;
     }
+    if (msg.type === 'trade') {
+      // Intercambios entre jugadores: el servidor solo reenvía los mensajes al jugador destino.
+      const op = String(msg.op || '');
+      if (!['offer','accept','reject','cancel','deliver','bounce'].includes(op)) return;
+      const nowT = Date.now(); if (nowT - (ws.lastTrade || 0) < 120) return; ws.lastTrade = nowT;
+      const tid = String(msg.tid || '').replace(/[^\w-]/g, '').slice(0, 40);
+      let data = {};
+      try { const s = JSON.stringify(msg.data && typeof msg.data === 'object' ? msg.data : {}); if (s.length > 6000) return; data = JSON.parse(s); } catch { return; }
+      let target = null;
+      for (const [c, q] of players) if (q.id === String(msg.to) && c !== ws) { target = c; break; }
+      if (!target) {
+        if (op === 'offer' || op === 'deliver') send(ws, {type:'trade', op:'gone', tid, from:String(msg.to || ''), data: op === 'deliver' ? data : {}});
+        return;
+      }
+      send(target, {type:'trade', op, tid, from:p.id, fromName:p.name, reason:String(msg.reason || '').slice(0, 80), data});
+      return;
+    }
     if (msg.type !== 'state') return;
     const n = v => Number.isFinite(Number(v)) ? Math.max(-1000, Math.min(2000, Number(v))) : 0;
     p.x=n(msg.x); p.y=Math.max(-30,Math.min(300,n(msg.y))); p.z=n(msg.z); p.yaw=n(msg.yaw);

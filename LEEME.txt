@@ -1,0 +1,49 @@
+REAL LIFE SIMULATOR · MULTIJUGADOR PÚBLICO (20 JUGADORES)
+
+ARCHIVOS
+- index.html: tu juego con el cliente multijugador integrado.
+- server.js: servidor HTTP + WebSocket del mundo público.
+- package.json: dependencia del servidor.
+
+PROBAR EN TU ORDENADOR
+1. Instala Node.js (versión LTS) desde https://nodejs.org/.
+2. Abre una terminal dentro de esta carpeta.
+3. Ejecuta: npm install
+4. Ejecuta: npm start
+5. Abre http://localhost:3000
+
+PARA JUGAR CON OTRA GENTE POR INTERNET
+Debes publicar ESTA CARPETA en un servidor que permita ejecutar Node.js y mantener conexiones WebSocket (por ejemplo, un VPS o un servicio de hosting Node compatible).
+Configura el puerto mediante la variable PORT si el proveedor lo requiere. Comparte la URL pública HTTPS con tus amigos. Todos entrarán al mismo mundo, hasta 20 conexiones simultáneas.
+
+IMPORTANTE
+- No abras index.html directamente como archivo file://. Debes entrar por http://localhost:3000 o por la URL pública del servidor.
+- El límite de 20 jugadores lo aplica el servidor, no el navegador.
+- Esta primera versión sincroniza nombre, posición, altura y orientación de los jugadores. El resto de la simulación (economía, inventario, vehículos NPC, casas y progreso) sigue siendo local a cada jugador; no es todavía un mundo persistente con objetos compartidos.
+- El servidor no usa cuentas ni contraseñas. No introduzcas datos personales en el nombre público.
+
+CHAT MULTIJUGADOR
+- El chat es compartido por todos los jugadores conectados.
+- Se muestran los últimos 40 mensajes también a quien acaba de entrar.
+- Los mensajes son temporales: se borran al reiniciar el servidor.
+
+NOMBRE, HORA Y CLIMA COMPARTIDOS
+- Al entrar se solicita un nombre obligatorio (hasta 18 caracteres). Ese nombre aparece sobre el personaje y sobre los demás jugadores.
+- La hora del día y el clima los controla el servidor y se sincronizan para todos los jugadores conectados.
+- Un día completo del juego dura 12 minutos reales. El clima compartido puede cambiar cada 70 a 150 segundos.
+- Si el servidor se reinicia, el reloj y el clima vuelven a sus valores iniciales.
+
+
+NOVEDADES DE ESTA VERSION:
+- ESC cierra el chat y la ficha del jugador.
+- Acercate a otro jugador (hasta 12 metros) y pulsa O para ver su ficha.
+- La ficha muestra nombre, dinero, propiedades, negocios, mascotas y carrera laboral.
+- La informacion del perfil se actualiza junto con el estado multijugador.
+
+TRANSFERENCIAS ENTRE JUGADORES (NUEVO):
+- Acércate a otro jugador (hasta 15 m), pulsa O y usa la sección "Enviar" de su ficha.
+- Se puede enviar: dinero, comida, ropa y otros objetos del inventario, casas/pisos y negocios (con su tipo, nivel, caja y stock).
+- El otro jugador ve un aviso y debe pulsar Aceptar. Si rechaza, no responde en 45 s o se desconecta, no se pierde nada.
+- Las propiedades alquiladas o con hipoteca no se pueden enviar. La ropa que llevas puesta hay que quitársela antes.
+- Si el receptor ya tiene esa casa/negocio en su partida local, no puede aceptarla (cada jugador tiene su propio mundo de propiedades).
+- Cada jugador guarda su progreso en su navegador, así que el servidor solo reenvía las ofertas; no hay cuentas ni verificación.
