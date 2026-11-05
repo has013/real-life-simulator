@@ -40,10 +40,13 @@ NOVEDADES DE ESTA VERSION:
 - La ficha muestra nombre, dinero, propiedades, negocios, mascotas y carrera laboral.
 - La informacion del perfil se actualiza junto con el estado multijugador.
 
-TRANSFERENCIAS ENTRE JUGADORES (NUEVO):
-- Acércate a otro jugador (hasta 15 m), pulsa O y usa la sección "Enviar" de su ficha.
-- Se puede enviar: dinero, comida, ropa y otros objetos del inventario, casas/pisos y negocios (con su tipo, nivel, caja y stock).
-- El otro jugador ve un aviso y debe pulsar Aceptar. Si rechaza, no responde en 45 s o se desconecta, no se pierde nada.
-- Las propiedades alquiladas o con hipoteca no se pueden enviar. La ropa que llevas puesta hay que quitársela antes.
-- Si el receptor ya tiene esa casa/negocio en su partida local, no puede aceptarla (cada jugador tiene su propio mundo de propiedades).
-- Cada jugador guarda su progreso en su navegador, así que el servidor solo reenvía las ofertas; no hay cuentas ni verificación.
+TRANSFERENCIAS ENTRE JUGADORES (NUEVO)
+- Acércate a otro jugador (hasta 12 m), pulsa O y elige "Enviar dinero / objetos / propiedades".
+- Puedes enviar dinero, comida, ropa y otros objetos del inventario, casas/pisos y negocios (locales).
+- Solo se pueden enviar casas y locales que sean tuyos del todo (no alquilados ni con hipoteca).
+- Al otro jugador le aparece una ventana para Aceptar o Rechazar (ESC rechaza). La oferta caduca a los 60 s.
+- Lo enviado se descuenta de ti solo cuando el otro acepta, y el servidor comprueba que sigues teniéndolo.
+- Si el otro ya tiene esa casa o ese local, no puede aceptar la oferta.
+- Hay que estar a menos de 15 m del otro jugador cuando envías la oferta.
+- Al enviar un negocio se transfieren tipo, nivel, caja y existencias; el almacén general no se transfiere.
+- La partida de ambos se guarda automáticamente al completarse la transferencia.

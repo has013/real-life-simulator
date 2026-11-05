@@ -21,6 +21,101 @@ const wss = new WebSocketServer({ server, maxPayload: 16384 });
 function send(ws, data) { if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(data)); }
 function broadcast(data, except) { for (const [ws] of players) if (ws !== except) send(ws, data); }
 function cleanName(v) { return String(v || 'Jugador').replace(/[<>\u0000-\u001f]/g, '').trim().slice(0,18) || 'Jugador'; }
+
+// ===== TRANSFERENCIAS (dinero, objetos, casas y negocios) =====
+// Flujo: A ofrece -> B acepta -> A confirma que lo tiene y lo descuenta -> B lo recibe.
+// El servidor guarda la oferta validada; el cliente no puede cambiarla después.
+const transfers = new Map();
+let nextTid = 1;
+const TRANSFER_RANGE = 15, TRANSFER_TTL = 60000;
+const ITEM_CATS = ['Comida','Ropa','Muebles','Combustible','Mascotas','Ropa de mascota'];
+const toInt = (v, min, max) => { v = Math.floor(Number(v)); return Number.isFinite(v) ? Math.max(min, Math.min(max, v)) : min; };
+const cleanStr = (v, l) => String(v == null ? '' : v).replace(/[<>\u0000-\u001f\u007f]/g, '').trim().slice(0, l);
+function cleanProp(q, biz) {
+  if (!q || typeof q !== 'object') return null;
+  const x = Number(q.x), z = Number(q.z);
+  if (!Number.isFinite(x) || !Number.isFinite(z)) return null;
+  const r = { x: Math.round(x), z: Math.round(z) };
+  if (biz) {
+    r.ty = cleanStr(q.ty, 24); r.lv = toInt(q.lv, 1, 99); r.till = toInt(q.till, 0, 1e9); r.stock = {};
+    if (q.stock && typeof q.stock === 'object') Object.entries(q.stock).slice(0, 30).forEach(([k, v]) => { const key = cleanStr(k, 30); if (key) r.stock[key] = toInt(v, 0, 1e6); });
+  } else r.apt = !!q.apt;
+  return r;
+}
+function cleanOffer(o) {
+  if (!o || typeof o !== 'object') return null;
+  const r = { money: toInt(o.money, 0, 1e9), items: [], houses: [], biz: [] };
+  if (Array.isArray(o.items)) {
+    const seen = new Set();
+    for (const i of o.items.slice(0, 20)) {
+      if (!i || typeof i !== 'object') continue;
+      const k = cleanStr(i.k, 40), cat = ITEM_CATS.includes(i.cat) ? i.cat : null, n = toInt(i.n, 0, 999);
+      if (!k || !cat || n < 1 || seen.has(k)) continue;
+      seen.add(k); r.items.push({ k, cat, n });
+    }
+  }
+  for (const f of ['houses', 'biz']) {
+    if (!Array.isArray(o[f])) continue;
+    const seen = new Set();
+    for (const q of o[f].slice(0, 5)) { const c = cleanProp(q, f === 'biz'); if (!c) continue; const key = c.x + ',' + c.z; if (seen.has(key)) continue; seen.add(key); r[f].push(c); }
+  }
+  return (r.money || r.items.length || r.houses.length || r.biz.length) ? r : null;
+}
+function wsById(id) { id = String(id); for (const [w, pl] of players) if (pl.id === id) return w; return null; }
+function xferBusy(ws) { for (const t of transfers.values()) if (t.from === ws || t.to === ws) return t; return null; }
+function endTransfer(t, toFrom, toTo) {
+  clearTimeout(t.timer); transfers.delete(t.tid);
+  if (toFrom) send(t.from, toFrom);
+  if (toTo) send(t.to, toTo);
+}
+function handleTransfer(ws, p, msg) {
+  if (msg.type === 'transfer') {
+    const target = wsById(msg.to), tp = target && players.get(target), offer = cleanOffer(msg.offer);
+    const err = reason => send(ws, { type: 'transfer_error', reason });
+    if (!tp || target === ws || target.readyState !== WebSocket.OPEN) return err('Ese jugador ya no está conectado');
+    if (!offer) return err('La oferta está vacía o no es válida');
+    if (xferBusy(ws)) return err('Ya tienes una transferencia en curso');
+    if (xferBusy(target)) return err(tp.name + ' está atendiendo otra oferta');
+    if (Math.hypot(p.x - tp.x, p.z - tp.z) > TRANSFER_RANGE) return err('Estás demasiado lejos de ' + tp.name);
+    const tid = String(nextTid++);
+    const t = { tid, from: ws, to: target, offer, stage: 'offered', toGone: false, timer: null };
+    t.timer = setTimeout(() => endTransfer(t, { type: 'transfer_result', tid, ok: false, reason: 'La oferta a ' + tp.name + ' ha caducado' }, { type: 'transfer_cancel', tid, reason: 'La oferta ha caducado' }), TRANSFER_TTL);
+    transfers.set(tid, t);
+    send(ws, { type: 'transfer_wait', tid, toName: tp.name, offer });
+    send(target, { type: 'transfer_offer', tid, from: { id: p.id, name: p.name }, offer });
+    return;
+  }
+  const t = transfers.get(String(msg.tid));
+  if (!t) return;
+  if (msg.type === 'transfer_reply' && t.to === ws && t.stage === 'offered') {
+    if (!msg.accept) {
+      const why = cleanStr(msg.reason, 100);
+      return endTransfer(t, { type: 'transfer_result', tid: t.tid, ok: false, reason: why ? p.name + ' no puede aceptarla: ' + why : p.name + ' ha rechazado la oferta' }, null);
+    }
+    t.stage = 'commit';
+    send(t.from, { type: 'transfer_commit', tid: t.tid, offer: t.offer });
+    return;
+  }
+  if (msg.type === 'transfer_commit_ack' && t.from === ws && t.stage === 'commit') {
+    if (!msg.ok) return endTransfer(t, { type: 'transfer_result', tid: t.tid, ok: false, reason: 'Ya no tenías todo lo que ofrecías' }, { type: 'transfer_cancel', tid: t.tid, reason: p.name + ' ya no tenía lo ofrecido' });
+    const rp = players.get(t.to);
+    if (t.toGone || !rp || t.to.readyState !== WebSocket.OPEN) return endTransfer(t, { type: 'transfer_refund', tid: t.tid, offer: t.offer }, null);
+    return endTransfer(t, { type: 'transfer_result', tid: t.tid, ok: true, toName: rp.name }, { type: 'transfer_deliver', tid: t.tid, from: { id: p.id, name: p.name }, offer: t.offer });
+  }
+}
+function dropTransfersOf(ws) {
+  for (const t of [...transfers.values()]) {
+    if (t.from !== ws && t.to !== ws) continue;
+    if (t.to === ws) {
+      // El receptor se fue. Si el emisor ya descontó (fase commit), se espera su confirmación para devolverle lo suyo.
+      if (t.stage === 'commit') { t.toGone = true; continue; }
+      endTransfer(t, { type: 'transfer_result', tid: t.tid, ok: false, reason: 'El jugador se ha desconectado' }, null);
+    } else {
+      endTransfer(t, null, { type: 'transfer_cancel', tid: t.tid, reason: 'El otro jugador se ha desconectado' });
+    }
+  }
+}
+
 wss.on('connection', ws => {
   if (players.size >= MAX_PLAYERS) { send(ws, {type:'full'}); return ws.close(1013, 'World full'); }
   const id = String(nextId++);
@@ -47,23 +142,7 @@ wss.on('connection', ws => {
       for (const client of players.keys()) send(client, {type:'chat', message});
       return;
     }
-    if (msg.type === 'trade') {
-      // Intercambios entre jugadores: el servidor solo reenvía los mensajes al jugador destino.
-      const op = String(msg.op || '');
-      if (!['offer','accept','reject','cancel','deliver','bounce'].includes(op)) return;
-      const nowT = Date.now(); if (nowT - (ws.lastTrade || 0) < 120) return; ws.lastTrade = nowT;
-      const tid = String(msg.tid || '').replace(/[^\w-]/g, '').slice(0, 40);
-      let data = {};
-      try { const s = JSON.stringify(msg.data && typeof msg.data === 'object' ? msg.data : {}); if (s.length > 6000) return; data = JSON.parse(s); } catch { return; }
-      let target = null;
-      for (const [c, q] of players) if (q.id === String(msg.to) && c !== ws) { target = c; break; }
-      if (!target) {
-        if (op === 'offer' || op === 'deliver') send(ws, {type:'trade', op:'gone', tid, from:String(msg.to || ''), data: op === 'deliver' ? data : {}});
-        return;
-      }
-      send(target, {type:'trade', op, tid, from:p.id, fromName:p.name, reason:String(msg.reason || '').slice(0, 80), data});
-      return;
-    }
+    if (typeof msg.type === 'string' && msg.type.startsWith('transfer')) { handleTransfer(ws, p, msg); return; }
     if (msg.type !== 'state') return;
     const n = v => Number.isFinite(Number(v)) ? Math.max(-1000, Math.min(2000, Number(v))) : 0;
     p.x=n(msg.x); p.y=Math.max(-30,Math.min(300,n(msg.y))); p.z=n(msg.z); p.yaw=n(msg.yaw);
@@ -90,7 +169,7 @@ wss.on('connection', ws => {
     }
     broadcast({type:'state', player:p}, ws);
   });
-  ws.on('close', () => { const p=players.get(ws); if(p){players.delete(ws);broadcast({type:'left',id:p.id});} });
+  ws.on('close', () => { dropTransfersOf(ws); const p=players.get(ws); if(p){players.delete(ws);broadcast({type:'left',id:p.id});} });
   ws.on('error', () => {});
 });
 // Reloj y clima únicos para todo el servidor. Un día del juego dura 12 minutos reales.
