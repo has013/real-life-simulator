@@ -719,3 +719,4 @@ process.on('SIGINT', shutdown); process.on('SIGTERM', shutdown); // los hostings
 // Un error en un mensaje suelto no debe tumbar el servidor (y con él a todos los jugadores): se registra y se sigue.
 process.on('uncaughtException', e => console.error('[error no controlado]', e && e.stack || e));
 process.on('unhandledRejection', e => console.error('[promesa rechazada]', e && e.stack || e));
+// holasssss
