@@ -4,6 +4,8 @@ ARCHIVOS
 - index.html: tu juego con el cliente multijugador integrado.
 - server.js: servidor HTTP + WebSocket del mundo público.
 - package.json: dependencia del servidor.
+- accounts.json: cuentas de usuario (nombre y contraseña cifrada). Lo actualiza el servidor.
+- saves/: carpeta que crea el servidor con la partida guardada de cada cuenta (un archivo por cuenta).
 
 PROBAR EN TU ORDENADOR
 1. Instala Node.js (versión LTS) desde https://nodejs.org/.
@@ -20,7 +22,24 @@ IMPORTANTE
 - No abras index.html directamente como archivo file://. Debes entrar por http://localhost:3000 o por la URL pública del servidor.
 - El límite de 20 jugadores lo aplica el servidor, no el navegador.
 - Esta primera versión sincroniza nombre, posición, altura y orientación de los jugadores. El resto de la simulación (economía, inventario, vehículos NPC, casas y progreso) sigue siendo local a cada jugador; no es todavía un mundo persistente con objetos compartidos.
-- El servidor no usa cuentas ni contraseñas. No introduzcas datos personales en el nombre público.
+- No introduzcas datos personales en el nombre de usuario: es el nombre público que ven los demás.
+- Al actualizar el juego en el servidor, NO sustituyas accounts.json ni la carpeta saves/ (ni gov.json, biz.json,
+  houses.json y players.json): contienen las cuentas y las partidas de los jugadores. Si los sobrescribes, se pierden.
+
+CUENTAS DE USUARIO (NUEVO)
+- Para jugar hay que tener cuenta. En la pantalla de entrada hay dos pestañas: "Iniciar sesión" y "Registrarse".
+- Usuario: de 3 a 18 caracteres (letras, números, espacio, punto, guion o guion bajo). No se distinguen mayúsculas:
+  "Joan" y "joan" son el mismo usuario. Contraseña: al menos 6 caracteres.
+- La contraseña no se guarda tal cual: accounts.json solo tiene un resumen cifrado (scrypt con sal aleatoria).
+- Cada dispositivo recuerda su sesión: la próxima vez entra solo en la misma cuenta, sin escribir nada.
+  Con "Cerrar sesión" el dispositivo la olvida.
+- La partida (dinero, inventario, coches, casas, mascotas...) se guarda en el servidor, así que es la misma en
+  cualquier dispositivo. Además se guarda una copia en el dispositivo por si se pierde la conexión.
+- Una cuenta solo puede estar dentro una vez: si entras desde otro dispositivo o pestaña, la sesión anterior se cierra.
+- Quien ya jugaba antes de las cuentas conserva su partida, sus negocios y sus terrenos si crea la cuenta
+  desde el mismo dispositivo (y navegador) en el que jugaba.
+- Tras 5 contraseñas incorrectas seguidas, ese usuario queda bloqueado 1 minuto.
+- Variables opcionales: ACCOUNTS_FILE (ruta de accounts.json) y SAVES_DIR (carpeta de las partidas).
 
 CHAT MULTIJUGADOR
 - El chat es compartido por todos los jugadores conectados.
@@ -28,7 +47,7 @@ CHAT MULTIJUGADOR
 - Los mensajes son temporales: se borran al reiniciar el servidor.
 
 NOMBRE, HORA Y CLIMA COMPARTIDOS
-- Al entrar se solicita un nombre obligatorio (hasta 18 caracteres). Ese nombre aparece sobre el personaje y sobre los demás jugadores.
+- El nombre de cada jugador es su nombre de usuario. Aparece sobre su personaje para los demás jugadores.
 - La hora del día y el clima los controla el servidor y se sincronizan para todos los jugadores conectados.
 - Un día completo del juego dura 12 minutos reales. El clima compartido puede cambiar cada 70 a 150 segundos.
 - Si el servidor se reinicia, el reloj y el clima vuelven a sus valores iniciales.

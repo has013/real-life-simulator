@@ -12,12 +12,13 @@
    C4.  TRANSFERENCIAS ENTRE JUGADORES
    C5.  CONTROLES TÁCTILES (joystick y botones)
    C6.  AJUSTES PARA MÓVIL (zonas seguras, HUD y aviso de girar la pantalla)
+   C7.  PANTALLA DE ENTRADA: CUENTAS (registrarse e iniciar sesión)
 
   HTML (en <body>)
    H1.  HUD (dinero, objetivo, avisos, barras de hambre/energía, reloj, gasolina, radio)
    H2.  Minimapa, ventana de diálogo e inventario
    H3.  Chat y ficha del jugador
-   H4.  Pantalla de inicio (controles y botones de sonido, calidad y borrar partida)
+   H4.  Pantalla de inicio (cuenta: registrarse / iniciar sesión, controles y botones de sonido, calidad y borrar partida)
    H5.  Aviso para girar el móvil
 
   JAVASCRIPT principal
@@ -85,6 +86,7 @@
          24.1 Conexión, jugadores remotos y chat del mundo
          24.2 Mensajes privados: pestañas del chat
          24.3 Transferencias entre jugadores (dinero, objetos, casas y negocios)
+         24.4 Cuentas: registrarse e iniciar sesión (pantalla de entrada)
    25.  BUCLE PRINCIPAL
    26.  MASCOTAS
    27.  RANGOS SOCIALES Y GOBIERNO
@@ -253,6 +255,22 @@ body.touch #tcjb{left:calc(90px + env(safe-area-inset-left))}
 #rotWarn i{font-style:normal;font-size:64px;display:block;margin-bottom:14px;animation:rotHint 1.6s ease-in-out infinite}
 @keyframes rotHint{0%,30%{transform:rotate(0)}70%,100%{transform:rotate(-90deg)}}
 @media (pointer:coarse) and (orientation:portrait){#rotWarn{display:flex}}
+
+/* ============================================================
+   C7. PANTALLA DE ENTRADA: CUENTAS (registrarse e iniciar sesión)
+   ============================================================ */
+#acc{display:none;margin:4px auto 10px;width:min(340px,90vw);box-sizing:border-box;background:rgba(255,255,255,.07);border:1px solid #ffffff33;border-radius:12px;padding:12px 14px;cursor:default}
+.accTabs{display:flex;gap:6px;margin-bottom:10px}
+.accTabs button{flex:1;border:0;border-radius:8px;padding:8px;background:#3a4357;color:#fff;font:600 14px system-ui;cursor:pointer}
+.accTabs button.on{background:#a84be8}
+#accF{display:flex;flex-direction:column;gap:8px}
+#accF input{border:1px solid #ffffff44;border-radius:8px;background:#182638;color:#fff;padding:9px 10px;font:15px system-ui;outline:none}
+#accF input:focus{border-color:#79b9ff}
+#accGo{border:0;border-radius:8px;background:#2f7fe0;color:#fff;padding:10px;font:700 15px system-ui;cursor:pointer}
+#accGo:disabled{opacity:.6;cursor:wait}
+#accIn{font-size:15px}
+#accOut{margin-left:8px;border:0;border-radius:6px;background:#704b31;color:#fff;padding:5px 10px;font:13px system-ui;cursor:pointer}
+#accMsg{margin-top:8px;font-size:13px;min-height:1em}
 </style>
 </head><body>
 
@@ -277,7 +295,15 @@ body.touch #tcjb{left:calc(90px + env(safe-area-inset-left))}
 <b>E</b> interactuar (puertas, personas, coches) · <b>I</b> inventario · <b>M</b> móvil (con M otra vez se queda pequeño con la app abierta; Chat —también con <b>P</b>—, Mapa y Opciones: sombras, tono de cine, sonido y calidad); el Mapa ocupa toda la pantalla del móvil (zoom con rueda, +/− o botones; arrastrar o flechas para moverlo) · <b>ESC</b> pausa · <b>C</b> radio del coche (3 emisoras)</p>
 <p>En coche: W acelerar, S frenar/marcha atrás, A/D girar, Espacio freno de mano.<br>⛽ Los coches gastan gasolina: reposta en las gasolineras (G en el mapa) con <b>R</b> en coche o <b>E</b> junto al surtidor.</p>
 <p>💼 Trabajos: reponer estanterías (Supermercado), repartir pedidos (Alimentación) y taxista (Hotel). Cada tarea cuenta para ascender y cobrar más. <b>X</b> cancela el trabajo en curso.</p>
-<div id="savemsg" style="margin:6px 0;font-size:14px;color:#9fe3a8"></div><button id="sndbtn" style="margin:4px 6px 12px;padding:6px 14px;border:0;border-radius:6px;background:#2f7fe0;color:#fff;cursor:pointer;font-size:13px">🔊 Sonido: activado</button><button id="qbtn" style="margin:4px 6px 12px;padding:6px 14px;border:0;border-radius:6px;background:#2f7fe0;color:#fff;cursor:pointer;font-size:13px">🎛️ Calidad</button><button id="delsave" style="margin:4px 0 12px;padding:6px 14px;border:0;border-radius:6px;background:#a33;color:#fff;cursor:pointer;font-size:13px">🗑 Borrar partida</button><h2>Haz clic para jugar</h2></div>
+<div id="acc">
+ <div id="accForm">
+  <div class="accTabs"><button type="button" id="accTabLogin" class="on">Iniciar sesión</button><button type="button" id="accTabReg">Registrarse</button></div>
+  <form id="accF" autocomplete="on"><input id="accUser" name="username" maxlength="18" placeholder="Nombre de usuario" autocomplete="username" autocapitalize="off" spellcheck="false"><input id="accPass" name="password" type="password" maxlength="100" placeholder="Contraseña" autocomplete="current-password"><input id="accPass2" type="password" maxlength="100" placeholder="Repite la contraseña" autocomplete="new-password" style="display:none"><button type="submit" id="accGo">Entrar</button></form>
+ </div>
+ <div id="accIn" style="display:none">👤 Has entrado como <b id="accName"></b><button type="button" id="accOut">Cerrar sesión</button></div>
+ <div id="accMsg"></div>
+</div>
+<div id="savemsg" style="margin:6px 0;font-size:14px;color:#9fe3a8"></div><button id="sndbtn" style="margin:4px 6px 12px;padding:6px 14px;border:0;border-radius:6px;background:#2f7fe0;color:#fff;cursor:pointer;font-size:13px">🔊 Sonido: activado</button><button id="qbtn" style="margin:4px 6px 12px;padding:6px 14px;border:0;border-radius:6px;background:#2f7fe0;color:#fff;cursor:pointer;font-size:13px">🎛️ Calidad</button><button id="delsave" style="margin:4px 0 12px;padding:6px 14px;border:0;border-radius:6px;background:#a33;color:#fff;cursor:pointer;font-size:13px">🗑 Borrar partida</button><h2 id="ovGo">Haz clic para jugar</h2></div>
 <!-- ========== H5. AVISO PARA GIRAR EL MÓVIL ========== -->
 <div id="rotWarn"><div><i>📱</i>Gira el móvil en horizontal<br><small style="font-weight:400;opacity:.7">El juego se ve y se controla mucho mejor así</small></div></div>
 
@@ -3103,7 +3129,7 @@ addEventListener('mousemove',e=>{if(!playing())return;if(document.pointerLockEle
 ren.domElement.addEventListener('mousedown',()=>drag=true);addEventListener('mouseup',()=>drag=false);
 // coche: clic izquierdo = acelerar, clic derecho = frenar / marcha atrás (la dirección sigue en A/D)
 const MB={l:0,r:0};addEventListener('mousedown',e=>{if(e.button===0)MB.l=1;else if(e.button===2)MB.r=1});addEventListener('mouseup',e=>{if(e.button===0)MB.l=0;else if(e.button===2)MB.r=0});addEventListener('contextmenu',e=>e.preventDefault());addEventListener('blur',()=>{MB.l=MB.r=0});document.addEventListener('pointerlockchange',()=>{MB.l=MB.r=0});
-ov.addEventListener('click',()=>{started=true;ov.style.display='none';try{ren.domElement.requestPointerLock()}catch(e){}});
+ov.addEventListener('click',()=>{if(!ACC.ok&&location.protocol!=='file:')return; /* sin sesión iniciada no se puede jugar (24.4) */started=true;ov.style.display='none';try{ren.domElement.requestPointerLock()}catch(e){}});
 document.addEventListener('pointerlockchange',()=>{if(!document.pointerLockElement&&started&&!dlgOpen)ov.style.display='flex'});
 addEventListener('resize',()=>{cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();ren.setSize(innerWidth,innerHeight)});
 
@@ -3782,10 +3808,10 @@ function mpDispose(g){if(!g)return;g.traverse(o=>{if(o.geometry)o.geometry.dispo
 function mpRemove(id){const p=MP.players.get(id);if(!p)return;MP.remoteRoot.remove(p.mesh);mpDispose(p.mesh);if(p.vehicleMesh){MP.remoteRoot.remove(p.vehicleMesh);mpDispose(p.vehicleMesh)}for(const q of p.pets.values()){MP.remoteRoot.remove(q.mesh);mpDispose(q.mesh)}MP.players.delete(id);mpCount()}
 function mpCount(){const e=document.getElementById('mpCount');if(e)e.textContent=(MP.players.size+1)+' / 20 jugadores'}
 function mpConnect(){mpHud();if(location.protocol==='file:'){mpStatus('Abre el juego desde el servidor online',false);return}
- let name=MP.name||'';while(!name){const entered=prompt('Antes de entrar, escribe tu nombre (máximo 18 caracteres):');if(entered===null){alert('Necesitas escribir un nombre para entrar al mundo.');continue}name=entered.replace(/[<>]/g,'').trim().slice(0,18);if(!name)alert('El nombre no puede estar vacío.')}MP.name=name; // tu propio nombre no se dibuja sobre tu cabeza (los demás jugadores sí ven el tuyo)
+ // el nombre ya no se pregunta: es el de la cuenta (24.4). Tu propio nombre no se dibuja sobre tu cabeza (los demás jugadores sí ven el tuyo)
  const proto=location.protocol==='https:'?'wss://':'ws://';let ws;try{ws=new WebSocket(proto+location.host)}catch(e){mpStatus('No se pudo conectar',false);return}MP.ws=ws;
- ws.onopen=()=>{MP.connected=true;MP.retry=0;ws.send(JSON.stringify({type:'join',name:MP.name,uid:getUid()}));mpStatus('Conectado',true)};
- ws.onmessage=e=>{let m;try{m=JSON.parse(e.data)}catch(_){return}
+ ws.onopen=()=>{MP.connected=true;MP.retry=0;mpStatus('Conectado',true);accOnOpen()}; // primero se inicia sesión (24.4); cuando el servidor la acepta se envía 'join'
+ ws.onmessage=e=>{let m;try{m=JSON.parse(e.data)}catch(_){return}if(accOnMsg(m))return;
   if(m.type==='welcome'){MP.id=m.id;MP.feat=m.features||{};if(m.world){tod=m.world.tod;wx=m.world.wx} (m.players||[]).forEach(d=>{if(d.id!==MP.id)mpUpsert(d)});(m.chat||[]).forEach(chatAdd);mpCount()}
   else if(m.type==='world'){if(Number.isFinite(m.tod))tod=m.tod;if(Number.isInteger(m.wx)&&m.wx>=0&&m.wx<WX.length)wx=m.wx}
   else if(m.type==='wake'){if(SLP){const s=SLP;SLP=null;slpLeave();if(s.cost)money=Math.max(0,money-s.cost);if(s.room)flags.room=0;sleepFor(Number(m.h)||8,s.rate,s.msg,true)}}
@@ -3824,9 +3850,9 @@ function mpConnect(){mpHud();if(location.protocol==='file:'){mpStatus('Abre el j
    else if(m.type==='gov_error'){toast('⚠️ '+String(m.reason||'Error').slice(0,120))}
    else if(m.type==='gov_ok'){toast(String(m.text||'').slice(0,120))}
   else if(typeof m.type==='string'&&m.type.startsWith('transfer_')){xfHandle(m)}
-  else if(m.type==='full'){MP.full=true;mpStatus('Servidor lleno (máximo 20)',false);ws.close()}
+  else if(m.type==='full'){MP.full=true;mpStatus('Servidor lleno (máximo 20)',false);ws.close();accUi()}
  };
- ws.onclose=()=>{if(SLP){SLP=null;slpLeave()}MP.connected=false;bizSynced=false;bizClaimPend=null;houseSynced=false;housePend=null;houseSeen.clear();boatMpReset();mpStatus('Desconectado. Reintentando...',false);MP.players.forEach((_,id)=>mpRemove(id));if(!MP.full&&MP.retry<20){const wait=Math.min(10000,1500+MP.retry*500);MP.retry++;setTimeout(mpConnect,wait)}};
+ ws.onclose=()=>{ACC.busy=false;if(SLP){SLP=null;slpLeave()}MP.connected=false;bizSynced=false;bizClaimPend=null;houseSynced=false;housePend=null;houseSeen.clear();boatMpReset();mpStatus('Desconectado. Reintentando...',false);MP.players.forEach((_,id)=>mpRemove(id));if(MP.kicked){mpStatus('Cuenta abierta en otro sitio',false);return}if(!MP.full&&MP.retry<20){const wait=Math.min(10000,1500+MP.retry*500);MP.retry++;setTimeout(mpConnect,wait)}};
  ws.onerror=()=>mpStatus('Error de conexión',false);
 }
 // Chat público: los mensajes pasan por el mismo WebSocket que sincroniza jugadores.
@@ -4006,6 +4032,59 @@ function xfHandle(m){
   case 'transfer_result':XF.out=null;toast(m.ok?'✅ '+(m.toName||'El jugador')+' ha recibido tu envío':'❌ '+(m.reason||'Oferta cancelada'));break;
   case 'transfer_cancel':if(XF.inc&&XF.inc.tid===m.tid){XF.inc=null;xferIn.style.display='none';xferIn.innerHTML='';xfUpdateDlg()}toast('❌ '+(m.reason||'Oferta cancelada'));break}}
 
+
+// ---------- 24.4 Cuentas: registrarse e iniciar sesión (pantalla de entrada) ----------
+// Para jugar online hay que tener cuenta. El servidor guarda el usuario con la contraseña cifrada (accounts.json) y la partida
+// de cada cuenta, así que es la misma desde cualquier dispositivo. Cada dispositivo recuerda su sesión (token en localStorage)
+// y la próxima vez entra solo en la misma cuenta, hasta que se pulse «Cerrar sesión».
+const ACC={ok:false,name:'',uid:'',loaded:false,mode:'login',busy:false,legacy:false,onDeleted:null},ACC_TOKEN='rls_token';
+function accToken(t){try{if(t===undefined)return localStorage.getItem(ACC_TOKEN)||'';if(t)localStorage.setItem(ACC_TOKEN,t);else localStorage.removeItem(ACC_TOKEN)}catch(e){}return ''}
+function accMsg(t,bad){const e=$('accMsg');e.textContent=t||'';e.style.color=bad?'#ff9b8f':'#9fe3a8'}
+function accUi(){const reg=ACC.mode==='reg',off=location.protocol==='file:';
+ $('acc').style.display=off?'none':'block';
+ $('accForm').style.display=ACC.ok||MP.kicked?'none':'block';$('accIn').style.display=ACC.ok?'block':'none';$('accName').textContent=ACC.name;
+ $('accPass2').style.display=reg?'block':'none';$('accTabLogin').classList.toggle('on',!reg);$('accTabReg').classList.toggle('on',reg);
+ $('accGo').textContent=reg?'Crear cuenta':'Entrar';$('accGo').disabled=ACC.busy;$('accPass').autocomplete=reg?'new-password':'current-password';
+ $('ovGo').textContent=ACC.ok||off?'Haz clic para jugar':MP.kicked?'Recarga la página para volver a jugar aquí':MP.full?'El servidor está lleno (máximo 20 jugadores). Prueba más tarde.':'Inicia sesión o regístrate para jugar'}
+function accSend(o){if(MP.ws&&MP.ws.readyState===1){MP.ws.send(JSON.stringify(o));return true}accMsg('Sin conexión con el servidor. Reintentando…',true);return false}
+function accSubmit(){if(ACC.busy||ACC.ok)return;const user=$('accUser').value.trim().replace(/\s+/g,' '),pass=$('accPass').value;
+ if(!/^[\p{L}\p{N} _.-]{3,18}$/u.test(user))return accMsg('El usuario debe tener entre 3 y 18 caracteres: letras, números, espacio, punto, guion o guion bajo.',true);
+ if(pass.length<6)return accMsg('La contraseña debe tener al menos 6 caracteres.',true);
+ if(ACC.mode==='reg'&&pass!==$('accPass2').value)return accMsg('Las contraseñas no coinciden.',true);
+ if(accSend(ACC.mode==='reg'?{type:'auth_register',user,pass,device:getUid()}:{type:'auth_login',user,pass})){ACC.busy=true;accMsg('Comprobando…');accUi()}}
+// al conectar con el servidor: si este dispositivo ya tiene sesión, entra solo; si no, espera a que el jugador rellene el formulario
+function accOnOpen(){ACC.busy=false;const t=accToken();if(t&&accSend({type:'auth_token',token:t})){ACC.busy=true;if(!ACC.ok)accMsg('Entrando…')}accUi()}
+// partida guardada en este dispositivo para esta cuenta o, si la cuenta se creó en este dispositivo, la de antes de existir las cuentas
+function accLocalSave(uid){let s=null;try{s=JSON.parse(localStorage.getItem(SAVE_KEY+':'+uid))}catch(e){}
+ if(!s&&uid===getUid()){try{s=JSON.parse(localStorage.getItem(SAVE_KEY))}catch(e){}if(s)ACC.legacy=true}
+ return s&&typeof s==='object'?s:null}
+function accOnOk(m){ACC.busy=false;ACC.ok=true;ACC.name=String(m.name||'');ACC.uid=String(m.uid||'');MP.name=ACC.name;if(m.token)accToken(m.token);
+ $('accPass').value='';$('accPass2').value='';accMsg('');
+ if(!ACC.loaded){ACC.loaded=true; // la partida se carga una sola vez por visita (al reconectar ya está en marcha)
+  const srv=m.save&&typeof m.save==='object'?m.save:null,loc=accLocalSave(ACC.uid);
+  // se usa la más reciente: la del servidor (p. ej. de otro dispositivo) o la copia de este dispositivo (si se jugó sin conexión)
+  const s=srv&&(!loc||(srv.at||0)>=(loc.at||0))?srv:loc;
+  if(s&&loadGame(s)){$('savemsg').textContent='💾 Partida cargada'+(s===srv?' del servidor':' de este dispositivo');toast('Partida cargada')}}
+ MP.ws.send(JSON.stringify({type:'join'}));accUi();
+ if(started)setTimeout(saveGame,1500)} // al reconectar se sube lo jugado mientras no había conexión
+function accOnMsg(m){switch(m.type){
+ case 'auth_ok':accOnOk(m);return true;
+ case 'auth_fail':ACC.busy=false;if(m.token)accToken('');accMsg(m.reason||'No se ha podido entrar.',true);accUi();return true;
+ case 'auth_logged_out':return true;
+ case 'kicked':MP.kicked=true;noSave=true;ACC.ok=false;started=false;try{document.exitPointerLock()}catch(e){}ov.style.display='flex';accUi();accMsg('⚠️ '+(m.reason||'Se ha abierto esta cuenta en otro sitio.'),true);return true;
+ case 'save_ok':{const d=new Date();$('savemsg').textContent='💾 Guardado en el servidor a las '+d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});if(ACC.legacy){ACC.legacy=false;try{localStorage.removeItem(SAVE_KEY)}catch(e){}}return true}
+ case 'save_err':toast('⚠️ '+(m.reason||'No se pudo guardar la partida en el servidor'));return true;
+ case 'save_deleted':if(ACC.onDeleted){const f=ACC.onDeleted;ACC.onDeleted=null;f()}return true}
+ return false}
+function accLogout(){if(!confirm('¿Cerrar sesión en este dispositivo? La próxima vez tendrás que escribir tu usuario y contraseña.'))return;
+ saveGame();noSave=true;accSend({type:'auth_logout',token:accToken()});accToken('');setTimeout(()=>location.reload(),400)}
+{const box=$('acc');['click','mousedown','pointerdown','touchstart'].forEach(ev=>box.addEventListener(ev,e=>e.stopPropagation())); // tocar el cuadro no empieza la partida
+ box.querySelectorAll('input').forEach(i=>{i.addEventListener('keydown',e=>e.stopPropagation());i.addEventListener('keyup',e=>e.stopPropagation())}); // escribir aquí no mueve al personaje
+ $('accF').addEventListener('submit',e=>{e.preventDefault();accSubmit()});
+ $('accTabLogin').addEventListener('click',()=>{ACC.mode='login';accMsg('');accUi()});
+ $('accTabReg').addEventListener('click',()=>{ACC.mode='reg';accMsg('');accUi()});
+ $('accOut').addEventListener('click',accLogout);
+ accUi()}
 
 // =================================================================================================
 // 25. BUCLE PRINCIPAL
@@ -4314,9 +4393,13 @@ function gatherState(){
   terrenos:TERRENOS.filter(t=>t.owned).map(t=>({id:t.id,b:bmSer(t)})),
   cars:cars.filter(c=>c.owned).map(c=>({t:c.t,col:c.col,lm:c.lm||0,lt:c.lt||0,x:c.x,z:c.z,y:c.y||0,h:c.h,fuel:c.fuel}))}}
 function saveGame(){if(noSave||!started)return;
- try{localStorage.setItem(SAVE_KEY,JSON.stringify(gatherState()));const d=new Date();$('savemsg').textContent='💾 Guardado a las '+d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}catch(e){console.warn('No se pudo guardar',e)}}
-function loadGame(){
- let s;try{s=JSON.parse(localStorage.getItem(SAVE_KEY))}catch(e){return false}
+ try{const st=gatherState();st.at=Date.now();const js=JSON.stringify(st);
+  if(ACC.ok){try{localStorage.setItem(SAVE_KEY+':'+ACC.uid,js)}catch(e){} // copia en este dispositivo, por si se juega sin conexión
+   if(MP.ws&&MP.ws.readyState===1)MP.ws.send('{"type":"save","data":'+js+'}')} // la partida de la cuenta se guarda en el servidor (24.4)
+  else localStorage.setItem(SAVE_KEY,js); // sin cuenta (juego abierto como archivo): solo en este dispositivo
+  const d=new Date();$('savemsg').textContent='💾 Guardado a las '+d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}catch(e){console.warn('No se pudo guardar',e)}}
+function loadGame(src){ // src: partida ya leída (del servidor o de este dispositivo); sin src, la de este dispositivo
+ let s;if(src&&typeof src==='object')s=src;else try{s=JSON.parse(localStorage.getItem(SAVE_KEY))}catch(e){return false}
  if(!s||typeof s!=='object')return false;
  if(!s.isv){const mv=o=>{if(o&&typeof o.z==='number'&&o.z>=540)o.z+=ISLDZ};mv(s.pl);(s.houses||[]).forEach(mv);(s.cars||[]).forEach(mv)} // la isla se ha alejado: partidas guardadas antes del cambio
  try{
@@ -4338,8 +4421,12 @@ function loadGame(){
   applyOutfit();
  }catch(e){console.error('Error al cargar',e);return false}
  return true}
-$('delsave').addEventListener('click',e=>{e.stopPropagation();if(confirm('¿Seguro que quieres borrar tu partida guardada? No se puede deshacer.')){noSave=true;try{localStorage.removeItem(SAVE_KEY)}catch(_){}location.reload()}});
-if(loadGame()){$('savemsg').textContent='💾 Partida guardada cargada';toast('Partida cargada')}
+$('delsave').addEventListener('click',e=>{e.stopPropagation();if(!confirm('¿Seguro que quieres borrar tu partida guardada? No se puede deshacer.'))return;
+ const done=()=>{try{localStorage.removeItem(SAVE_KEY);if(ACC.uid)localStorage.removeItem(SAVE_KEY+':'+ACC.uid)}catch(_){}location.reload()};
+ if(!ACC.ok){noSave=true;done();return}
+ if(!accSend({type:'save_delete'}))return; // con cuenta: se borra en el servidor y después en este dispositivo
+ noSave=true;ACC.onDeleted=done;setTimeout(()=>{if(ACC.onDeleted){ACC.onDeleted=null;noSave=false;toast('El servidor no ha respondido: la partida no se ha borrado')}},5000)});
+if(location.protocol==='file:'&&loadGame()){$('savemsg').textContent='💾 Partida guardada cargada';toast('Partida cargada')} // online, la partida se carga al iniciar sesión (24.4)
 setInterval(saveGame,30000);
 addEventListener('beforeunload',saveGame);addEventListener('pagehide',saveGame);
 document.addEventListener('visibilitychange',()=>{if(document.hidden)saveGame()});

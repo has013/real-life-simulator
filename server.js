@@ -17,14 +17,17 @@
 //          8.2 Regalo de terrenos (lo usan las transferencias)
 //   9.   BARCOS (un solo piloto por barco; los demás ven cómo navega)
 //   10.  PANEL DE ADMINISTRADOR
-//   11.  CONEXIÓN DE CADA JUGADOR
-//          11.1 Entrada al mundo (join)
-//          11.2 Chat y mensajes privados
-//          11.3 Reparto de mensajes a cada sistema (transferencias, gobierno, negocios, casas, admin, dormir, barcos)
-//          11.4 Estado del jugador: posición, vehículo, ropa, mascotas y perfil
-//          11.5 Desconexión
-//   12.  RELOJ Y CLIMA DEL MUNDO
-//   13.  ARRANQUE, APAGADO Y ERRORES
+//   11.  CUENTAS DE USUARIO Y PARTIDAS GUARDADAS
+//          11.1 Cuentas: registro, inicio de sesión y sesiones recordadas
+//          11.2 Partidas guardadas: un archivo por cuenta en saves/<uid>.json
+//   12.  CONEXIÓN DE CADA JUGADOR
+//          12.1 Entrada al mundo (join)
+//          12.2 Chat y mensajes privados
+//          12.3 Reparto de mensajes a cada sistema (transferencias, gobierno, negocios, casas, admin, dormir, barcos)
+//          12.4 Estado del jugador: posición, vehículo, ropa, mascotas y perfil
+//          12.5 Desconexión
+//   13.  RELOJ Y CLIMA DEL MUNDO
+//   14.  ARRANQUE, APAGADO Y ERRORES
 // =================================================================================================
 
 // =================================================================================================
@@ -58,10 +61,9 @@ const server = http.createServer((req, res) => {
   }
   res.writeHead(404); res.end('Not found');
 });
-const wss = new WebSocketServer({ server, maxPayload: 131072 }); // 128 KB: la construcción de un terreno grande no cabe en 16 KB
+const wss = new WebSocketServer({ server, maxPayload: 1048576 }); // 1 MB: la partida guardada (sección 11.2) y la construcción de un terreno grande no caben en menos
 function send(ws, data) { if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(data)); }
 function broadcast(data, except) { for (const [ws] of players) if (ws !== except) send(ws, data); }
-function cleanName(v) { return String(v || 'Jugador').replace(/[<>\u0000-\u001f]/g, '').trim().slice(0,18) || 'Jugador'; }
 
 // =================================================================================================
 // 3. DORMIR
@@ -674,7 +676,124 @@ function handleAdmin(ws, p, msg) {
 }
 
 // =================================================================================================
-// 11. CONEXIÓN DE CADA JUGADOR
+// 11. CUENTAS DE USUARIO Y PARTIDAS GUARDADAS
+//     Registrarse e iniciar sesión (accounts.json) y guardar la partida de cada cuenta en el servidor
+//     (carpeta saves/), para que sea la misma desde cualquier dispositivo.
+// =================================================================================================
+// ---------- 11.1 Cuentas: registro, inicio de sesión y sesiones recordadas ----------
+// accounts.json: { users: { "<nombre en minúsculas>": { name, pass, uid, created, last, tokens: [{ h, t }] } } }
+// - pass: la contraseña NUNCA se guarda tal cual, sino cifrada con scrypt y una sal aleatoria: "scrypt$<sal>$<hash>".
+// - tokens: sesiones recordadas (una por dispositivo). El dispositivo guarda el token y entra solo la próxima vez;
+//   aquí solo se guarda el sha256 del token, así que aunque alguien lea el archivo no puede entrar con él.
+// - uid: identidad interna del jugador (votos, negocios, terrenos, partida). Al registrarse se reutiliza el uid que ya tenía
+//   ese dispositivo (si ninguna otra cuenta lo usa) para conservar lo que el jugador tenía antes de existir las cuentas.
+const ACCOUNTS_FILE = process.env.ACCOUNTS_FILE || path.join(__dirname, 'accounts.json');
+const USER_RE = /^[\p{L}\p{N} _.-]{3,18}$/u, PASS_MIN = 6, PASS_MAX = 100, MAX_TOKENS = 10;
+const LOGIN_MAX_FAILS = 5, LOGIN_LOCK_MS = 60000; // tras 5 contraseñas incorrectas seguidas, ese usuario queda bloqueado 1 minuto
+let accounts = { users: {} }, accDirty = false;
+{ const a = readJsonSafe(ACCOUNTS_FILE, 'accounts'); if (a && a.users && typeof a.users === 'object') accounts.users = a.users; }
+function saveAccounts() { try { writeJsonAtomic(ACCOUNTS_FILE, accounts); accDirty = false; } catch (e) { console.warn('No se pudo guardar accounts.json', e.message); } }
+const accountsTimer = setInterval(() => { if (accDirty) saveAccounts(); }, 5000);
+const userKey = u => String(u).normalize('NFC').toLowerCase();
+const sha256 = s => crypto.createHash('sha256').update(String(s)).digest('hex');
+const tokenIdx = new Map(); // sha256(token) -> clave del usuario
+for (const [k, u] of Object.entries(accounts.users)) { u.tokens = Array.isArray(u.tokens) ? u.tokens : []; for (const t of u.tokens) tokenIdx.set(t.h, k); }
+const loginFails = new Map(); // clave del usuario -> { n, until }
+function hashPassword(pass) {
+  const salt = crypto.randomBytes(16);
+  return new Promise((ok, ko) => crypto.scrypt(pass, salt, 64, (e, k) => e ? ko(e) : ok('scrypt$' + salt.toString('hex') + '$' + k.toString('hex'))));
+}
+function checkPassword(pass, stored) {
+  const [alg, salt, hash] = String(stored || '').split('$');
+  if (alg !== 'scrypt' || !salt || !hash || hash.length !== 128) return Promise.resolve(false);
+  return new Promise(ok => crypto.scrypt(pass, Buffer.from(salt, 'hex'), 64, (e, k) => ok(!e && crypto.timingSafeEqual(k, Buffer.from(hash, 'hex')))));
+}
+function newToken(key) { // crea una sesión recordada para un dispositivo (se guardan como mucho las 10 más recientes)
+  const u = accounts.users[key], token = crypto.randomBytes(32).toString('hex');
+  u.tokens.unshift({ h: sha256(token), t: Date.now() });
+  for (const old of u.tokens.splice(MAX_TOKENS)) tokenIdx.delete(old.h);
+  tokenIdx.set(u.tokens[0].h, key); accDirty = true;
+  return token;
+}
+function authOk(ws, key, token) {
+  const u = accounts.users[key]; u.last = Date.now(); accDirty = true;
+  ws.account = { key, uid: u.uid, name: u.name };
+  send(ws, { type: 'auth_ok', name: u.name, uid: u.uid, token: token || undefined, save: readSave(u.uid) });
+}
+async function handleAuth(ws, msg) {
+  const fail = (reason, extra) => send(ws, Object.assign({ type: 'auth_fail', reason }, extra || {}));
+  if (msg.type === 'auth_logout') { // cerrar sesión: el token de este dispositivo deja de valer
+    const h = sha256(msg.token || ''), key = tokenIdx.get(h), u = key && accounts.users[key];
+    if (u) { u.tokens = u.tokens.filter(t => t.h !== h); tokenIdx.delete(h); accDirty = true; saveAccounts(); }
+    return send(ws, { type: 'auth_logged_out' });
+  }
+  if (ws.joined || ws.authBusy) return; // solo antes de entrar al mundo y de una en una
+  if (msg.type === 'auth_token') { // entrada automática con la sesión recordada del dispositivo
+    const h = sha256(msg.token || ''), key = tokenIdx.get(h), u = key && accounts.users[key];
+    if (!u) return fail('Tu sesión ha caducado: vuelve a iniciar sesión.', { token: true });
+    const t = u.tokens.find(x => x.h === h); if (t) t.t = Date.now();
+    return authOk(ws, key, null);
+  }
+  if (msg.type !== 'auth_login' && msg.type !== 'auth_register') return;
+  const user = String(msg.user || '').trim().replace(/\s+/g, ' '), pass = String(msg.pass || ''), key = userKey(user);
+  if (!USER_RE.test(user)) return fail('El usuario debe tener entre 3 y 18 caracteres: letras, números, espacio, punto, guion o guion bajo.');
+  if (pass.length < PASS_MIN || pass.length > PASS_MAX) return fail('La contraseña debe tener entre ' + PASS_MIN + ' y ' + PASS_MAX + ' caracteres.');
+  const lock = loginFails.get(key);
+  if (lock && lock.until > Date.now()) return fail('Demasiados intentos fallidos. Espera un minuto y vuelve a probar.');
+  ws.authBusy = true;
+  try {
+    if (msg.type === 'auth_register') {
+      if (accounts.users[key]) return fail('Ese nombre de usuario ya existe. Elige otro o inicia sesión.');
+      const hash = await hashPassword(pass);
+      if (accounts.users[key]) return fail('Ese nombre de usuario ya existe. Elige otro o inicia sesión.'); // por si otro lo ha registrado mientras tanto
+      const dev = String(msg.device || ''), used = new Set(Object.values(accounts.users).map(u => u.uid));
+      const uid = /^[A-Za-z0-9_-]{8,64}$/.test(dev) && !used.has(dev) ? dev : crypto.randomUUID();
+      accounts.users[key] = { name: user, pass: hash, uid, created: Date.now(), last: 0, tokens: [] };
+      const token = newToken(key); saveAccounts();
+      console.log('[cuentas] nueva cuenta:', user);
+      return authOk(ws, key, token);
+    }
+    const u = accounts.users[key], ok = await checkPassword(pass, u ? u.pass : 'scrypt$00$' + '0'.repeat(128)); // se calcula igual aunque no exista: no revela qué usuarios hay
+    if (!u || !ok) {
+      const f = loginFails.get(key) || { n: 0, until: 0 }; f.n++; if (f.n >= LOGIN_MAX_FAILS) { f.n = 0; f.until = Date.now() + LOGIN_LOCK_MS; } loginFails.set(key, f);
+      ws.authFails = (ws.authFails || 0) + 1; if (ws.authFails >= 15) ws.close(4003, 'Demasiados intentos');
+      return fail('Usuario o contraseña incorrectos.');
+    }
+    loginFails.delete(key);
+    return authOk(ws, key, newToken(key));
+  } finally { ws.authBusy = false; }
+}
+
+// ---------- 11.2 Partidas guardadas: un archivo por cuenta en saves/<uid>.json ----------
+// El cliente manda su partida (la misma que antes solo se guardaba en el navegador) y el servidor la guarda;
+// al iniciar sesión en cualquier dispositivo se le devuelve. Se escribe en disco cada pocos segundos, no a cada mensaje.
+const SAVES_DIR = process.env.SAVES_DIR || path.join(__dirname, 'saves');
+const MAX_SAVE = 900000; // bytes (el mensaje WebSocket admite hasta 1 MB)
+try { fs.mkdirSync(SAVES_DIR, { recursive: true }); } catch (e) { console.warn('No se pudo crear ' + SAVES_DIR, e.message); }
+const savePending = new Map(); // uid -> partida pendiente de escribir
+const saveFile = uid => path.join(SAVES_DIR, String(uid).replace(/[^A-Za-z0-9_-]/g, '_').slice(0, 80) + '.json');
+function readSave(uid) { return savePending.get(uid) || readJsonSafe(saveFile(uid), 'save') || null; }
+function flushSaves() { for (const [uid, s] of savePending) { try { writeJsonAtomic(saveFile(uid), s); savePending.delete(uid); } catch (e) { console.warn('No se pudo guardar la partida de ' + uid, e.message); } } }
+const savesTimer = setInterval(flushSaves, 5000);
+function handleSave(ws, p, msg) {
+  if (!ws.account || ws.account.uid !== p.uid) return;
+  if (msg.type === 'save') {
+    const s = msg.data;
+    if (!s || typeof s !== 'object' || Array.isArray(s)) return send(ws, { type: 'save_err', reason: 'Partida no válida' });
+    if (JSON.stringify(s).length > MAX_SAVE) return send(ws, { type: 'save_err', reason: 'La partida es demasiado grande para guardarla en el servidor' });
+    savePending.set(p.uid, s);
+    return send(ws, { type: 'save_ok', at: Date.now() });
+  }
+  if (msg.type === 'save_delete') { // botón «Borrar partida»
+    savePending.delete(p.uid);
+    for (const f of [saveFile(p.uid), saveFile(p.uid) + '.bak']) { try { fs.unlinkSync(f); } catch {} }
+    console.log('[cuentas]', p.name, 'ha borrado su partida');
+    return send(ws, { type: 'save_deleted' });
+  }
+}
+
+// =================================================================================================
+// 12. CONEXIÓN DE CADA JUGADOR
 //     Qué pasa cuando alguien entra, cada mensaje que envía y cuando se va.
 // =================================================================================================
 wss.on('connection', ws => {
@@ -684,18 +803,24 @@ wss.on('connection', ws => {
   ws.on('pong', () => ws.isAlive = true);
   ws.on('message', raw => {
     let msg; try { msg = JSON.parse(raw.toString()); } catch { return; }
-    // ---------- 11.1 Entrada al mundo (join) ----------
+    if (ws.kicked || !msg || typeof msg !== 'object') return; // conexión sustituida por otra de la misma cuenta
+    if (typeof msg.type === 'string' && msg.type.startsWith('auth_')) { handleAuth(ws, msg).catch(e => { ws.authBusy = false; console.error('[cuentas]', e); }); return; } // ver sección 11
+    // ---------- 12.1 Entrada al mundo (join): solo con una cuenta que haya iniciado sesión ----------
     if (!ws.joined) {
-      if (msg.type !== 'join') return;
+      if (msg.type !== 'join' || !ws.account) return;
+      const again = [...players.values()].some(q => q.uid === ws.account.uid); // ya estaba dentro: no cuenta como plaza nueva
+      if (!again && players.size >= MAX_PLAYERS) { send(ws, {type:'full'}); return ws.close(1013, 'World full'); }
       ws.joined = true;
-      const player = { id, uid: cleanStr(msg.uid, 64) || ('c' + id), name: cleanName(msg.name), x:24, y:0, z:1.5, yaw:0, vehicle:false, vType:null, vPt:0, vBk:0, vThr:0, vCol:0x4477aa, outfit:{}, pets:[], profile:{money:0,rk:0,properties:[],businesses:[],pets:[],career:[]} };
+      // una cuenta solo puede estar dentro una vez: si ya estaba conectada (otro dispositivo o pestaña), esa conexión se cierra
+      for (const [w, q] of players) if (q.uid === ws.account.uid) { send(w, { type: 'kicked', reason: 'Has entrado con esta cuenta desde otro dispositivo o pestaña.' }); w.kicked = true; w.close(4001, 'Sesión abierta en otro sitio'); }
+      const player = { id, uid: ws.account.uid, name: ws.account.name, x:24, y:0, z:1.5, yaw:0, vehicle:false, vType:null, vPt:0, vBk:0, vThr:0, vCol:0x4477aa, outfit:{}, pets:[], profile:{money:0,rk:0,properties:[],businesses:[],pets:[],career:[]} };
       players.set(ws, player); touchKnown(player);
       send(ws, {type:'welcome', id, players:[...players.values()].map(pub), chat:chatHistory, world:{tod:world.tod,wx:world.wx}, features:{boats:1,biz:1,admin:1,dm:1,houses:1}});
       broadcast({type:'joined', player:pub(player)}, ws); send(ws, govMsg(ws)); send(ws, bizMsg(ws)); send(ws, boatsMsg()); send(ws, { type: 'admin_pending', cmds: (adminPending[player.uid] || []).slice(0, 50) }); send(ws, { type: 'biz_pending', sales: (bizPending[player.uid] || []).slice(0, 100) }); if (ownsBiz(player.uid)) broadcastBiz(); sendHouses(ws, player); sleepCheck();
       return;
     }
     const p = players.get(ws); if (!p) return;
-    // ---------- 11.2 Chat y mensajes privados ----------
+    // ---------- 12.2 Chat y mensajes privados ----------
     if (msg.type === 'chat') {
       const text = String(msg.text || '').replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, 180);
       if (!text) return;
@@ -717,7 +842,7 @@ wss.on('connection', ws => {
       send(ws, { type: 'dm_sent', to: { id: tp.id, name: tp.name }, text, time: now });
       return;
     }
-    // ---------- 11.3 Reparto de mensajes a cada sistema (transferencias, gobierno, negocios, casas, admin, dormir, barcos) ----------
+    // ---------- 12.3 Reparto de mensajes a cada sistema (transferencias, gobierno, negocios, casas, admin, dormir, barcos) ----------
     if (typeof msg.type === 'string' && msg.type.startsWith('transfer')) { handleTransfer(ws, p, msg); return; }
     if (typeof msg.type === 'string' && (msg.type.startsWith('election_') || msg.type.startsWith('tax_') || msg.type === 'decree')) { handleGov(ws, p, msg); return; }
     if (typeof msg.type === 'string' && msg.type.startsWith('biz_')) { handleBiz(ws, p, msg); return; }
@@ -726,7 +851,8 @@ wss.on('connection', ws => {
     if (msg.type === 'sleep') { ws.sleeping = !!msg.on; sleepCheck(); return; }
     if (msg.type === 'pend_ack') { const n = toInt(msg.n, 0, 100); if (adminPending[p.uid]) { adminPending[p.uid] = adminPending[p.uid].slice(n); if (!adminPending[p.uid].length) delete adminPending[p.uid]; knownDirty = true; } return; }
     if (typeof msg.type === 'string' && msg.type.startsWith('boat_')) { handleBoat(ws, p, msg); return; }
-    // ---------- 11.4 Estado del jugador: posición, vehículo, ropa, mascotas y perfil ----------
+    if (msg.type === 'save' || msg.type === 'save_delete') { handleSave(ws, p, msg); return; }
+    // ---------- 12.4 Estado del jugador: posición, vehículo, ropa, mascotas y perfil ----------
     if (msg.type !== 'state') return;
     const n = v => Number.isFinite(Number(v)) ? Math.max(-1000, Math.min(2000, Number(v))) : 0;
     // Barcos: solo se acepta vType 'boat' si el barco está libre o ya lo pilota este jugador (también cubre reconexiones).
@@ -763,13 +889,13 @@ wss.on('connection', ws => {
     if (boatChanged) broadcastBoats();
     broadcast({type:'state', player:pub(p)}, ws);
   });
-  // ---------- 11.5 Desconexión ----------
+  // ---------- 12.5 Desconexión ----------
   ws.on('close', () => { dropTransfersOf(ws); const p=players.get(ws); if(p){const freed=releaseBoat(p);if(gov.election&&gov.election.candidates.some(c=>c.uid===p.uid))console.log('[elecciones] el candidato '+p.name+' se desconectó: la votación sigue abierta');players.delete(ws);broadcast({type:'left',id:p.id});sleepCheck();if(freed)broadcastBoats();if(ownsBiz(p.uid))broadcastBiz();} });
   ws.on('error', () => {});
 });
 
 // =================================================================================================
-// 12. RELOJ Y CLIMA DEL MUNDO
+// 13. RELOJ Y CLIMA DEL MUNDO
 // =================================================================================================
 // Reloj y clima únicos para todo el servidor. Un día del juego dura 12 minutos reales.
 // Si no hay ningún jugador conectado, el tiempo del juego se detiene (hora y clima quedan congelados hasta que entre alguien).
@@ -788,12 +914,12 @@ const worldTick = setInterval(() => {
 }, 1000);
 
 // =================================================================================================
-// 13. ARRANQUE, APAGADO Y ERRORES
+// 14. ARRANQUE, APAGADO Y ERRORES
 //     Comprobación de conexiones vivas, arranque del servidor, guardar todo al apagar y no caerse por un error.
 // =================================================================================================
 const heartbeat = setInterval(() => { for (const ws of wss.clients) { if (!ws.isAlive) { ws.terminate(); continue; } ws.isAlive=false; ws.ping(); } }, 30000);
 server.listen(PORT, '0.0.0.0', () => { console.log(`Real Life Simulator multiplayer: http://localhost:${PORT} (max ${MAX_PLAYERS})`); console.log('Funciones activas: sincronización de barcos, reserva de locales, casas en terrenos, panel de administrador'); });
-const shutdown = () => { saveGov(); saveBiz(); saveHouses(); savePlayers(); clearInterval(playersTimer); clearInterval(bizTimer); clearInterval(housesTimer); clearInterval(govTimer); clearInterval(heartbeat); clearInterval(worldTick); server.close(); remoteFlush().then(() => process.exit(0)); setTimeout(() => process.exit(0), 4000).unref(); };
+const shutdown = () => { saveGov(); saveBiz(); saveHouses(); savePlayers(); saveAccounts(); flushSaves(); clearInterval(accountsTimer); clearInterval(savesTimer); clearInterval(playersTimer); clearInterval(bizTimer); clearInterval(housesTimer); clearInterval(govTimer); clearInterval(heartbeat); clearInterval(worldTick); server.close(); remoteFlush().then(() => process.exit(0)); setTimeout(() => process.exit(0), 4000).unref(); };
 process.on('SIGINT', shutdown); process.on('SIGTERM', shutdown); // los hostings apagan con SIGTERM: se guarda todo antes de salir
 // Un error en un mensaje suelto no debe tumbar el servidor (y con él a todos los jugadores): se registra y se sigue.
 process.on('uncaughtException', e => console.error('[error no controlado]', e && e.stack || e));
