@@ -1,3 +1,37 @@
+// =================================================================================================
+// REAL LIFE SIMULATOR · SERVIDOR DEL MUNDO PÚBLICO · ÍNDICE
+// =================================================================================================
+// Busca (Ctrl+F) el número de la sección, por ejemplo «8.2».
+//
+//   1.   CONFIGURACIÓN Y ESTADO GENERAL
+//   2.   SERVIDOR HTTP Y WEBSOCKET
+//   3.   DORMIR
+//   4.   TRANSFERENCIAS ENTRE JUGADORES (dinero, objetos, casas y negocios)
+//   5.   GUARDADO EN DISCO Y COPIA REMOTA
+//          5.1 Guardado seguro
+//          5.2 Copia remota (opcional)
+//   6.   GOBIERNO MUNICIPAL (elecciones, alcalde, impuestos, bans)
+//   7.   NEGOCIOS DE JUGADORES (registro público y ventas a otros jugadores)
+//   8.   CASAS EN TERRENOS (la construcción por módulos la ven todos los jugadores)
+//          8.1 Registro de terrenos y construcción
+//          8.2 Regalo de terrenos (lo usan las transferencias)
+//   9.   BARCOS (un solo piloto por barco; los demás ven cómo navega)
+//   10.  PANEL DE ADMINISTRADOR
+//   11.  CONEXIÓN DE CADA JUGADOR
+//          11.1 Entrada al mundo (join)
+//          11.2 Chat y mensajes privados
+//          11.3 Reparto de mensajes a cada sistema (transferencias, gobierno, negocios, casas, admin, dormir, barcos)
+//          11.4 Estado del jugador: posición, vehículo, ropa, mascotas y perfil
+//          11.5 Desconexión
+//   12.  RELOJ Y CLIMA DEL MUNDO
+//   13.  ARRANQUE, APAGADO Y ERRORES
+// =================================================================================================
+
+// =================================================================================================
+// 1. CONFIGURACIÓN Y ESTADO GENERAL
+//     Módulos, puerto (PORT), límite de jugadores, lista de jugadores conectados, historial del chat
+//     y estado del mundo (hora y clima).
+// =================================================================================================
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
@@ -10,6 +44,11 @@ const chatHistory = [];
 const SLEEP_PCT = Math.min(100, Math.max(1, Number(process.env.SLEEP_PCT) || 50)); // % de jugadores conectados que deben estar durmiendo para que pase la noche (variable de entorno SLEEP_PCT)
 const world = { tod: 9, wx: 0, weatherTimer: 0, nextWeather: 90, freezeTod: false, freezeWx: false }; // freezeTod / freezeWx: los fija el administrador (no se guardan: al reiniciar el servidor vuelven a false)
 let nextId = 1;
+
+// =================================================================================================
+// 2. SERVIDOR HTTP Y WEBSOCKET
+//     Sirve el juego (index.html) y /health; send() y broadcast() envían mensajes a uno o a todos.
+// =================================================================================================
 const gameFile = path.join(__dirname, 'index.html');
 const server = http.createServer((req, res) => {
   if (req.url === '/health') { res.writeHead(200, {'content-type':'application/json'}); return res.end(JSON.stringify({ok:true,players:players.size,maxPlayers:MAX_PLAYERS})); }
@@ -22,7 +61,12 @@ const server = http.createServer((req, res) => {
 const wss = new WebSocketServer({ server, maxPayload: 131072 }); // 128 KB: la construcción de un terreno grande no cabe en 16 KB
 function send(ws, data) { if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(data)); }
 function broadcast(data, except) { for (const [ws] of players) if (ws !== except) send(ws, data); }
-// ===== DORMIR: la noche solo pasa cuando duerme al menos el SLEEP_PCT % de los jugadores conectados =====
+function cleanName(v) { return String(v || 'Jugador').replace(/[<>\u0000-\u001f]/g, '').trim().slice(0,18) || 'Jugador'; }
+
+// =================================================================================================
+// 3. DORMIR
+//     La noche solo pasa cuando duerme al menos el SLEEP_PCT % de los jugadores conectados.
+// =================================================================================================
 function hoursToMorning(tod) { const h = (7 - tod + 24) % 24; return h > 12 ? 8 : Math.max(1, h); } // misma regla que el cliente: hasta las 7:00 (o 8 h si es de día)
 function sleepCheck() {
   let n = 0; for (const w of players.keys()) if (w.sleeping) n++;
@@ -35,9 +79,10 @@ function sleepCheck() {
   broadcast({ type: 'world', tod: world.tod, wx: world.wx });
   for (const w of players.keys()) if (w.sleeping) { w.sleeping = false; send(w, { type: 'wake', h }); } // cada durmiente recupera su energía
 }
-function cleanName(v) { return String(v || 'Jugador').replace(/[<>\u0000-\u001f]/g, '').trim().slice(0,18) || 'Jugador'; }
 
-// ===== TRANSFERENCIAS (dinero, objetos, casas y negocios) =====
+// =================================================================================================
+// 4. TRANSFERENCIAS ENTRE JUGADORES (dinero, objetos, casas y negocios)
+// =================================================================================================
 // Flujo: A ofrece -> B acepta -> A confirma que lo tiene y lo descuenta -> B lo recibe.
 // El servidor guarda la oferta validada; el cliente no puede cambiarla después.
 const transfers = new Map();
@@ -142,12 +187,14 @@ function dropTransfersOf(ws) {
   }
 }
 
-// ===== GOBIERNO MUNICIPAL (elecciones, alcalde, impuestos, bans) =====
-// Todo vive en el servidor. La identidad de voto es el uid persistente que cada navegador genera y guarda (nunca se reenvía a otros jugadores).
-// ===== Guardado seguro =====
+// =================================================================================================
+// 5. GUARDADO EN DISCO Y COPIA REMOTA
+//     Cómo se guardan gov.json, biz.json, houses.json y players.json sin que se estropeen.
+// =================================================================================================
+// ---------- 5.1 Guardado seguro ----------
 // Escritura atómica (archivo temporal + renombrar) y copia .bak: si el proceso se corta a mitad de guardar, el archivo nunca queda roto.
 // Lectura con respaldo: si el archivo principal no se puede leer, se usa la copia .bak. Nunca se arranca "en blanco" en silencio.
-// ===== Copia remota (opcional) =====
+// ---------- 5.2 Copia remota (opcional) ----------
 // Si el hosting borra el disco al reiniciar, el estado (votaciones, alcalde, negocios) se guarda también en un almacén externo
 // compatible con la API REST de Upstash Redis. Se activa con REMOTE_STORE_URL y REMOTE_STORE_TOKEN; start.js lo restaura al arrancar.
 const REMOTE_URL = String(process.env.REMOTE_STORE_URL || '').replace(/\/+$/, ''), REMOTE_TOKEN = process.env.REMOTE_STORE_TOKEN || '';
@@ -179,6 +226,10 @@ function readJsonSafe(file, label) {
   return null;
 }
 
+// =================================================================================================
+// 6. GOBIERNO MUNICIPAL (elecciones, alcalde, impuestos, bans)
+// =================================================================================================
+// Todo vive en el servidor. La identidad de voto es el uid persistente que cada navegador genera y guarda (nunca se reenvía a otros jugadores).
 const DAY_MS = Number(process.env.GOV_DAY_MS || 12 * 60 * 1000);         // «día de alcaldía» = 1 día de juego (12 min reales)
 const ELECTION_DAYS = Number(process.env.ELECTION_DAYS || 10);
 const ELECTION_MS = Number(process.env.ELECTION_MS || ELECTION_DAYS * DAY_MS); // la votación dura 10 días de juego (10 × 12 min = 2 h reales)
@@ -296,7 +347,9 @@ function handleGov(ws, p, msg) {
   }
 }
 
-// ===== NEGOCIOS DE JUGADORES (registro público + ventas a otros jugadores) =====
+// =================================================================================================
+// 7. NEGOCIOS DE JUGADORES (registro público y ventas a otros jugadores)
+// =================================================================================================
 // El dueño publica su negocio (tipo, nivel, productos, precios y stock). Los demás lo ven y le compran.
 // Las ventas se descuentan del stock del registro y se acreditan en la caja del dueño (en vivo o, si está desconectado, quedan pendientes hasta que vuelva).
 const BIZ_FILE = process.env.BIZ_FILE || path.join(__dirname, 'biz.json');
@@ -389,7 +442,10 @@ function handleBiz(ws, p, msg) {
   }
 }
 
-// ===== CASAS EN TERRENOS (la construcción por módulos la ven todos los jugadores) =====
+// =================================================================================================
+// 8. CASAS EN TERRENOS (la construcción por módulos la ven todos los jugadores)
+// =================================================================================================
+// ---------- 8.1 Registro de terrenos y construcción ----------
 // Cada terreno (id 0-63) tiene un dueño registrado en el servidor: el primero que lo reserva se lo queda, esté conectado o no.
 // El dueño envía su construcción (house_set); el servidor la valida, la guarda en houses.json y la reenvía a los demás, que la dibujan.
 // La construcción del propio jugador sigue siendo la de su partida guardada: al dueño nunca se le reenvía su casa.
@@ -457,6 +513,7 @@ function handleHouses(ws, p, msg) {
   }
 }
 
+// ---------- 8.2 Regalo de terrenos (lo usan las transferencias) ----------
 // Regalo de terrenos: comprobaciones y cambio de dueño en el registro (houses.json). Se llama desde las transferencias.
 const PLOT_LIMIT = 40, PLOT_GRACE_MS = 15000;
 function plotGiftError(offer, from, to) {
@@ -491,7 +548,9 @@ function plotTransfer(offer, fromUid, toP, bs) { // cambia el dueño en el regis
   return list;
 }
 
-// ===== BARCOS (un solo piloto por barco; los demás ven cómo navega) =====
+// =================================================================================================
+// 9. BARCOS (un solo piloto por barco; los demás ven cómo navega)
+// =================================================================================================
 // El identificador de un barco es su nombre (único en el cliente). El servidor decide quién lo pilota y recuerda dónde se quedó al bajar el piloto.
 // Mientras alguien lo pilota, su posición viaja en el 'state' del piloto (vType 'boat' + vId); el servidor la copia al registro.
 const boats = new Map(); // id -> { id, x, z, h, has, pilot }
@@ -532,7 +591,9 @@ function handleBoat(ws, p, msg) {
   }
 }
 
-// ===== PANEL DE ADMINISTRADOR =====
+// =================================================================================================
+// 10. PANEL DE ADMINISTRADOR
+// =================================================================================================
 // Se activa escribiendo en el chat el comando secreto (variable de entorno ADMIN_CMD; por defecto /serunarata). El comando NO está en el HTML: solo vive aquí.
 // Quien lo escribe queda como administrador SOLO en esa conexión (si recarga la página tiene que volver a escribirlo). El mensaje nunca se difunde por el chat.
 // El dinero y el estado de cada negocio viven en la partida de cada jugador, así que los cambios se le ENVÍAN a su cliente; si está desconectado se guardan y se aplican cuando entre.
@@ -612,6 +673,10 @@ function handleAdmin(ws, p, msg) {
   }
 }
 
+// =================================================================================================
+// 11. CONEXIÓN DE CADA JUGADOR
+//     Qué pasa cuando alguien entra, cada mensaje que envía y cuando se va.
+// =================================================================================================
 wss.on('connection', ws => {
   if (players.size >= MAX_PLAYERS) { send(ws, {type:'full'}); return ws.close(1013, 'World full'); }
   const id = String(nextId++);
@@ -619,6 +684,7 @@ wss.on('connection', ws => {
   ws.on('pong', () => ws.isAlive = true);
   ws.on('message', raw => {
     let msg; try { msg = JSON.parse(raw.toString()); } catch { return; }
+    // ---------- 11.1 Entrada al mundo (join) ----------
     if (!ws.joined) {
       if (msg.type !== 'join') return;
       ws.joined = true;
@@ -629,6 +695,7 @@ wss.on('connection', ws => {
       return;
     }
     const p = players.get(ws); if (!p) return;
+    // ---------- 11.2 Chat y mensajes privados ----------
     if (msg.type === 'chat') {
       const text = String(msg.text || '').replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, 180);
       if (!text) return;
@@ -650,6 +717,7 @@ wss.on('connection', ws => {
       send(ws, { type: 'dm_sent', to: { id: tp.id, name: tp.name }, text, time: now });
       return;
     }
+    // ---------- 11.3 Reparto de mensajes a cada sistema (transferencias, gobierno, negocios, casas, admin, dormir, barcos) ----------
     if (typeof msg.type === 'string' && msg.type.startsWith('transfer')) { handleTransfer(ws, p, msg); return; }
     if (typeof msg.type === 'string' && (msg.type.startsWith('election_') || msg.type.startsWith('tax_') || msg.type === 'decree')) { handleGov(ws, p, msg); return; }
     if (typeof msg.type === 'string' && msg.type.startsWith('biz_')) { handleBiz(ws, p, msg); return; }
@@ -658,6 +726,7 @@ wss.on('connection', ws => {
     if (msg.type === 'sleep') { ws.sleeping = !!msg.on; sleepCheck(); return; }
     if (msg.type === 'pend_ack') { const n = toInt(msg.n, 0, 100); if (adminPending[p.uid]) { adminPending[p.uid] = adminPending[p.uid].slice(n); if (!adminPending[p.uid].length) delete adminPending[p.uid]; knownDirty = true; } return; }
     if (typeof msg.type === 'string' && msg.type.startsWith('boat_')) { handleBoat(ws, p, msg); return; }
+    // ---------- 11.4 Estado del jugador: posición, vehículo, ropa, mascotas y perfil ----------
     if (msg.type !== 'state') return;
     const n = v => Number.isFinite(Number(v)) ? Math.max(-1000, Math.min(2000, Number(v))) : 0;
     // Barcos: solo se acepta vType 'boat' si el barco está libre o ya lo pilota este jugador (también cubre reconexiones).
@@ -694,9 +763,14 @@ wss.on('connection', ws => {
     if (boatChanged) broadcastBoats();
     broadcast({type:'state', player:pub(p)}, ws);
   });
+  // ---------- 11.5 Desconexión ----------
   ws.on('close', () => { dropTransfersOf(ws); const p=players.get(ws); if(p){const freed=releaseBoat(p);if(gov.election&&gov.election.candidates.some(c=>c.uid===p.uid))console.log('[elecciones] el candidato '+p.name+' se desconectó: la votación sigue abierta');players.delete(ws);broadcast({type:'left',id:p.id});sleepCheck();if(freed)broadcastBoats();if(ownsBiz(p.uid))broadcastBiz();} });
   ws.on('error', () => {});
 });
+
+// =================================================================================================
+// 12. RELOJ Y CLIMA DEL MUNDO
+// =================================================================================================
 // Reloj y clima únicos para todo el servidor. Un día del juego dura 12 minutos reales.
 // Si no hay ningún jugador conectado, el tiempo del juego se detiene (hora y clima quedan congelados hasta que entre alguien).
 const worldTick = setInterval(() => {
@@ -712,6 +786,11 @@ const worldTick = setInterval(() => {
   }
   broadcast({type:'world', tod:world.tod, wx:world.wx});
 }, 1000);
+
+// =================================================================================================
+// 13. ARRANQUE, APAGADO Y ERRORES
+//     Comprobación de conexiones vivas, arranque del servidor, guardar todo al apagar y no caerse por un error.
+// =================================================================================================
 const heartbeat = setInterval(() => { for (const ws of wss.clients) { if (!ws.isAlive) { ws.terminate(); continue; } ws.isAlive=false; ws.ping(); } }, 30000);
 server.listen(PORT, '0.0.0.0', () => { console.log(`Real Life Simulator multiplayer: http://localhost:${PORT} (max ${MAX_PLAYERS})`); console.log('Funciones activas: sincronización de barcos, reserva de locales, casas en terrenos, panel de administrador'); });
 const shutdown = () => { saveGov(); saveBiz(); saveHouses(); savePlayers(); clearInterval(playersTimer); clearInterval(bizTimer); clearInterval(housesTimer); clearInterval(govTimer); clearInterval(heartbeat); clearInterval(worldTick); server.close(); remoteFlush().then(() => process.exit(0)); setTimeout(() => process.exit(0), 4000).unref(); };

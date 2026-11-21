@@ -1,8 +1,116 @@
 <!DOCTYPE html>
+<!--
+  ================================================================================================
+  REAL LIFE SIMULATOR · ÍNDICE DEL ARCHIVO
+  ================================================================================================
+  Todo el juego está en este archivo. Busca (Ctrl+F) el número de la sección, por ejemplo «16.2».
+
+  CSS (en <head>)
+   C1.  BASE Y HUD (dinero, objetivo, avisos, velocidad), MINIMAPA, DIÁLOGOS, TIENDAS E INVENTARIO
+   C2.  CHAT MULTIJUGADOR Y FICHA DEL JUGADOR
+   C3.  PANEL DE ADMINISTRADOR (y ajuste del chat en pantallas pequeñas)
+   C4.  TRANSFERENCIAS ENTRE JUGADORES
+   C5.  CONTROLES TÁCTILES (joystick y botones)
+   C6.  AJUSTES PARA MÓVIL (zonas seguras, HUD y aviso de girar la pantalla)
+
+  HTML (en <body>)
+   H1.  HUD (dinero, objetivo, avisos, barras de hambre/energía, reloj, gasolina, radio)
+   H2.  Minimapa, ventana de diálogo e inventario
+   H3.  Chat y ficha del jugador
+   H4.  Pantalla de inicio (controles y botones de sonido, calidad y borrar partida)
+   H5.  Aviso para girar el móvil
+
+  JAVASCRIPT principal
+   (El orden importa: el código que construye el mundo usa números aleatorios con semilla fija y
+    numera las casas según se crean; cambiarlo de sitio cambiaría el mapa y las partidas guardadas.)
+   1.   CONFIGURACIÓN BÁSICA, TERRENO Y ESCENA 3D
+   2.   PERSONAJES
+   3.   COCHES
+   4.   EDIFICIOS
+         4.1 Fábricas de las afueras (al este del barrio): aquí se compra la mercancía de los negocios propios
+         4.2 Imágenes de la tienda de ropa: cada prenda se dibuja sobre un maniquí
+   5.   CIUDAD
+         5.1 Señales de tráfico (fase 1: sistema base; todavía sin reglas)
+         5.2 Semáforos (fase 3)
+   6.   EDIFICIOS DE LAS AFUERAS
+         6.1 Biblioteca (oeste, tras la autopista; solo el edificio, sin mecánicas)
+         6.2 Universidad (al sur de la biblioteca; solo el edificio, sin mecánicas)
+         6.3 Aeropuerto (afueras, al sur del barrio): terminal con torre de control, plataforma y pista
+   7.   PUERTO, BARCOS Y PESCA
+         7.1 Puerto (zona E del mapa: bahía al sur de la autopista, junto a la costa del aeropuerto)
+         7.2 Barcos: modelos y amarre (fase 1), subir y navegar (fase 2) y sincronización (fase 3)
+         7.3 Pesca: red de arrastre en los pesqueros, bodega y venta en la lonja
+         7.4 Construcción del puerto: explanada, oficina, almacén, lonja, contenedores, grúa, faro, buque y muelles
+   8.   ÚLTIMOS DETALLES DEL BARRIO PRINCIPAL
+         8.1 Montaña: decoración y mirador con tienda de souvenirs en la cima
+         8.2 Halos de luz de las farolas
+         8.3 Coches aparcados, locales en venta y pisos
+   9.   ISLA PEQUEÑA: PUEBLO PESQUERO
+   10.  TRANSPORTE: AUTOBUSES Y AVIACIÓN
+         10.1 Autobuses
+         10.2 Aviones (aeropuerto)
+         10.3 Avionetas (aeropuerto)
+         10.4 Aeródromo de la isla (costa sur de la isla pequeña, junto al muelle)
+   11.  ISLA GRANDE
+         11.1 Barrio con calles, casas y comercios
+         11.2 Terrenos (parcelas) de la isla principal
+   12.  HELICÓPTEROS
+   13.  ESTADO DEL JUGADOR, DIÁLOGOS Y TIENDAS
+         13.1 Estado del jugador, avisos y ventanas de diálogo
+         13.2 Taller: mejoras y pintura de vehículos
+         13.3 Compras en tiendas y concesionario
+         13.4 Negocios propios (locales): productos, almacén, obrador de pan, caja y mejoras
+   14.  PANEL DE ADMINISTRADOR
+   15.  HABILIDADES Y DESCANSO
+         15.1 Habilidades y requisitos de los trabajos
+         15.2 Dormir en el mundo compartido: la noche solo pasa cuando duerme al menos el 50 % de los jugadores (lo decide el servidor)
+   16.  BANCO, CASAS Y SERVICIOS
+         16.1 Banco: préstamos
+         16.2 Casas: alquiler e hipoteca
+         16.3 Gasolina
+         16.4 Habitaciones del hotel
+         16.5 Ascensores
+   17.  TRABAJOS
+   18.  CONTROLES (TECLADO Y RATÓN)
+   19.  FÍSICA
+   20.  CONSTRUCCIÓN POR MÓDULOS EN TERRENOS
+   21.  INTERACCIÓN Y CÁMARA
+         21.1 Interacción
+         21.2 Cámara
+   22.  MAPA
+         22.1 Minimapa
+         22.2 Rutas en el mapa (tipo Google Maps)
+   23.  DÍA/NOCHE Y CLIMA
+   24.  MULTIJUGADOR
+         24.1 Conexión, jugadores remotos y chat del mundo
+         24.2 Mensajes privados: pestañas del chat
+         24.3 Transferencias entre jugadores (dinero, objetos, casas y negocios)
+   25.  BUCLE PRINCIPAL
+   26.  MASCOTAS
+   27.  RANGOS SOCIALES Y GOBIERNO
+         27.1 Rangos sociales
+         27.2 Gobierno municipal: elecciones (V), despacho del Alcalde (E), impuestos y bans
+   28.  PROPIEDADES DE OTROS JUGADORES
+         28.1 Negocios de otros jugadores: se ven en el mundo y se les puede comprar (L junto a su puerta)
+         28.2 Casas en terrenos: se sincronizan con el servidor y las ven todos los jugadores
+   29.  GUARDADO DE LA PARTIDA
+   30.  SONIDO
+   31.  MÓVIL DEL JUGADOR
+   32.  ARRANQUE
+
+  JAVASCRIPT para pantallas táctiles
+   33.  CONTROLES TÁCTILES (joystick, botones y avisos convertidos en botones)
+   34.  AJUSTES PARA MÓVIL (altura real de pantalla, soltar controles, pérdida de WebGL)
+  ================================================================================================
+-->
 <html lang="es"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Real Life Simulator</title>
 <style>
+
+/* ============================================================
+   C1. BASE Y HUD (dinero, objetivo, avisos, velocidad), MINIMAPA, DIÁLOGOS, TIENDAS E INVENTARIO
+   ============================================================ */
 html,body{margin:0;height:100%;overflow:hidden;background:#9cc;font-family:system-ui,sans-serif}
 canvas{display:block}
 #hud div{position:fixed;color:#fff;text-shadow:0 1px 3px #000;pointer-events:none}
@@ -25,7 +133,10 @@ canvas{display:block}
 .ic{font-style:normal;font-size:34px;width:46px;text-align:center}.ti{width:34px;height:42px;border-radius:6px;background:#a592cc;vertical-align:middle}
 #inv{display:none;top:50%;left:50%;transform:translate(-50%,-50%);padding:16px 22px;border-radius:12px;min-width:320px;max-height:80vh;overflow:auto;font-size:15px}#inv h2,#inv h3{margin:8px 0 4px}#inv button{padding:6px 12px;border:0;border-radius:6px;background:#2f7fe0;color:#fff;cursor:pointer;margin-top:6px}
 
-/* CHAT MULTIJUGADOR */
+
+/* ============================================================
+   C2. CHAT MULTIJUGADOR Y FICHA DEL JUGADOR
+   ============================================================ */
 #chatToggle{position:fixed;right:12px;top:276px;z-index:40;border:1px solid #ffffff66;border-radius:22px;background:rgba(12,25,38,.92);color:#fff;padding:10px 15px;font:600 14px system-ui;cursor:pointer;box-shadow:0 3px 12px #0005}
 #playerCard{display:none;position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:80;width:min(390px,calc(100vw - 30px));max-height:75vh;overflow:auto;background:rgba(10,20,31,.97);color:#fff;border:1px solid #d5b66b;border-radius:16px;padding:18px;box-shadow:0 12px 40px #000b;font:14px system-ui}
 #playerCard h2{margin:0 0 10px;color:#f4d58a}#playerCard h3{margin:13px 0 5px;color:#9fc9ff;font-size:14px}#playerCard .pcClose{float:right;background:#704b31;color:#fff;border:0;border-radius:8px;padding:6px 10px;cursor:pointer}
@@ -48,6 +159,10 @@ canvas{display:block}
 .chatName{cursor:pointer;text-decoration:underline dotted #ffd36a88}.chatName:hover{color:#fff}
 #playerCard .dmBtn{margin:8px 0 0;background:#e67e22;color:#fff;border:0;border-radius:8px;padding:9px 12px;cursor:pointer;font:700 14px system-ui;width:100%}
 #chatSnd{background:none;border:0;color:#fff;font-size:15px;cursor:pointer;margin-right:6px;opacity:.85}
+
+/* ============================================================
+   C3. PANEL DE ADMINISTRADOR (y ajuste del chat en pantallas pequeñas)
+   ============================================================ */
 #admPanel{display:none;position:fixed;left:50%;transform:translateX(-50%);top:3vh;bottom:3vh;width:min(920px,95vw);z-index:90;background:rgba(9,18,29,.97);color:#fff;border:1px solid #ffffff66;border-radius:14px;box-shadow:0 10px 40px #000a;font:13px system-ui;flex-direction:column;overflow:hidden}
 #admHead{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:rgba(122,60,160,.55);font-size:15px}
 #admBody{overflow:auto;padding:10px 14px;flex:1}#admWorld{padding:9px 14px;border-bottom:1px solid #ffffff2a;background:rgba(255,255,255,.04)}.admWR{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:7px}.admWR label{display:flex;align-items:center;gap:4px}
@@ -63,6 +178,10 @@ canvas{display:block}
 @media(max-width:600px){#chatToggle{right:10px;top:276px}#chatPanel{right:8px;bottom:108px;height:260px}}
 
 
+
+/* ============================================================
+   C4. TRANSFERENCIAS ENTRE JUGADORES
+   ============================================================ */
 #playerCard .xfBtn{margin:12px 0 0;background:#2c7a4b;color:#fff;border:0;border-radius:8px;padding:9px 12px;cursor:pointer;font:700 14px system-ui;width:100%}
 #playerCard input[type=number]{width:100%;box-sizing:border-box;background:#142436;color:#fff;border:1px solid #3b5878;border-radius:8px;padding:7px;font:14px system-ui}
 #playerCard .xfRow{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:5px 0}
@@ -74,9 +193,74 @@ canvas{display:block}
 #xferIn .xfBtns{display:flex;gap:10px;margin-top:14px}
 #xferIn .xfBtns button{flex:1;border:0;border-radius:8px;padding:10px;font:700 14px system-ui;color:#fff;cursor:pointer}
 #xferIn .xfYes{background:#2c7a4b}#xferIn .xfNo{background:#8a3b32}
-</style></head><body>
+
+/* ============================================================
+   C5. CONTROLES TÁCTILES (joystick y botones)
+   ============================================================ */
+body.touch{touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;overscroll-behavior:none;-webkit-tap-highlight-color:transparent}
+#tc{position:fixed;inset:0;z-index:8;pointer-events:none;display:none;font-family:system-ui,sans-serif}
+#tc.on{display:block}
+#tcL,#tcR{position:absolute;top:0;bottom:0;pointer-events:auto;touch-action:none}
+#tcL{left:0;width:45%}#tcR{right:0;width:55%}
+#tcjb{position:absolute;width:130px;height:130px;margin:-65px 0 0 -65px;border-radius:50%;background:rgba(15,20,30,.3);border:2px solid rgba(255,255,255,.5);pointer-events:none;opacity:.45;left:90px;bottom:auto;top:calc(100% - 100px)}
+#tcjb.act{opacity:.95}
+#tcjk{position:absolute;left:39px;top:39px;width:52px;height:52px;border-radius:50%;background:rgba(255,255,255,.7)}
+#tc .b{position:absolute;pointer-events:auto;border-radius:50%;background:rgba(15,20,30,.6);border:2px solid rgba(255,255,255,.65);color:#fff;font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center;touch-action:none;line-height:1.1;text-align:center}
+#tc .b.dn{background:rgba(47,127,224,.9)}
+#tcp{position:absolute;right:calc(16px + env(safe-area-inset-right));bottom:calc(196px + env(safe-area-inset-bottom));display:none;grid-template-columns:repeat(7,46px);gap:6px;pointer-events:auto}
+#tcp.show{display:grid}
+#tcp .b{position:static;width:46px;height:46px;font-size:17px}
+#tcAct{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom));display:flex;flex-direction:column;align-items:center;gap:8px;max-width:max(220px,calc(100vw - 400px));pointer-events:none;z-index:9}
+#tcAct button{pointer-events:auto;touch-action:none;display:flex;align-items:center;gap:8px;min-height:50px;padding:8px 18px 8px 10px;border-radius:28px;border:2px solid rgba(255,255,255,.85);background:rgba(47,127,224,.94);color:#fff;font:700 16px system-ui,sans-serif;box-shadow:0 3px 12px rgba(0,0,0,.45);text-align:left;line-height:1.15}
+#tcAct button.dn{background:#1b5fb8;transform:scale(.96)}
+#tcAct button i{font-style:normal;flex:none;width:30px;height:30px;border-radius:50%;background:#fff;color:#1b5fb8;display:flex;align-items:center;justify-content:center;font-size:15px}
+#tcAct .tcInfo{pointer-events:none;background:rgba(15,20,30,.65);color:#fff;font:600 14px system-ui,sans-serif;padding:5px 12px;border-radius:14px;text-align:center}
+body.touch #prompt{display:none}
+body.touch #phoneMini,body.touch #chatToggle{display:none!important}
+@media (orientation:portrait){#tcAct{bottom:calc(240px + env(safe-area-inset-bottom))}}
+#tcd{display:none!important;position:absolute;left:50%;top:2px;transform:translateX(-50%);font:11px monospace;color:#9fe3a8;background:rgba(0,0,0,.55);padding:2px 8px;border-radius:6px;pointer-events:none;white-space:nowrap}
+
+/* ============================================================
+   C6. AJUSTES PARA MÓVIL (zonas seguras, HUD y aviso de girar la pantalla)
+   ============================================================ */
+html,body{overscroll-behavior:none}
+body.touch input,body.touch textarea{-webkit-user-select:text;user-select:text;touch-action:auto;font-size:16px!important}
+body.touch #ov{overflow:auto;justify-content:safe center;-webkit-overflow-scrolling:touch;touch-action:pan-y;padding:12px calc(16px + env(safe-area-inset-right)) 12px calc(16px + env(safe-area-inset-left))}
+body.touch #ov p{font-size:13px;margin:6px 0}
+body.touch #ov h1{font-size:24px;margin:4px 0}
+body.touch #dlg,body.touch #inv,body.touch #playerCard,body.touch #chatMessages{touch-action:pan-y;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+body.touch #dlg,body.touch #inv{max-height:calc(var(--vh,1vh)*84);min-width:min(320px,92vw);max-width:94vw;padding:14px 16px}
+body.touch #dlg button,body.touch #inv button{min-height:40px;padding:8px 14px;font-size:15px;touch-action:manipulation}
+body.touch .tabs button{min-height:36px}
+body.touch #playerCard{max-height:calc(var(--vh,1vh)*84)}
+body.touch #chatPanel{height:min(290px,calc(var(--vh,1vh)*62));bottom:calc(10px + env(safe-area-inset-bottom));right:calc(10px + env(safe-area-inset-right))}
+/* HUD sin solapamientos + zonas seguras (notch) */
+body.touch #money{left:calc(14px + env(safe-area-inset-left));font-size:22px;top:8px}
+body.touch #obj{left:calc(14px + env(safe-area-inset-left));top:38px;font-size:13px;max-width:36vw}
+body.touch #hb,body.touch #eb,body.touch #clk{left:calc(14px + env(safe-area-inset-left))!important}
+body.touch #hb{top:86px!important;width:150px!important;font-size:11px!important}
+body.touch #eb{top:110px!important;width:150px!important;font-size:11px!important}
+body.touch #clk{top:138px!important;font-size:13px!important}
+body.touch #spd{bottom:auto;top:8px;left:50%;right:auto;transform:translateX(-50%);font-size:22px}
+body.touch #fuel{bottom:auto!important;top:40px!important;left:50%!important;right:auto!important;transform:translateX(-50%);width:150px!important}
+body.touch #toast{top:22%;font-size:18px;padding:0 70px;box-sizing:border-box}
+body.touch #mm{z-index:12;top:calc(8px + env(safe-area-inset-top));right:calc(8px + env(safe-area-inset-right))}
+body.touch #mpHud{right:auto!important;left:50%!important;transform:translateX(-50%);top:4px!important;width:auto!important;padding:3px 10px!important;font-size:10px!important;opacity:.8}
+body.touch #mpHud div{display:inline-block;margin:0 0 0 6px!important}
+body.touch #tcjb{left:calc(90px + env(safe-area-inset-left))}
+/* aviso para girar el movil */
+#rotWarn{display:none;position:fixed;inset:0;z-index:200;background:#0d141e;color:#fff;flex-direction:column;align-items:center;justify-content:center;text-align:center;font:600 18px system-ui;padding:30px}
+#rotWarn i{font-style:normal;font-size:64px;display:block;margin-bottom:14px;animation:rotHint 1.6s ease-in-out infinite}
+@keyframes rotHint{0%,30%{transform:rotate(0)}70%,100%{transform:rotate(-90deg)}}
+@media (pointer:coarse) and (orientation:portrait){#rotWarn{display:flex}}
+</style>
+</head><body>
+
+<!-- ========== H1. HUD ========== -->
 <div id="hud"><div id="money"></div><div id="obj"></div><div id="prompt"></div><div id="toast"></div><div id="clk" style="top:160px;left:14px;font-size:15px"></div><div id="hb" style="top:100px;left:14px;width:210px;padding:2px 8px;border:2px solid #fff;border-radius:8px;font-size:13px;box-sizing:border-box"></div><div id="eb" style="top:128px;left:14px;width:210px;padding:2px 8px;border:2px solid #fff;border-radius:8px;font-size:13px;box-sizing:border-box"></div><div id="spd"></div><div id="fuel" style="display:none;bottom:56px;right:16px;width:190px;padding:2px 8px;border:2px solid #fff;border-radius:8px;font-size:13px;box-sizing:border-box"></div><div id="radio" style="display:none;bottom:90px;right:16px;width:190px;padding:2px 8px;border:2px solid #fff;border-radius:8px;font-size:13px;box-sizing:border-box;background:rgba(0,0,0,.5)"></div><div id="hint" style="bottom:14px;left:14px;font-size:14px">I: inventario · F: comer · E: interactuar · R: repostar · M: móvil · X: cancelar trabajo · C: radio (en coche) · T: mascotas</div></div>
+<!-- ========== H2. MINIMAPA, VENTANA DE DIÁLOGO E INVENTARIO ========== -->
 <canvas id="mm"></canvas><div id="dlg"></div><div id="inv"></div>
+<!-- ========== H3. CHAT Y FICHA DEL JUGADOR ========== -->
 <button id="chatToggle" type="button" title="Abrir o cerrar el chat (tecla P)">P · Chat</button>
 <div id="playerCard" role="dialog" aria-label="Ficha del jugador"></div>
 <div id="chatPanel" aria-label="Chat del mundo">
@@ -86,6 +270,7 @@ canvas{display:block}
  <form id="chatForm"><input id="chatInput" maxlength="180" autocomplete="off" placeholder="Escribe un mensaje..." aria-label="Mensaje"><button id="chatSend" type="submit">Enviar</button></form>
 </div>
 
+<!-- ========== H4. PANTALLA DE INICIO ========== -->
 <div id="ov"><h1>REAL LIFE SIMULATOR</h1>
 <p><b>WASD / flechas</b> moverse · <b>Ratón</b> cámara · <b>Espacio</b> saltar (freno en coche) · <b>Shift</b> correr / nadar más rápido · <b>T</b> panel de mascotas<br>
 <b>En coche:</b> <b>A/D</b> girar · <b>clic izquierdo</b> acelerar · <b>clic derecho</b> frenar / marcha atrás<br>
@@ -93,11 +278,22 @@ canvas{display:block}
 <p>En coche: W acelerar, S frenar/marcha atrás, A/D girar, Espacio freno de mano.<br>⛽ Los coches gastan gasolina: reposta en las gasolineras (G en el mapa) con <b>R</b> en coche o <b>E</b> junto al surtidor.</p>
 <p>💼 Trabajos: reponer estanterías (Supermercado), repartir pedidos (Alimentación) y taxista (Hotel). Cada tarea cuenta para ascender y cobrar más. <b>X</b> cancela el trabajo en curso.</p>
 <div id="savemsg" style="margin:6px 0;font-size:14px;color:#9fe3a8"></div><button id="sndbtn" style="margin:4px 6px 12px;padding:6px 14px;border:0;border-radius:6px;background:#2f7fe0;color:#fff;cursor:pointer;font-size:13px">🔊 Sonido: activado</button><button id="qbtn" style="margin:4px 6px 12px;padding:6px 14px;border:0;border-radius:6px;background:#2f7fe0;color:#fff;cursor:pointer;font-size:13px">🎛️ Calidad</button><button id="delsave" style="margin:4px 0 12px;padding:6px 14px;border:0;border-radius:6px;background:#a33;color:#fff;cursor:pointer;font-size:13px">🗑 Borrar partida</button><h2>Haz clic para jugar</h2></div>
+<!-- ========== H5. AVISO PARA GIRAR EL MÓVIL ========== -->
+<div id="rotWarn"><div><i>📱</i>Gira el móvil en horizontal<br><small style="font-weight:400;opacity:.7">El juego se ve y se controla mucho mejor así</small></div></div>
+
+<!-- ========== LIBRERÍA 3D (three.js) ========== -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+<!-- ========== JAVASCRIPT PRINCIPAL (secciones 1 a 32) ========== -->
 <script>
 'use strict';
+
+// =================================================================================================
+// 1. CONFIGURACIÓN BÁSICA, TERRENO Y ESCENA 3D
+//     Detección de móvil, forma del terreno (ciudad, colinas, montaña, islas, aeropuerto), autopista,
+//     funciones de ayuda ($, rnd, pick, setTx…) y creación de la escena 3D (cámara, renderizador y luces).
+// =================================================================================================
 const IS_TOUCH=matchMedia('(pointer:coarse)').matches||/[?&]touch=1/.test(location.search);
-// ================= UTILIDADES Y ESCENA =================___
 let G=.12;const P=54,N=5,LAND0=-140,LAND1=1300,BEACH=8,WLIM0=LAND0+2,WLIM1=LAND1-2,CE=(N-1)*P+40,MC=(LAND0+LAND1)/2,MS=LAND1-LAND0+40,MOFF=MS/2-MC,clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 // terreno: 0 en la ciudad; colinas suaves fuera; baja hacia el mar (orilla a ~66 m del borde de la ciudad)
 function heightRaw(x,z){const e=Math.max(-14-x,x-N*P,-14-z,z-N*P,0),ss=(a,b,v)=>{v=clamp((v-a)/(b-a),0,1);return v*v*(3-2*v)},ed=isl(x,z);let h=0;
@@ -207,7 +403,12 @@ function sign(text,x,y,z,w,fz,col){const c=document.createElement('canvas');c.wi
  g.fillStyle=col;g.fillRect(0,0,256,64);g.fillStyle='#fff';g.font='bold 30px sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText(text,128,34);
  const m=new THREE.Mesh(new THREE.PlaneGeometry(w,w/4),new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(c)}));
  m.position.set(x,y,z+fz*.3);if(fz<0)m.rotation.y=Math.PI;scene.add(m)}
-// ===== PERSONAJES (articulados, con variedad) =====
+
+// =================================================================================================
+// 2. PERSONAJES
+//     Modelo 3D articulado de las personas, ropa y complementos (camisetas, pantalones, calzado,
+//     gorros, gafas, mochilas…) y su animación.
+// =================================================================================================
 const SKIN=[0xf3d2b3,0xe8b98f,0xd29b6b,0xb07a4f,0x8a5a3a,0x5e3d28],HAIR=[0x16110d,0x2b1a10,0x4a2c17,0x7a4a24,0xb98a45,0xd9c58a,0x8d8d8d,0x7b2a14],
 PANTS=[0x2a3550,0x3a3d45,0x544636,0x1d2740,0x4a5868,0x6a6a70,0x22303a,0x7a6a55],SHOE=[0x1a1a1a,0x1a1a1a,0xeeeeee,0x4a3020,0x2a3a6a],CAPS=[0xc0392b,0x2c3e50,0x27ae60,0x222222,0xf1c40f],IDLERS=[];
 const shade=(c,k)=>new THREE.Color(c).multiplyScalar(k).getHex();
@@ -388,7 +589,11 @@ function animPerson(g,ph,amp,dt){const u=g.userData.P;if(!u)return;const k=Math.
  u.up.rotation.x=L(.05*a,p.lean);u.up.rotation.y=L(s*.12*a,0);
  u.up.scale.set(1,1+.006*Math.sin(t*1.8),1+.012*Math.sin(t*1.8));
  u.headG.rotation.x=L(0,p.hd);u.headG.rotation.y=L(-s*.12*a+Math.sin(t*.45)*.28*q,0)}
-// ================= COCHES =================
+
+// =================================================================================================
+// 3. COCHES
+//     Tipos de vehículo (SPEC), materiales, modelo 3D, creación de coches (spawnCar) y mejoras del taller (applyUp).
+// =================================================================================================
 const SPEC={hatch:{l:3.8,w:1.7,h:.75,cab:.65,max:26,acc:9,tank:40,k:.003,name:'Utilitario'},sport:{l:4.4,w:1.9,h:.55,cab:.45,max:45,acc:18,tank:60,k:.0042,name:'Deportivo'},van:{l:5,w:2,h:1.5,cab:.5,max:22,acc:7,tank:70,k:.0038,name:'Furgoneta'},moto:{l:2.1,w:.8,h:.6,cab:0,max:48,acc:20,tank:14,k:.0009,name:'Moto'},bici:{l:1.8,w:.5,h:.6,cab:0,max:9,acc:5,tank:1,k:0,nf:1,name:'Bicicleta'},patinete:{l:1.3,w:.5,h:.6,cab:0,max:7,acc:6,tank:1,k:0,nf:1,name:'Patinete'}};
 const carMat=new THREE.MeshLambertMaterial({vertexColors:true});carMat.userData.nd=1;
 const charMat=new THREE.MeshPhongMaterial({vertexColors:true,specular:0x2c2c2c,shininess:30});
@@ -460,7 +665,11 @@ function carMeshOld(t,col){const s=SPEC[t],g=new THREE.Group();
  return g}
 function spawnCar(t,col,x,z,h,mode,extra){const m=carMesh(t,col);m.userData.col=col;scene.add(m);
  const c=Object.assign({m,t,spec:SPEC[t],x,z,h,v:0,mode,fuel:SPEC[t].tank*(.3+Math.random()*.7)},extra||{});if(c.lm||c.lt)applyUp(c);m.position.set(x,c.y||0,z);m.rotation.y=h;cars.push(c);return c}
-// ================= EDIFICIOS =================
+
+// =================================================================================================
+// 4. EDIFICIOS
+//     Piezas para construir edificios: paredes huecas, puertas, ventanas e interiores (casas, hotel y tiendas).
+// =================================================================================================
 function hollow(cx,cz,w,d,h,fz,wc,dw,fl,hole){
  const t=.4,zf=cz+fz*d/2,zb=cz-fz*d/2,sw=(w-dw)/2;
  box(cx,G+.01,cz,w,.03,d,fl,false);
@@ -684,7 +893,8 @@ ffood:{n:'FÁBRICA DE COMIDA',c:'#b03a2e',wall:0xe9d9b8,floor:0xc9c9c0,L:'🏭',
 ffurn:{n:'FÁBRICA DE MUEBLES',c:'#6d4c41',wall:0xd9c2a0,floor:0xa89070,L:'🏭',col:'#9b6a3a',worker:'Encargado',job:null,items:[]},
 fcloth:{n:'FÁBRICA DE ROPA',c:'#7d3c98',wall:0xe3d4ee,floor:0xb9b2c4,L:'🏭',col:'#a84be8',worker:'Encargada',job:null,items:[]}};
 SHOPS.shop.items=Object.keys(CLOTH).map(k=>[k,CLOTH[k].price]);
-// ===== FÁBRICAS (afueras, al este del barrio): aquí se compra la mercancía de los negocios propios =====
+
+// ---------- 4.1 Fábricas de las afueras (al este del barrio): aquí se compra la mercancía de los negocios propios ----------
 const FACT={ffood:['super','bar','pan'],ffurn:['muebles'],fcloth:['ropa']},SMK=[];let facW=null;
 function smokeUpd(t){for(const p of SMK){const u=(t*.12+p.ph)%1;p.m.position.set(p.x+u*9,p.y+u*16,p.z+u*3);const s=1+u*2.4;p.m.scale.set(s,s,s);p.m.material.opacity=.55*(1-u)}}
 function factory(s){const key=s.k,S=SHOPS[key],px=s.x,pz=s.z,fz=-1,w=s.w,d=s.d,H=8,L=d/2-.4,zf=pz+fz*d/2,sd0=seed,Z=l=>pz+fz*l,
@@ -725,7 +935,8 @@ function factory(s){const key=s.k,S=SHOPS[key],px=s.x,pz=s.z,fz=-1,w=s.w,d=s.d,H
  seed=sd0}
 FACS.forEach(factory);
 
-// ===== imágenes de la tienda de ropa: se dibuja cada prenda sobre un maniquí =====
+
+// ---------- 4.2 Imágenes de la tienda de ropa: cada prenda se dibuja sobre un maniquí ----------
 const CK=Object.keys(CLOTH),THC={};let THR=null,SHOPTAB=0;
 const TABS=[['est','👕 Estampadas'],['cam','👔 Camisetas y camisas'],['abr','🧥 Abrigo'],['pan','👖 Pantalones'],['cal','👟 Calzado'],['cab','🎩 Gorros y gafas'],['cue','🧣 Cuello y muñeca'],['esp','🎒 Mochilas y capas']];
 const VIEW={top:[0,1.4,2,0],legs:[0,.55,2.05,.15],feet:[0,.17,1.05,.6],head:[0,1.77,.9,.4],eyes:[0,1.74,.6,0],neck:[0,1.45,1.2,.2],back:[0,1.15,2,2.7],wrist:[.25,1.02,.7,1.2]};
@@ -743,7 +954,11 @@ function shopTab(t){SHOPTAB=t;const el=$('sb');if(!el)return;const g=TABS[t][0],
  CK.forEach((n,i)=>{const it=CLOTH[n];if(it.g!==g)return;const own=inv[n]?inv[n].n:0;
   h+=`<div class="card"><img src="${thumbOf(n)}" alt="${n}"><div>${n}</div><b>€${it.price}</b>${own?`<small>Tienes ×${own}</small>`:''}<button onclick="buy('shop',${i})">Comprar</button></div>`});
  el.innerHTML=h+'</div>';dlg.scrollTop=sc}
-// ================= CIUDAD =================
+
+// =================================================================================================
+// 5. CIUDAD
+//     Calles, manzanas, mar, aparcamientos y edificios del barrio principal, con sus señales y semáforos.
+// =================================================================================================
 const ext=N*P-P+54; // extensión
 const PKI=1,PKJ=3,PX=PKI*P,PZ=PKJ*P;const mkHole=()=>{const hp=new THREE.Path();hp.moveTo(PX+3,-(PZ+3));[[8,3],[8,0],[14,0],[14,3],[37,3],[37,37],[3,37]].forEach(a=>hp.lineTo(PX+a[0],-(PZ+a[1])));hp.closePath();return hp};
 const mkPlane=(x0,x1,z0,z1,c,y)=>{const sh=new THREE.Shape();sh.moveTo(x0,-z0);sh.lineTo(x1,-z0);sh.lineTo(x1,-z1);sh.lineTo(x0,-z1);sh.lineTo(x0,-z0);sh.holes.push(mkHole());const m=new THREE.Mesh(new THREE.ShapeGeometry(sh),mat(c));m.rotation.x=-Math.PI/2;m.position.y=y;scene.add(m);return m};
@@ -914,7 +1129,8 @@ function buildHighway(){
  const d=new THREE.Object3D(),im=new THREE.InstancedMesh(new THREE.BoxGeometry(.12,.7,.12),mat(0x777c82),posts.length);posts.forEach((q,i)=>{d.position.set(q[0],q[1]+.35,q[2]);d.updateMatrix();im.setMatrixAt(i,d.matrix)});scene.add(im);
  const ic=new THREE.InstancedMesh(new THREE.BoxGeometry(1,1,1),mat(0x8d9096),cols.length);d.rotation.set(0,0,0);cols.forEach((q,i)=>{d.position.set(q[0],q[1]+q[3]/2,q[2]);d.scale.set(.6,q[3],.6);d.updateMatrix();ic.setMatrixAt(i,d.matrix)});scene.add(ic)}
 buildHighway();
-// ================= SEÑALES DE TRÁFICO (fase 1: sistema base; todavía sin reglas) =================
+
+// ---------- 5.1 Señales de tráfico (fase 1: sistema base; todavía sin reglas) ----------
 // addSign(tipo,x,z,ry,{y,h,s,col}): tipo ∈ SGT · ry = giro de la placa (su cara mira hacia (sen ry, cos ry)) · h = altura del centro de la placa · s = tamaño · col = false para que no tenga colisión
 const SIGNS=[],SGT=['stop','ceda','l30','peat','l50','l120','l40','sent'];
 function addSign(t,x,z,ry,o){o=o||{};SIGNS.push({t,x,z,ry,y:o.y===undefined?G:o.y,h:o.h||2.3,s:o.s||.9,col:o.col!==false})}
@@ -952,7 +1168,8 @@ try{const ring=HW.polys[0],bad=[...HW.junc,...HW.merge,...HW.mouth];
   if(bad.some(j=>Math.hypot(p[0]-j[0],p[1]-j[1])<60)||bumpAt(p[0],p[1])>.35)continue;
   for(const sd of[1,-1])addSign('l120',p[0]+nx*10.2*sd,p[1]+nz*10.2*sd,Math.atan2(-tx*sd,-tz*sd),{y:p[3]!==undefined?p[3]:p[2],h:3,s:1.6,col:false})}}catch(e){console.warn('señales autopista',e)}
 buildSigns();
-// ================= SEMÁFOROS (fase 3) =================
+
+// ---------- 5.2 Semáforos (fase 3) ----------
 // Cada cruce de TLX tiene un mástil con brazo por acceso (a la derecha del sentido de la marcha) y una cabeza de 3 luces colgada sobre el carril.
 // Ciclo de 30 s por cruce: eje X → verde 10 s · ámbar 3 s · rojo; el eje Z va desfasado medio ciclo, así hay 2 s con todo en rojo entre un eje y otro.
 // El reloj es Date.now() (igual para todos los jugadores) y cada cruce tiene su propio desfase.
@@ -986,7 +1203,13 @@ let TLU=null; // actualiza luces y brillo nocturno; lo llama updEnv con el facto
  TLU=night=>{let ch=false;for(const tl of TLS)for(let a=0;a<2;a++){const st=tlState(tl,a);if(st!==tl.last[a]){tl.last[a]=st;for(const hd of tl.heads[a])setHead(hd,st);ch=true}}
   if(ch){lamps.instanceColor.needsUpdate=true;hcol.needsUpdate=true}hm.opacity=.1+.9*night};
  TLU(0)})();
-// ================= BIBLIOTECA (oeste, tras la autopista; solo el edificio, sin mecánicas) =================
+
+// =================================================================================================
+// 6. EDIFICIOS DE LAS AFUERAS
+//     Biblioteca, universidad y aeropuerto (solo los edificios; los aviones están en la sección 10).
+// =================================================================================================
+
+// ---------- 6.1 Biblioteca (oeste, tras la autopista; solo el edificio, sin mecánicas) ----------
 // Cuerpo 8x32 m (sala central + dos alas) + pórtico + escalinata, de cara al oeste (la ciudad), junto a las fábricas del este (x≈277..290, z≈60..92). Al sur (z>92) queda libre el solar para ampliarla con la universidad.
 (function(){
 const s0=scene.children.length,c0=colliders.length,f0=FLOORS.length,i0=INTERACTS.length,h0=HB.length; // se construye en coordenadas locales y al final se gira 180° hasta su sitio (junto a las fábricas, mirando a la ciudad)
@@ -1045,7 +1268,8 @@ scene.children.slice(s0).forEach(m=>{m.position.x=PA-m.position.x;m.position.z=P
 const fx=o=>{const a=PA-o.x1,b=PA-o.x0,c=PB-o.z1,d=PB-o.z0;o.x0=a;o.x1=b;o.z0=c;o.z1=d};colliders.slice(c0).forEach(fx);FLOORS.slice(f0).forEach(fx);HB.slice(h0).forEach(fx);INTERACTS.slice(i0).forEach(o=>{o.x=PA-o.x;o.z=PB-o.z});
 BLD.push([PA-XS,PB-Z1,XS-X0,Z1-Z0,'#d9cfb8']);
 })();
-// ================= UNIVERSIDAD (al sur de la biblioteca; solo el edificio, sin mecánicas) =================
+
+// ---------- 6.2 Universidad (al sur de la biblioteca; solo el edificio, sin mecánicas) ----------
 // Cuerpo 11x36 m: vestíbulo central con secretaría y dos alas de aulas (norte: FP; sur: Grados) + pórtico, escalinata y torre central. De cara al oeste (la ciudad).
 (function(){
 const s0=scene.children.length,c0=colliders.length,f0=FLOORS.length,i0=INTERACTS.length,h0=HB.length; // se construye en coordenadas locales y al final se gira 180° hasta su sitio
@@ -1091,7 +1315,8 @@ BLD.push([PA-XS,PB-Z1,XS-X0,Z1-Z0,'#c9bfa6']);
 })();
 
 
-// ===== AEROPUERTO (afueras, al sur del barrio): terminal con torre de control, plataforma y pista. los aviones están en la sección AVIONES =====
+
+// ---------- 6.3 Aeropuerto (afueras, al sur del barrio): terminal con torre de control, plataforma y pista ----------
 function airport(){const sd0=seed,px=101,pz=352,w=64,d=24,H=9,fz=-1,L=d/2-.4,zf=pz-d/2,zb=pz+d/2,AS=0x3b3b40,Zl=l=>pz+fz*l,
  F=(x,y,l,sx,sy,sz,c,sol)=>box(px+x,G+.03+y,Zl(l),sx,sy,sz,c,sol),
  A=(x,z,sx,sz,c)=>box(x,0,z,sx,G,sz,c||AS,false),M=(x,z,sx,sz,c)=>box(x,G,z,sx,.03,sz,c,false),
@@ -1131,12 +1356,19 @@ function airport(){const sd0=seed,px=101,pz=352,w=64,d=24,H=9,fz=-1,L=d/2-.4,zf=
  seed=sd0}
 airport();
 
-// ================= PUERTO (zona E del mapa: bahía al sur de la autopista, junto a la costa del aeropuerto) =================
+
+// =================================================================================================
+// 7. PUERTO, BARCOS Y PESCA
+//     Puerto de la zona E, barcos (modelos, navegar y sincronización con otros jugadores), pesca y lonja.
+// =================================================================================================
+
+// ---------- 7.1 Puerto (zona E del mapa: bahía al sur de la autopista, junto a la costa del aeropuerto) ----------
 // Explanada de hormigón con oficina y almacén, muelle 1 de carga (grúa pórtico, buque y faro), muelle 2 de madera para pesqueros y contenedores.
 // Todo va alineado con los ejes del mundo (los suelos FLOORS son rectángulos). Usa su propio azar para no alterar la semilla global.
 const PORTBOATS=[];
 function portUpd(t){for(const b of PORTBOATS){const g=b.g;g.position.y=b.y+Math.sin(t*b.sp+b.ph)*.035;g.rotation.z=Math.sin(t*b.sp*.8+b.ph+1)*b.roll;g.rotation.x=Math.sin(t*b.sp*.6+b.ph+2)*b.roll*.6}}
-// ================= BARCOS (fase 1: modelos y amarre; todavía no se pueden usar) =================
+
+// ---------- 7.2 Barcos: modelos y amarre (fase 1), subir y navegar (fase 2) y sincronización (fase 3) ----------
 // Registro: BOATS[i]={type,name,x,z,ry,L,B,g (grupo 3D),col (colisión)}. Proa hacia -x local. Fases siguientes: subir (E), navegar, colisiones, alquiler/compra, gasolina, ferry.
 const BOATS=[],BOATSPEC={lancha:{L:6.2,B:2.3,max:32,acc:9,turn:1.5,lat:1.1,art:'la lancha'},velero:{L:8.6,B:2.9,max:14,acc:3.2,turn:.95,lat:2.2,art:'el velero'},pesquero:{L:8,B:2.7,max:11,acc:3.4,turn:.85,lat:2,art:'el pesquero'}}; // max = m/s (lancha ~115 km/h, velero ~50, pesquero ~40)
 const BGLASS=new THREE.MeshLambertMaterial({color:0x7fb8d8,transparent:true,opacity:.55}),BLIGHT={r:new THREE.MeshBasicMaterial({color:0xff2a2a}),g:new THREE.MeshBasicMaterial({color:0x22e060}),w:new THREE.MeshBasicMaterial({color:0xfff6d0})},HULLM=new THREE.MeshLambertMaterial({vertexColors:true,side:THREE.DoubleSide});
@@ -1336,7 +1568,8 @@ function boatRemoteStep(dt){const now=performance.now();
   boatBox(a);a.col.on=true}} // el colisionador sigue al barco: los demás barcos chocan con él
 // Si se cae la conexión, los barcos que pilotaban otros se quedan amarrados donde estaban hasta la próxima sincronización
 function boatMpReset(){boatPend=null;for(const a of BOATS){if(a.pilot||a.rt){a.pilot=null;a.rt=null;if(riding!==a){a.v=0;boatBox(a);a.col.on=true;boatMoor(a,true)}}}}
-// ================= PESCA (fase 1): red de arrastre en los pesqueros + bodega + venta en la lonja =================
+
+// ---------- 7.3 Pesca: red de arrastre en los pesqueros, bodega y venta en la lonja ----------
 // G calar/recoger la red (solo pesqueros, lejos de la costa) · navega entre 2 y 6 m/s · la captura va a la bodega del barco (HOLD) · se vende en la lonja del puerto.
 const FISHMUL=4,FISHCAP=80,FZ=[30,110,300],ZN=['Aguas costeras','Mar abierto','Alta mar'],LONJA={x:368,z:331},LONJAR=95; // bodega (kg) · distancia a la costa (m) de cada zona · puesto de venta
 const FISH=[
@@ -1410,6 +1643,8 @@ function fishSellAll(){let kg=0,v=0;BOATS.forEach(b=>{if(b.type==='pesquero'){co
 function fishKeep(i){const b=BOATS[i],h=b&&HOLD[b.name];if(!h)return;const f=FISH.filter(x=>h[x.k]>0).sort((p,q)=>p.p-q.p)[0];if(!f)return; // se queda con el pescado más barato
  h[f.k]=Math.round((h[f.k]-Math.min(1,h[f.k]))*10)/10;if(h[f.k]<=0)delete h[f.k];
  const o=inv['Pescado fresco']||(inv['Pescado fresco']={n:0,cat:'Comida',act:'Consumir'});o.n++;toast('🍽️ Te quedas 1 ración de pescado fresco (inventario: I · o cocínala en casa)');dlg.innerHTML=fishHtml()}
+
+// ---------- 7.4 Construcción del puerto: explanada, oficina, almacén, lonja, contenedores, grúa, faro, buque y muelles ----------
 (function port(){const sd0=seed,G0=G;G=PORTH; // todo el puerto se construye a la altura de su cubierta (hollow, farolas... usan G)
  let s=1234567;const R=()=>(s=s*16807%2147483647)/2147483647;
  const DK=G,CONC=0xa9a7a1,TOP=0x62656a,WOOD=0x8a6a45,WOODD=0x5a4028,STEEL=0x3a3f44,YEL=0xf1c40f,RED=0xd9531e,
@@ -1539,6 +1774,14 @@ function fishKeep(i){const b=BOATS[i],h=b&&HOLD[b.name];if(!h)return;const f=FIS
  for(let k=1;k<=4;k++){const y=DK-.4375*k,z0=348+(k-1)*1.2;sl(398,400.4,z0,z0+1.2,-3,y,CONC);FLOORS.push({x0:398,x1:400.4,z0,z1:z0+1.2,y})}
  seed=sd0;G=G0})();
 
+
+// =================================================================================================
+// 8. ÚLTIMOS DETALLES DEL BARRIO PRINCIPAL
+//     Decoración de la montaña y mirador de la cima, halos de las farolas, coches aparcados,
+//     locales que se ponen en venta y pisos de los edificios de apartamentos.
+// =================================================================================================
+
+// ---------- 8.1 Montaña: decoración y mirador con tienda de souvenirs en la cima ----------
 (function(){let sd=7;const R=()=>(sd=sd*16807%2147483647)/2147483647,rd=(x,z)=>{let d=1e9;for(const p of HW.mt)d=Math.min(d,Math.hypot(p[0]-x,p[1]-z));return d};
  const trees=[],rocks=[];
  for(let k=0;k<5000&&(trees.length<650||rocks.length<260);k++){const a=R()*6.283,r=16+Math.sqrt(R())*(MR-18),x=MX+Math.cos(a)*r,z=MZ+Math.sin(a)*r,h=heightAt(x,z);
@@ -1582,8 +1825,12 @@ function fishKeep(i){const b=BOATS[i],h=b&&HOLD[b.name];if(!h)return;const f=FIS
  bx(MX,.4,MZ+16,14,1,.15,0xa9aeb5);col(MX-7,MX+7,MZ+15.9,MZ+16.1,.4,1.6);
  for(const sx of[-7,7]){bx(MX+sx,.4,MZ+9,.15,1,14,0xa9aeb5);col(MX+sx-.1,MX+sx+.1,MZ+2,MZ+16,.4,1.6)}
  bx(MX+4,.4,MZ+14.5,.3,1.4,.3,0x3a3f44);bx(MX+4,1.8,MZ+14.5,.8,.3,.4,0x3a3f44)})();
+
+// ---------- 8.2 Halos de luz de las farolas ----------
 const haloMat=new THREE.PointsMaterial({map:glowTex([[0,'rgba(255,255,255,1)'],[.1,'rgba(255,255,255,.75)'],[.3,'rgba(255,255,255,.2)'],[1,'rgba(255,255,255,0)']]),color:0xffcf8a,size:3.6,sizeAttenuation:true,transparent:true,opacity:0,depthWrite:false,blending:THREE.AdditiveBlending});
 {const pg=new THREE.BufferGeometry();pg.setAttribute('position',new THREE.BufferAttribute(new Float32Array(LAMPS.flatMap(l=>[l.x,l.y-.05,l.z])),3));const halo=new THREE.Points(pg,haloMat);halo.frustumCulled=false;scene.add(halo)}
+
+// ---------- 8.3 Coches aparcados, locales en venta y pisos ----------
 // coches aparcados
 const PK=[[0,1,0],[1,0,0],[2,1,0]];
 function parkAt(i,j,side,a,t){const x0=i*P,z0=j*P;let x,z,h;
@@ -1593,8 +1840,12 @@ parkAt(0,0,0,20,'hatch');
 {const LT=[[14000,.8],[20000,1],[28000,1.35]],used=new Set();[.06,.14,.2,.27,.34,.41,.5,.57,.64,.71,.79,.87,.94].forEach((f,k)=>{let i=Math.floor((HOUSES.length+1)*f);while(used.has(i)&&i<HOUSES.length)i++;const h=HOUSES[i];if(!h||used.has(i))return;used.add(i);const t=LT[k%3];h.local=true;h.price=t[0];h.mul=t[1];setHouseColor(h,0xe67e22);localIn(h)})}
 DOORS.filter(d=>d.apt).forEach(d=>{d.house=true;HOUSES.push({id:HOUSES.length,x:Math.round(d.x),z:Math.round(d.z),door:d,owned:false,apt:true,price:6000+d.fl*600,inner:null})});
 
+
+// =================================================================================================
+// 9. ISLA PEQUEÑA: PUEBLO PESQUERO
+//     Casas, caminos y muelle del pueblo pesquero de la isla.
+// =================================================================================================
 let ISLDOCK=null; // final del camino N-S del pueblo (lo rellena el pueblo; lo usa su muelle)
-// ================= ISLA: PUEBLO PESQUERO =================
 // 1) Zonas válidas: tierra firme y plana (sin playa, sin agua) y sin edificios encima
 function buildOK(cx,cz,hw,hd,lg){for(let a=-1;a<=1;a+=.5)for(let b=-1;b<=1;b+=.5){const x=cx+a*hw,z=cz+b*hd;if((lg?islV0(x,z):islV(x,z))<12||heightAt(x,z)!==0)return false}
  return !BLD.some(q=>cx+hw>q[0]&&cx-hw<q[0]+q[2]&&cz+hd>q[1]&&cz-hd<q[1]+q[3])}
@@ -1654,7 +1905,13 @@ function startTrip(p){const L=40-2*p.s,T=((p.t%(4*L))+4*L)%(4*L),e=T/L|0,q=ringP
 function tripPos(T,u){u=clamp(u,0,T.L);const A=T.pts;if(u<=T.l1){const f=T.l1?u/T.l1:1;return[A[0][0]+(A[1][0]-A[0][0])*f,A[0][1]+(A[1][1]-A[0][1])*f]}const l2=T.L-T.l1,f=l2?(u-T.l1)/l2:1;return[A[1][0]+(A[2][0]-A[1][0])*f,A[1][1]+(A[2][1]-A[1][1])*f]}
 function ringPos(p,t){const L=40-2*p.s,T=((t%(4*L))+4*L)%(4*L),e=T/L|0,u=T-e*L,a=p.s,b=40-p.s;let x,z;
  if(e==0){x=a+u;z=a}else if(e==1){x=b;z=a+u}else if(e==2){x=b-u;z=b}else{x=a;z=b-u}return[p.x0+x,p.z0+z]}
-// ================= AUTOBUSES =================
+
+// =================================================================================================
+// 10. TRANSPORTE: AUTOBUSES Y AVIACIÓN
+//     Autobuses con sus rutas y paradas, aviones y avionetas del aeropuerto y aeródromo de la isla.
+// =================================================================================================
+
+// ---------- 10.1 Autobuses ----------
 const BUSES=[],STOPS=[],BUSROUTES=[],BUSFARE=10;let riding=null;
 function busMesh(col){
  const L=[],gl=0x1b2a38,A=(sx,sy,sz,x,y,z,c)=>{const g=new THREE.BoxGeometry(sx,sy,sz);g.translate(x,y,z);L.push([g,c])},
@@ -1749,7 +2006,8 @@ mkRoute('Línea 2','#1d6fd6',0x1d6fd6,0,5,[0,2,4],4,7);
   const bg=new THREE.BufferGeometry();bg.setAttribute('position',new THREE.BufferAttribute(Pp,3));bg.setAttribute('normal',new THREE.BufferAttribute(Nn,3));
   bg.setAttribute('uv',new THREE.BufferAttribute(U,2));bg.setIndex(new THREE.BufferAttribute(I,1));scene.add(new THREE.Mesh(bg,m))});
  rm.forEach(o=>{scene.remove(o);o.geometry.dispose()})})();
-// ================= AVIONES (aeropuerto) =================
+
+// ---------- 10.2 Aviones (aeropuerto) ----------
 // Dos aviones: puerta → marcha atrás (pushback) → giro → rodaje → pista → despegue → vuelta al circuito → aterrizaje → rodaje → puerta.
 // Solo uno a la vez usa la pista (RWY). Puedes subir como pasajero (60 €) mientras están en la puerta.
 const PLANES=[],PLANEFARE=60,PSTX={park:'en la puerta',push:'retrocediendo de la puerta',pivot:'girando',taxi:'rodando hacia la pista',line:'en cabecera de pista',roll:'despegando',fly:'en vuelo',rollout:'frenando en pista',arr:'rodando hacia la terminal'};
@@ -1816,7 +2074,8 @@ function addPlane(i,xg,col){
   ar=mkPath(xg===144?[[xEX,425],[144,425],[144,381]]:[[xEX,425],[144,425],[144,409],[58,409],[58,381]],10,false),m=planeMesh(col);scene.add(m);
  const p={plane:1,hex:col,name:['AV-101','AV-202'][i],i,xg,m,state:'park',t:i?50:12,x:xg,z:381,h:Math.PI,alt:0,pt:0,ptT:0,bk:0,bkT:0,v:0,vz:0,s:0,ps:0,rev:false,land:false,fin:false,pass:0,need:1,boarded:false,o1,o2,ar,path:o1,ph:0,sPrev:0};
  PLANES.push(p);placePlane(p);return p}
-// ================= AVIONETAS (aeropuerto) =================
+
+// ---------- 10.3 Avionetas (aeropuerto) ----------
 // Paso 1: modelo 3D y aparcamiento. Pasos siguientes: subir (E), rodar/despegar, vuelo arcade, compra/alquiler.
 // Cada avioneta: {x,z,h,m (malla), m.userData.prop (hélice), col (colisión), price, rent, own, fuel, tank, state:'park'}
 const AVIO=[];
@@ -1898,7 +2157,8 @@ function avionStep(dt){for(const a of AVIO){
  $('spd').textContent=Math.round(Math.abs(a.v)*3.6)+' km/h'}}
 // aparcadas en la plataforma, entre las dos puertas de los aviones grandes, con el morro hacia la pista
 [[82,0xd33a2f,'EC-AV1'],[101,0x2f7fe0,'EC-AV2'],[120,0xf1c40f,'EC-AV3']].forEach((a,i)=>addAvion(i,a[0],389,0,a[1],a[2]));
-// ================= AERÓDROMO DE LA ISLA (costa sur de la isla pequeña, junto al muelle) =================
+
+// ---------- 10.4 Aeródromo de la isla (costa sur de la isla pequeña, junto al muelle) ----------
 // pista 09/27 (x 236..526, z 601..619: la avioneta necesita ~230 m de carrera para despegar), plataforma al norte con 2 avionetas, terminal, hangar, luces de borde y manga de viento
 (function(){const sd0=seed,AS=0x3b3b40,WH=0xf4f4f4,YL=0xf1c40f,X0=206,X1=496,ZC=610+ISLDZ+130,ZW=18,
  A=(x,z,sx,sz,c)=>box(x,0,z,sx,G,sz,c||AS,false),M=(x,z,sx,sz,c)=>box(x,G,z,sx,.03,sz,c,false),
@@ -1930,7 +2190,13 @@ function avionStep(dt){for(const a of AVIO){
  BLD.push([X0,ZC-ZW/2,X1-X0,ZW,'#3b3b40'],[226,585+ISLDZ+130,80,16,'#55555c']);
  PLACES.push({x:315,z:601+ISLDZ+130,key:'airstrip',l:'✈',c:'#1f8a70',nt:1});
  seed=sd0})();
-// ================= ISLA GRANDE: BARRIO CON CALLES, CASAS Y COMERCIOS =================
+
+// =================================================================================================
+// 11. ISLA GRANDE
+//     Barrio con calles, casas y comercios, y los terrenos (parcelas) que se pueden comprar para construir.
+// =================================================================================================
+
+// ---------- 11.1 Barrio con calles, casas y comercios ----------
 // Manzanas de 40 m con calles de 14 m (como el barrio principal) en el norte y el sur de la isla; la franja central (pueblo, camino al muelle y aeródromo) se queda como estaba.
 // Las calles están alineadas con el camino de arena que baja al muelle. Los comercios no cuentan como destino de taxi (la isla solo se alcanza en barco o avión).
 (function(){const sd0=seed,XS=(ISLDOCK?ISLDOCK.x:ISL.x)+7,ROWS=[748,802,856,910,1021,1075,1129,1183],
@@ -1954,7 +2220,8 @@ function avionStep(dt){for(const a of AVIO){
  const l=new THREE.Mesh(new THREE.IcosahedronGeometry(1.9,0),mat(0x4f8a3c));l.scale.set(1.5,.5,1.5);l.position.set(x,4.6,z);scene.add(l);l.userData.st=1;
  colliders.push({x0:x-.3,x1:x+.3,z0:z-.3,z1:z+.3,y0:0,y1:4.4,on:true});BLD.push([x-1.6,z-1.6,3.2,3.2,'#4f8a3c']);n++}})();
 
-// ================= TERRENOS (parcelas) DE LA ISLA PRINCIPAL =================
+
+// ---------- 11.2 Terrenos (parcelas) de la isla principal ----------
 // Fase 1: solo existen en el mundo (suelo, vallado, cartel con número) y en el minimapa. Todavía no se pueden comprar.
 // Fase 2 (pendiente): comprar/vender. Cada parcela ya lleva sus campos: owned, owner, price.
 // Medidas variadas (24×24 pequeñas · 30×30 medianas · 34–36 grandes · algunas rectangulares). [id, x, z, ancho, fondo]
@@ -2002,7 +2269,11 @@ const TERRENOS=(function(){
  return list})();
 function terrenoAt(x,z){return TERRENOS.find(t=>Math.abs(x-t.x)<=t.w/2&&Math.abs(z-t.z)<=t.d/2)||null}
 
-// ================= HELICÓPTEROS (aeropuerto y aeródromo de la isla) =================
+
+// =================================================================================================
+// 12. HELICÓPTEROS
+//     Helicópteros del aeropuerto y del aeródromo de la isla: modelo, helipuertos y vuelo.
+// =================================================================================================
 // Fase 1: modelo 3D, helipuertos y colisión; el rotor gira al ralentí. Fase 2: subir (E) y volar en modo arcade.
 // Vuelo: Espacio sube · Mayús baja · W/S avanzan y retroceden · A/D giran · sin teclas se queda flotando · E baja (solo en tierra)
 // Aterrizaje: suelo plano y azoteas planas sí; agua, tejados inclinados y superficies irregulares no.
@@ -2199,7 +2470,14 @@ function jetLevel(){let m=0;const on=riding&&riding.plane,ox=on?riding.x:(inCar?
  for(const p of PLANES){const d=Math.hypot(p.x-ox,p.z-oz),th={park:.1,push:.25,pivot:.25,taxi:.3,arr:.3,line:.4,roll:1,fly:p.land?.5:.7,rollout:.8}[p.state]||.3,k=Math.max(0,1-d/280);m=Math.max(m,th*k*k)}
  return on?Math.max(m*.5,.12):m}
 addPlane(0,58,0x1f5fa8);addPlane(1,144,0xc0392b);
-// ================= ESTADO / UI =================
+
+// =================================================================================================
+// 13. ESTADO DEL JUGADOR, DIÁLOGOS Y TIENDAS
+//     Variables del jugador (dinero, posición, inventario…), avisos, ventanas de diálogo, hablar con
+//     los dependientes, taller, compras y gestión de los negocios propios.
+// =================================================================================================
+
+// ---------- 13.1 Estado del jugador, avisos y ventanas de diálogo ----------
 let loan=null,prevTod=9,bankW=null,estW=null,money=2500,inCar=null,yaw=0,pitch=.35,py=0,vy=0,walk=0,started=false,dlgOpen=false,drag=false,big=false,working=false;
 const pl={x:24,z:1.5},inv={},flags={},K={},body=person(0xdd3322,outfitOpts());scene.add(body);body.position.set(pl.x,0,pl.z);
 const ov=$('ov'),dlg=$('dlg'),mm=$('mm'),ctx=mm.getContext('2d');
@@ -2218,6 +2496,8 @@ function talk(w){if(w.key==='town')townW=w;if(!isOpen(w.key)){toast('Cerrado: ab
  h+=jobMenu(w.key);
  if(w.key==='bank'){bankW=w;h+=bankHtml()}if(FACT[w.key]){facW=w;h+=whHtml(w.key)}
  if(w.key==='hotel')h+='<div><button onclick="hotelSleep()">Dormir una noche: €100</button> <button onclick="hotelRent()">Alquilar habitación: €100 (cama arriba)</button></div>';dlg.innerHTML=h+`<div><button onclick="closeDlg()" style="background:#666">Salir</button></div>`;if(w.key==='shop')shopTab(SHOPTAB);if(w.key==='bank'){loanPrev();const la=document.getElementById('loanAmt');if(la)la.addEventListener('keydown',e=>e.stopPropagation())}if(w.key==='pet'){const pn=document.getElementById('petName');if(pn)pn.addEventListener('keydown',e=>e.stopPropagation())}}
+
+// ---------- 13.2 Taller: mejoras y pintura de vehículos ----------
 const UPM={hatch:1,sport:2,van:1.5,moto:.5},UPB={m:[400,900,1800],t:[200,450,900]};
 function applyUp(c){const b=SPEC[c.t],lm=c.lm||0,lt=c.lt||0;c.spec=Object.assign({},b,{max:b.max*(1+.1*lm),acc:b.acc*(1+.1*lm),k:b.k*(1+.08*lm),tank:Math.round(b.tank*(1+.25*lt))})}
 function upPrice(c,k){const l=k==='m'?c.lm||0:c.lt||0;return l>=3?null:Math.round(UPB[k][l]*(UPM[c.t]||1))}
@@ -2238,10 +2518,14 @@ function paintCar(i){const c=paintTarget(),a=PALETTE_GARAGE[i];if(!c||!a){toast(
  if(at){for(let k=0;k<at.count;k++)if(Math.abs(at.getX(k)-o.r)<.004&&Math.abs(at.getY(k)-o.g)<.004&&Math.abs(at.getZ(k)-o.b)<.004)at.setXYZ(k,n.r,n.g,n.b);at.needsUpdate=true}
  c.col=a[1];c.m.userData.col=a[1];flags.paint=1;toast('🎨 Tu '+c.spec.name+' ahora es '+a[0].toLowerCase());
  const w=WORKERS.find(x=>x.key==='garage');if(w)talk(w)}
+
+// ---------- 13.3 Compras en tiendas y concesionario ----------
 function pay(p){if(money<p){toast('No tienes suficiente dinero');return false}money-=p;sfx.cash();return true}
 function buy(k,i){const it=SHOPS[k].items[i];if(PET_CLOTH[it[0]]&&inv[it[0]]&&inv[it[0]].n>0){toast('Ya tienes '+it[0]+' (póntelo a tu mascota)');return}if(!pay(it[1]))return;const cat=it[0]==='Comida para mascotas'?'Mascotas':PET_CLOTH[it[0]]?'Ropa de mascota':it[0]==='Bidón de gasolina'?'Combustible':k==='furn'?'Muebles':k==='shop'?'Ropa':'Comida',o=inv[it[0]]||(inv[it[0]]={n:0,cat,act:cat==='Ropa de mascota'?'Poner / quitar':cat==='Mascotas'?'Dar de comer':cat==='Muebles'?'Colocar en casa':cat==='Ropa'?'Ponerse':cat==='Combustible'?'Echar 8 L al coche':'Consumir'});o.n++;toast('Comprado: '+it[0]+' (guardado en el inventario)');if(k==='shop')shopTab(SHOPTAB);if(k==='pet'&&petW)talk(petW)}
 function buyCar(i){const c=SHOPS.dealer.cars[i],w=WORKERS.find(x=>x.key==='dealer');if(!pay(c[1]))return;
  const k=spawnCar(c[0],c[2],w.sp.x+rr(-8,8),w.sp.z,Math.PI/2,'parked',{owned:true,col:c[2],fuel:SPEC[c[0]].tank*.8});flags.car=1;closeDlg();enterCar(k);toast('¡Nuevo '+SPEC[c[0]].name+'!')}
+
+// ---------- 13.4 Negocios propios (locales): productos, almacén, obrador de pan, caja y mejoras ----------
 const BIZN=['','Kiosco','Tienda','Tienda grande','Comercio','Gran comercio'],BIZINC=[0,600,1300,2400,4000,6500],BIZUP=[0,3000,7000,14000,26000];
 const bizInc=(h,lv)=>Math.round(BIZINC[lv||h.lv||1]*(h.mul||1)*(h.ty&&LTYPES[h.ty]?LTYPES[h.ty].m:1));
 // Productos [nombre, coste unidad, precio venta, icono]. La panadería aún no usa stock.
@@ -2289,7 +2573,11 @@ function bizCollect(id){const h=HOUSES[id],c=Math.round(h.till||0);if(c<=0){toas
 function bizUp(id){const h=HOUSES[id],lv=h.lv||1;if(lv>=5||!pay(BIZUP[lv]))return;h.lv=lv+1;if(h.ty)localIn(h,h.ty);toast('¡Local mejorado a '+BIZN[lv+1]+'!');bizOpen(id)}
 function bizKey(){let b=null,bd=8;HOUSES.forEach(h=>{if(!h.local||!h.owned)return;const d=Math.hypot(h.door.x-pl.x,h.door.z-pl.z);if(d<bd){bd=d;b=h}});if(b)bizOpen(b.id);else{let r=null,rd=99;HOUSES.forEach(h=>{if(!h.local||!h.remote||h.owned)return;const d=Math.min(Math.hypot(h.door.x-pl.x,h.door.z-pl.z)*1.5,Math.hypot(h.x-pl.x,h.z-pl.z));if(d<12&&d<rd){rd=d;r=h}});if(r)bsOpen(r.id);else toast('Acércate a la puerta de tu local o de un negocio (L)')}}
 
-// ================= PANEL DE ADMINISTRADOR =================
+
+// =================================================================================================
+// 14. PANEL DE ADMINISTRADOR
+//     Panel del administrador: jugadores, dinero, negocios, y hora y clima del mundo.
+// =================================================================================================
 // Se abre con el comando secreto del chat. El comando y la autorización viven SOLO en el servidor: aquí no hay ninguna contraseña.
 // Si no eres administrador, el servidor ignora estos mensajes. ADM_SILENT=true oculta al jugador el aviso de que se le ha editado algo.
 const ADM_SILENT=false,ADM={el:null,data:[]};
@@ -2369,7 +2657,13 @@ function bizOnConflict(m){const h=xfFind(m.x,m.z,true);if(!h||!h.owned)return;
 function buyLocalNow(h){const id=h.id;if(!h.local||h.owned)return;h.owned=true;h.mode='own';h.late=0;h.lv=1;h.till=0;setHouseColor(h,0xf1c40f);flags.local=1;estateRefresh();toast('¡Local comprado! Elige qué negocio montar (L junto a su puerta para gestionarlo).');bizOpen(id)}
 function buyHouse(id){const h=HOUSES[id];if(!pay(h.price))return;h.owned=true;h.mode='own';h.late=0;setHouseColor(h,0x22aa44);flags.house=1;closeDlg();toast('¡Casa comprada! Su puerta es verde.')}
 let invOpen=false;const placed={};
-// ================= HABILIDADES =================
+
+// =================================================================================================
+// 15. HABILIDADES Y DESCANSO
+//     Habilidades, requisitos de los trabajos, hambre, asientos, horarios de apertura y dormir.
+// =================================================================================================
+
+// ---------- 15.1 Habilidades y requisitos de los trabajos ----------
 const SKILLS=[{k:'orient',n:'Orientación y Espacio',e:'🧭'},{k:'social',n:'Habilidades Sociales',e:'🤝'},{k:'calc',n:'Cálculo y Finanzas',e:'📊'},{k:'comm',n:'Comunicación',e:'🗣️'},{k:'gest',n:'Gestión y Estrategia',e:'♟️'},{k:'fisica',n:'Condición Física',e:'💪'},{k:'negoc',n:'Negociación',e:'💼'},{k:'lider',n:'Liderazgo',e:'👑'}],skills={};
 SKILLS.forEach(q=>skills[q.k]=0);
 function addSkill(k,n){if(!(k in skills))return;skills[k]=Math.max(0,Math.floor(skills[k]+(Number(n)||0)))}
@@ -2408,7 +2702,8 @@ function sleepFor(h,rate,msg,keep,nap){const e0=energy;if(!keep){tod=(tod+h)%24;
  hunger=Math.max(0,hunger-h*3.1);thirst=100;energy=Math.min(100,energy+h*rate);
  const hh=Math.floor(tod),mm=Math.floor((tod%1)*60);toast(msg+(nap?' ('+h+' h)':' ('+(h%1?h.toFixed(1):h)+' h · son las '+(hh<10?'0':'')+hh+':'+(mm<10?'0':'')+mm+')')+' · energía +'+Math.round(energy-e0))}
 function hoursToMorning(){const h=(7-tod+24)%24;return h>12?8:Math.max(1,h)}
-// ===== DORMIR EN EL MUNDO COMPARTIDO: la noche solo pasa cuando duerme al menos el 50 % de los jugadores conectados (lo decide el servidor) =====
+
+// ---------- 15.2 Dormir en el mundo compartido: la noche solo pasa cuando duerme al menos el 50 % de los jugadores (lo decide el servidor) ----------
 var SLP=null; // {rate,msg,cost,room} mientras duermes esperando a que amanezca
 const slpEl=document.createElement('div');slpEl.style.cssText='position:fixed;inset:0;background:rgba(0,0,12,.85);z-index:9;display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;color:#fff;font:600 20px system-ui;text-align:center;padding:20px';
 slpEl.innerHTML='<div style="font-size:42px">😴</div><div>Durmiendo...</div><div class="slpInfo" style="font-size:16px;font-weight:500;opacity:.85"></div><button class="slpBtn" style="padding:8px 18px;border:0;border-radius:8px;background:#666;color:#fff;font:600 15px system-ui;cursor:pointer">Levantarte</button>';
@@ -2421,7 +2716,13 @@ function sleepNight(msg1,rate,msg2,opt){opt=opt||{};if(SLP)return;
  if(!(MP.ws&&MP.ws.readyState===1)){fade(msg1,()=>{if(opt.cost)money=Math.max(0,money-opt.cost);if(opt.room)flags.room=0;sleepFor(hoursToMorning(),rate,msg2)});return} // sin conexión: pasa la noche como en solitario
  fade(msg1,()=>{SLP={rate,msg:msg2,cost:opt.cost||0,room:!!opt.room};dlgOpen=true;try{document.exitPointerLock&&document.exitPointerLock()}catch(e){}for(const k in K)K[k]=false;
   slpEl.querySelector('.slpInfo').textContent='Esperando al resto de jugadores...';slpEl.style.display='flex';govSend({type:'sleep',on:true})})}
-// ================= BANCO: PRÉSTAMOS =================
+
+// =================================================================================================
+// 16. BANCO, CASAS Y SERVICIOS
+//     Préstamos, alquiler e hipoteca de casas, gasolineras, hotel y ascensores.
+// =================================================================================================
+
+// ---------- 16.1 Banco: préstamos ----------
 const LOAN_MIN=1,LOAN_MAX=15000,LOAN_RATE_MAX=.20,LOAN_TERMS=[[5,.05],[10,.10],[20,.15]]; // [cuotas (1 por día de juego), interés base]; el interés sube con la cantidad y nunca pasa del 20 %
 function loanRate(a,t){return Math.min(LOAN_RATE_MAX,LOAN_TERMS[t][1]+.05*Math.min(1,Math.max(0,a)/LOAN_MAX))}
 function loanQuote(a,t){const r=loanRate(a,t),tot=Math.round(a*(1+r));return{r,tot,int:tot-a,cuota:Math.ceil(tot/LOAN_TERMS[t][0])}}
@@ -2449,7 +2750,8 @@ function loanDay(){if(!loan)return;const c=loan.n<=1?loan.left:Math.min(loan.cuo
  if(money>=c){money-=c;loan.left-=c;loan.n--;sfx.cash();const q=loan.n;toast('🏦 Cuota cobrada: -€'+c+(q>0?' · quedan '+q:''));loanCheck()}
  else{const r=Math.max(1,Math.round(c*.1));loan.left+=r;loan.late=(loan.late||0)+1;toast('🏦 Cuota impagada: recargo +€'+r)}}
 function bankTick(){if(tod<prevTod-6){loanDay();houseDay()}prevTod=tod}
-// ================= CASAS: ALQUILER E HIPOTECA =================
+
+// ---------- 16.2 Casas: alquiler e hipoteca ----------
 const RENT=60,MORT_N=40,MORT_RATE=.20,MORT_DOWN=.20,HOUSE_LATE_MAX=3; // alquiler/día · cuotas · interés total · entrada · impagos seguidos antes de perder la casa
 function setHouseColor(h,c){if(!h.om)h.om=h.door.leaf.material;h.door.leaf.material=mat(c)}
 function releaseHouse(h){if(h.door.open){h.door.open=false;h.door.col.on=true}h.owned=false;h.mode=null;h.mort=null;h.late=0;if(h.om)h.door.leaf.material=h.om}
@@ -2675,7 +2977,8 @@ function toggleInvOld(){const e=$('inv');if(e.style.display==='block'){e.style.d
  e.innerHTML='<b>Inventario</b><br>'+(Object.keys(inv).map(k=>k+' ×'+inv[k]).join('<br>')||'(vacío)')+'<br><b>Vehículos</b><br>'+(cs.join(', ')||'ninguno')+'<br><b>Propiedades</b><br>'+(hs.join('<br>')||'ninguna');e.style.display='block'}
 function objective(){if(!flags.worked)return['Trabaja un turno: pulsa E junto a un trabajador de un comercio','super'];
  if(!flags.car)return['Compra un coche en el concesionario (C)','dealer'];if(!flags.house)return['Compra una casa en la inmobiliaria (I)','estate'];return['¡Objetivos completados! Explora la ciudad.',null]}
-// ================= GASOLINA =================
+
+// ---------- 16.3 Gasolina ----------
 const fz={c:null,t:null,paid:0,lit:0,goal:0},pumpNear=(x,z,r)=>PUMPS.some(p=>Math.hypot(p.x-x,p.z-z)<r);
 function openFuel(c){fz.c=c;fz.paid=fz.lit=0;c.v=0;openDlg();
  dlg.innerHTML='<h2>⛽ Surtidor</h2><p>'+c.spec.name+': <b id="fl"></b></p><div style="height:14px;border-radius:7px;background:#333;overflow:hidden;margin:4px 0 8px"><div id="fb" style="height:100%"></div></div><p>Precio: <b>€'+PRICE+'/L</b> · Pagado: <b id="fc"></b></p><div><button onclick="fuelPump(999)">Llenar</button> <button onclick="fuelPump(10)">+10 L</button> <button onclick="fuelStop()">Parar</button> <button onclick="closeFuel()" style="background:#666">Terminar</button></div>';fuelUpd()}
@@ -2691,10 +2994,12 @@ IDEF.pump={txt:()=>'E: repostar un coche',act:o=>{let b=null,bd=7;cars.forEach(c
 function useJerry(k){let c=inCar,bd=7;if(!c)cars.forEach(q=>{if(q.mode==='ai')return;const d=Math.hypot(q.x-pl.x,q.z-pl.z);if(d<bd){bd=d;c=q}});
  if(!c){toast('Acércate a un coche con el bidón');return}if(c.spec.tank-c.fuel<1){toast('El depósito ya está lleno');return}
  const a=Math.min(8,c.spec.tank-c.fuel);c.fuel+=a;inv[k].n--;toast('Echas '+a.toFixed(1)+' L al '+c.spec.name)}
-// ================= HABITACIONES DEL HOTEL =================
+
+// ---------- 16.4 Habitaciones del hotel ----------
 IDEF.hbed={txt:()=>flags.room?'E: dormir en tu habitación':'E: cama (alquila una habitación en recepción)',act:()=>{if(!flags.room){toast('Alquila una habitación en recepción (100 €)');return}sleepNight('Duermes en la habitación...',15,'Has descansado en tu habitación',{room:true})}};
 function hotelRent(){if(flags.room){toast('Ya tienes una habitación');return}if(!pay(100))return;flags.room=1;closeDlg();toast('Habitación alquilada: sube en el ascensor del fondo y usa una cama')}
-// ================= ASCENSORES =================
+
+// ---------- 16.5 Ascensores ----------
 function elStep(e,dt){const d=e.tg-e.y;
  if(Math.abs(d)>.01){if(!e.mv){e.mv=1;e.dr.forEach(o=>{o.c.on=true;o.m.visible=true})}e.y+=Math.min(Math.abs(d),3*dt)*Math.sign(d)}
  else{e.y=e.tg;if(e.mv){e.mv=0;const o=e.dr[e.ys.findIndex(v=>Math.abs(v-e.y)<.001)];if(o){o.c.on=false;o.m.visible=false}}}
@@ -2703,7 +3008,11 @@ function elGo(id,i){ELEV[id].tg=ELEV[id].ys[i];closeDlg();toast('El ascensor se 
 IDEF.elev={txt:()=>'E: ascensor',act:o=>{const e=ELEV[o.extra.id],m=o.extra.m,ins=pl.x>e.e0&&pl.x<e.e1&&pl.z>e.z0&&pl.z<e.z1;
  if(!ins){if(Math.abs(e.y-e.ys[m])<.05&&!e.mv)toast('El ascensor está aquí: entra');else{e.tg=e.ys[m];toast('Llamas al ascensor...')}return}
  openDlg();dlg.innerHTML='<h2>🛗 Ascensor</h2>'+Array.from({length:e.fl},(_,i)=>'<div><button onclick="elGo('+e.id+','+i+')">'+(i?'Planta '+i:'Planta baja')+'</button></div>').join('')+'<div><button onclick="closeDlg()" style="background:#666">Cerrar</button></div>'}};
-// ================= TRABAJOS (rangos, reparto, taxi, reposición) =================
+
+// =================================================================================================
+// 17. TRABAJOS
+//     Rangos, reparto de pedidos, taxi y reponer estanterías (minijuego).
+// =================================================================================================
 const BASIC=.4,RK=[0,4,10],RM=[1,1.4,1.9],XJ={super:['stock'],food:['deliver'],hotel:['taxi']};
 const JN={stock:['Reponedor','Reponedor sénior','Jefe de almacén'],deliver:['Repartidor novato','Repartidor','Jefe de reparto'],taxi:['Taxista','Taxista sénior','Taxista VIP']};
 const jx={},pk2=a=>a[Math.random()*a.length|0];let task=null;
@@ -2766,7 +3075,11 @@ function stockPick(i){if(!stk)return;if(stk.ord[i]===stk.cur){stk.score++;$('sbs
 addEventListener('keydown',e=>{if(stk&&/^Digit[1-5]$/.test(e.code))stockPick(+e.code[5]-1)});
 function stockEnd(abort){if(!stk)return;clearInterval(stk.t);const s=stk;stk=null;closeDlg();if(abort){toast('Has abandonado el turno: sin paga');return}
  const pay=Math.max(0,Math.round((30+s.score*11-s.miss*8)*RM[s.r]));money+=taxNet(pay);sfx.cash();if(s.score>=8){jdoneAdd(s.k,'stock');toast('📦 Turno completado: '+s.score+' cajas, '+s.miss+' fallos · +€'+pay)}else toast('Turno flojo ('+s.score+' cajas, mínimo 8 para ascender) · +€'+pay)}
-// ================= ENTRADA =================
+
+// =================================================================================================
+// 18. CONTROLES (TECLADO Y RATÓN)
+//     Qué hace cada tecla y cada botón del ratón.
+// =================================================================================================
 addEventListener('keydown',e=>{
  if(started&&ov.style.display==='none'&&invOpen&&(e.code==='KeyI'||e.code==='Escape')){toggleInv();return}
  if(e.code==='KeyL'&&playing()){bizKey();return}
@@ -2793,7 +3106,11 @@ const MB={l:0,r:0};addEventListener('mousedown',e=>{if(e.button===0)MB.l=1;else 
 ov.addEventListener('click',()=>{started=true;ov.style.display='none';try{ren.domElement.requestPointerLock()}catch(e){}});
 document.addEventListener('pointerlockchange',()=>{if(!document.pointerLockElement&&started&&!dlgOpen)ov.style.display='flex'});
 addEventListener('resize',()=>{cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();ren.setSize(innerWidth,innerHeight)});
-// ================= FÍSICA =================
+
+// =================================================================================================
+// 19. FÍSICA
+//     Colisiones, caminar, saltar, nadar, conducir y tráfico automático (semáforos y distancia con el de delante).
+// =================================================================================================
 function pushOut(o,r){const nx=clamp(pl.x,o.x0,o.x1),nz=clamp(pl.z,o.z0,o.z1),dx=pl.x-nx,dz=pl.z-nz,d=Math.hypot(dx,dz);
  if(d>0){if(d<r){pl.x+=dx/d*(r-d);pl.z+=dz/d*(r-d)}}
  else{const l=pl.x-o.x0,rg=o.x1-pl.x,t=pl.z-o.z0,b=o.z1-pl.z,m=Math.min(l,rg,t,b);
@@ -2863,7 +3180,11 @@ function aiStep(c,dt){const ax=c.axis;let s=ax?c.z:c.x;const prev=s;
  if(c.axis==0)c.z+=(tg-c.z)*k;else c.x+=(tg-c.x)*k;
  const th=c.axis==0?(c.dir>0?Math.PI/2:-Math.PI/2):(c.dir>0?0:Math.PI);c.h+=Math.atan2(Math.sin(th-c.h),Math.cos(th-c.h))*Math.min(1,5*dt);
  c.m.position.set(c.x,0,c.z);c.m.rotation.y=c.h}
-// ================= CONSTRUCCIÓN POR MÓDULOS EN TERRENOS (vista desde arriba) =================
+
+// =================================================================================================
+// 20. CONSTRUCCIÓN POR MÓDULOS EN TERRENOS
+//     Modo construcción con vista desde arriba: paredes, suelos, muebles, interfaz, cursor y cámara cenital.
+// =================================================================================================
 // En un terreno tuyo: E → modo construcción. La parcela se divide en celdas de 3 m. Módulos: suelo, pared, puerta, ventana, techo.
 // Cada terreno guarda sus módulos en t.b = {f:Set de celdas con suelo, r:Set de celdas con techo, e:Map de aristas → 1 pared · 2 puerta · 3 ventana}.
 const BM={on:false,t:null,tool:'floor',zoom:1.2,hv:null,grid:null,st:0,lvl:1,sd:2,yv:0},BCELL=3,BWH=3,BWT=.2,
@@ -3158,7 +3479,13 @@ addEventListener('keydown',e=>{if(!BM.on)return;const a=document.activeElement;i
 // aviso de interacción: cerca de un terreno propio → E para construir
 function bmNear(tt){for(const q of TERRENOS)if(q.owned)tt(q,q.x,q.z,Math.max(q.w,q.d)/2,'bterr','E: construir en tu terreno nº '+q.id+' ('+q.w+'×'+q.d+' m) · vista desde arriba')}
 
-// ================= INTERACCIÓN =================
+
+// =================================================================================================
+// 21. INTERACCIÓN Y CÁMARA
+//     Tecla E (puertas, personas, coches) y cámara en tercera persona.
+// =================================================================================================
+
+// ---------- 21.1 Interacción ----------
 function nearest(){if(seat)return{kind:'stand',txt:'E: levantarte'};if(inCar)return{kind:'exit',txt:'E: salir del coche'+(pumpNear(inCar.x,inCar.z,6.5)?' · R: repostar':'')};
  if(riding&&riding.boat)return{kind:'boatoff',txt:(riding.net?'🎣 Pescando · A/D timón · G: recoger la red':Math.abs(riding.v)>1.5?'W/S motor · A/D timón · reduce la velocidad para bajar':'E: bajar '+boatDe(riding)+' '+riding.name)+(riding.type==='pesquero'&&!riding.net?' · G: calar la red':'')};
  if(riding&&riding.avion)return{kind:'avioff',txt:(riding.air||riding.alt>.4||Math.abs(riding.v)>1.5)?'W/S acelerador · A/D timón · Espacio despegar (pista, '+Math.round(AVR*3.6)+' km/h)':'E: bajar de la avioneta '+riding.name};
@@ -3183,7 +3510,8 @@ function interact(){if(seat){seat=null;setSit(body,false);return}const n=nearest
  else{const c=inCar,sd=[[Math.cos(c.h)*2.6,-Math.sin(c.h)*2.6],[-Math.cos(c.h)*2.6,Math.sin(c.h)*2.6],[-Math.sin(c.h)*3.5,-Math.cos(c.h)*3.5]];
   let o=sd[0];for(const s of sd)if(!blockHit(c.x+s[0],c.z+s[1],.5,c.y||0)){o=s;break}
   c.mode='parked';c.v=0;inCar=null;body.visible=true;if(c.m.userData.rider)c.m.userData.rider.visible=false;c.m.rotation.z=0;pl.x=c.x+o[0];pl.z=c.z+o[1];$('spd').textContent=''}}
-// ================= CÁMARA =================
+
+// ---------- 21.2 Cámara ----------
 const inRoom=(x,z)=>ROOMS.find(r=>x>r.x0-.2&&x<r.x1+.2&&z>r.z0-.2&&z<r.z1+.2&&(r.ug?py<-1.5:py<r.h+.15));
 function hits(x,y,z){for(const o of colliders)if(o.on&&!o.car&&y<o.y1&&y>=(o.y0||0)-.3&&x>o.x0-.3&&x<o.x1+.3&&z>o.z0-.3&&z<o.z1+.3)return true;return false}
 // Losas del parking (techo/suelo entre plantas): la cámara no debe atravesarlas
@@ -3207,7 +3535,13 @@ function updCam(dt){
  // bajo tierra NO se fuerza y>=.5 (eso dejaba la cámara por encima del techo del parking)
  if(air){const cx=tx+dx*d,cz=tz+dz*d;for(const o of HB)if(cx>o.x0&&cx<o.x1&&cz>o.z0&&cz<o.z1&&y>o.y0-.3&&y<o.y1+.6)y=Math.max(y,o.y1+.6)} // en vuelo la cámara nunca queda dentro de un edificio
  cam.position.set(tx+dx*d,dep>0?y:Math.max(.5,y),tz+dz*d);cam.lookAt(tx,ty,tz)}
-// ================= MINIMAPA =================
+
+// =================================================================================================
+// 22. MAPA
+//     Minimapa, mapa grande y rutas hasta un destino.
+// =================================================================================================
+
+// ---------- 22.1 Minimapa ----------
 const SC=2,stat=document.createElement('canvas');stat.width=stat.height=MS*SC;
 (function(){const g=stat.getContext('2d');const R=(a,b,w,c)=>{g.fillStyle=c;g.fillRect((a+MOFF)*SC,(b+MOFF)*SC,w*SC,w*SC)};g.fillStyle='#2e78b8';g.fillRect(0,0,MS*SC,MS*SC);for(let x=LAND0;x<LAND1;x+=4)for(let z=LAND0;z<LAND1;z+=4){const h=heightAt(x+2,z+2);if(h>-.3&&!(x>=-14&&x+4<=N*P&&z>=-14&&z+4<=N*P)){const k=Math.min(1,h/5);g.fillStyle=h>8?'rgb('+(100+h*.9|0)+','+(104+h*.8|0)+','+(98+h*.8|0)+')':h<=.4?(isl(x+2,z+2)<10?'#d8c690':'#4f7a45'):'rgb('+(79-k*22|0)+','+(122-k*18|0)+','+(69-k*20|0)+')';g.fillRect((x+MOFF)*SC,(z+MOFF)*SC,4*SC,4*SC)}}R(-14,-14,N*P+14,'#4a4a4e');g.lineJoin='round';for(const[w,c]of[[7,'#e8e8e8'],[5,'#55555c']]){g.strokeStyle=c;g.lineWidth=w*SC;for(const po of HW.polys){g.beginPath();po.forEach((p,i)=>{const X=(p[0]+MOFF)*SC,Z=(p[1]+MOFF)*SC;i?g.lineTo(X,Z):g.moveTo(X,Z)});g.stroke()}}
  g.fillStyle='#b9b6ad';for(let i=0;i<N;i++)for(let j=0;j<N;j++)g.fillRect((i*P+MOFF)*SC,(j*P+MOFF)*SC,40*SC,40*SC);
@@ -3265,7 +3599,8 @@ function drawMap(){const s=mm.width,sh=mm.height,W=big?MS/mz:90,Hz=W*sh/s,t=clam
   if(big&&rp.name){ctx.font='bold 13px sans-serif';ctx.textAlign='center';ctx.textBaseline='alphabetic';ctx.lineWidth=3;ctx.strokeStyle='rgba(0,0,0,.75)';ctx.fillStyle='#fff';ctx.strokeText(rp.name,q[0],q[1]-14);ctx.fillText(rp.name,q[0],q[1]-14)}}ctx.restore()}
  navDraw(tf);jobMap(tf);const q=tf(pl.x,pl.z);ctx.save();ctx.translate(q[0],q[1]);ctx.rotate(Math.PI-yaw);ctx.fillStyle='#ff3';ctx.strokeStyle='#000';ctx.beginPath();ctx.moveTo(0,-9);ctx.lineTo(6,7);ctx.lineTo(-6,7);ctx.closePath();ctx.fill();ctx.stroke();ctx.restore();
  if(big){ctx.font='bold 13px sans-serif';ctx.textAlign='left';ctx.textBaseline='alphabetic';const tx='Zoom ×'+mz.toFixed(1);ctx.fillStyle='rgba(0,0,0,.55)';ctx.fillRect(6,sh-26,ctx.measureText(tx).width+12,20);ctx.fillStyle='#fff';ctx.fillText(tx,12,sh-12)}}
-// ================= RUTAS EN EL MAPA (tipo Google Maps) =================
+
+// ---------- 22.2 Rutas en el mapa (tipo Google Maps) ----------
 // Toca un sitio del mapa del móvil: calcula la ruta más corta por carretera (A* sobre una cuadrícula de calles + autopista).
 // Si el destino está al otro lado del mar, deja elegir entre avión/helicóptero (vía aeropuerto) o barco (vía puerto).
 let NAVV=null;
@@ -3387,8 +3722,11 @@ function navDraw(tf){
   if(l.m==='fly'||l.m==='sail'){const a=navMid(l.pts),q=tf(a[0],a[1]);ctx.setLineDash([]);ctx.font='20px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(l.m==='fly'?'✈️':'⛵',q[0],q[1])}}
  ctx.restore();
  const q=tf(NAV.dest.x,NAV.dest.z);ctx.save();ctx.font='26px sans-serif';ctx.textAlign='center';ctx.textBaseline='bottom';ctx.fillText('📍',q[0],q[1]+5);ctx.restore()}
-// ================= BUCLE =================
-// ================= DÍA/NOCHE Y CLIMA =================
+
+// =================================================================================================
+// 23. DÍA/NOCHE Y CLIMA
+//     Hora del día, tiempo (sol, nubes, lluvia), luces de las farolas y sombras.
+// =================================================================================================
 let tod=9,wx=0,wxT=0,wxNext=90;
 const WX=[{n:'Soleado',i:'☀️',cl:.25,gr:0,dim:1,rain:0},{n:'Nublado',i:'☁️',cl:1,gr:.5,dim:.85,rain:0},{n:'Lluvia',i:'🌧️',cl:1,gr:.85,dim:.7,rain:1}],cur={cl:.25,gr:0,dim:1,rain:0};
 const C1=new THREE.Color(),C2=new THREE.Color(),C3=new THREE.Color(),C4=new THREE.Color();
@@ -3426,7 +3764,13 @@ function updEnv(dt){qMon();
   rainGeo.setDrawRange(0,n*2);rainGeo.attributes.position.needsUpdate=true}
  DOORS.forEach(d=>{if(d.shop&&d.open&&!isOpen(d.shop)&&Math.hypot(pl.x-d.x,pl.z-d.z)>3){d.open=false;d.col.on=true}});const hh=Math.floor(tod),mi=Math.floor((tod%1)*60);setTx($('clk'),(hh<10?'0':'')+hh+':'+(mi<10?'0':'')+mi+' '+(d<.3?'🌙 ':'')+T.i+' '+T.n)}
 
-// ================= MULTIJUGADOR PÚBLICO (servidor WebSocket) =================
+
+// =================================================================================================
+// 24. MULTIJUGADOR
+//     Conexión con el servidor WebSocket, otros jugadores, chat, mensajes privados y transferencias.
+// =================================================================================================
+
+// ---------- 24.1 Conexión, jugadores remotos y chat del mundo ----------
 // El servidor mantiene un mundo público con un máximo de 20 jugadores.
 const MP={ws:null,id:null,name:'',players:new Map(),lastSend:0,connected:false,retry:0,full:false,remoteRoot:new THREE.Group()};
 scene.add(MP.remoteRoot);
@@ -3492,7 +3836,8 @@ function chatAdd(m,box,kind){if(!m||typeof m.text!=='string')return;box=box||cha
  if(!kind&&!m.sys){const pid=ctResolve(m);if(pid){who.className='chatName';who.title='Mensaje privado';who.addEventListener('click',()=>ctOpenDm(pid,m.name))}}
  const msg=document.createElement('span');msg.textContent=m.text.slice(0,180);const time=document.createElement('small');time.textContent=new Date(m.time||Date.now()).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});if(m.tag){const tg=document.createElement('span');tg.textContent='👑 '+String(m.tag).slice(0,12)+' ';tg.style.cssText='background:#f4d58a;color:#4a3300;border-radius:4px;padding:0 5px;font-weight:800;margin-right:4px';row.append(tg);msg.style.cssText='font-weight:700;color:#ffe08a'}if(m.sys){row.style.cssText='background:rgba(244,213,138,.16);border-left:3px solid #f4d58a;padding-left:5px'}row.append(who,msg,time);box.appendChild(row);while(box.children.length>60)box.removeChild(box.firstChild);box.scrollTop=box.scrollHeight}
 
-// ===== Mensajes privados: pestañas del chat =====
+
+// ---------- 24.2 Mensajes privados: pestañas del chat ----------
 // CT.tabs: key ('general' o id del jugador) -> {id,name,box,unread}. General usa #chatMessages; cada privado tiene su propio contenedor/historial.
 const CT={tabs:new Map(),cur:'general'},chatTabsEl=document.getElementById('chatTabs');
 CT.tabs.set('general',{id:'general',name:'General',box:chatMessages,unread:0});
@@ -3570,7 +3915,8 @@ function ctDmFromCard(){const id=playerCard.dataset.player,p=MP.players.get(id);
 function nearestRemotePlayer(maxDist=10){let best=null,bd=maxDist;for(const p of MP.players.values()){const d=Math.hypot(p.target.x-pl.x,p.target.z-pl.z);if(d<bd){bd=d;best=p}}return best}
 function toggleNearbyProfile(){if(playerCard.style.display==='block'){closePlayerCard();return}const p=nearestRemotePlayer(12);if(!p){toast('No hay ningún jugador cerca (12 m)');return}showPlayerCard(p)}
 
-// ================= TRANSFERENCIAS ENTRE JUGADORES (dinero, objetos, casas y negocios) =================
+
+// ---------- 24.3 Transferencias entre jugadores (dinero, objetos, casas y negocios) ----------
 const XF={dlg:false,out:null,inc:null},XCATS=['Comida','Ropa','Muebles','Combustible','Mascotas','Ropa de mascota'];
 const xferIn=document.createElement('div');xferIn.id='xferIn';document.body.appendChild(xferIn);
 playerCard.addEventListener('keydown',e=>{const t=e.target;if(t&&(t.tagName==='INPUT'||t.tagName==='TEXTAREA')&&e.code!=='Escape')e.stopPropagation()});
@@ -3660,6 +4006,12 @@ function xfHandle(m){
   case 'transfer_result':XF.out=null;toast(m.ok?'✅ '+(m.toName||'El jugador')+' ha recibido tu envío':'❌ '+(m.reason||'Oferta cancelada'));break;
   case 'transfer_cancel':if(XF.inc&&XF.inc.tid===m.tid){XF.inc=null;xferIn.style.display='none';xferIn.innerHTML='';xfUpdateDlg()}toast('❌ '+(m.reason||'Oferta cancelada'));break}}
 
+
+// =================================================================================================
+// 25. BUCLE PRINCIPAL
+//     mpTick (envía tu posición al servidor), conexión al servidor y loop(), que actualiza y dibuja
+//     cada fotograma. También los microsueños al volante y la barra de energía.
+// =================================================================================================
 function mpTick(dt){if(MP.connected&&MP.ws&&MP.ws.readyState===1&&started&&ov.style.display==='none'){
  const now=performance.now();if(now-MP.lastSend>(riding&&riding.boat?100:180)){MP.lastSend=now;try{const px=inCar?inCar.x:(riding?riding.x:pl.x),pz=inCar?inCar.z:(riding?riding.z:pl.z),pyy=inCar?(inCar.y||0):(riding?(riding.alt||0):py),ph=inCar?inCar.h:(riding?riding.h:yaw),vt=inCar?inCar.t:(riding?(riding.boat?'boat':riding.avion?'avion':riding.heli?'heli':riding.plane?'plane':'bus'):null),vc=inCar?(inCar.col||inCar.m?.userData?.col||0x4477aa):(riding&&riding.hex!=null?riding.hex:0x4477aa),vp=riding&&!inCar?(riding.boat?(riding.str||0):(riding.pt||0)):0,vk=riding&&!inCar?(riding.boat?riding.v/riding.spec.max:(riding.bk||0)):0,vth=riding&&!inCar?(riding.boat?(riding.net?1:0):riding.avion?(riding.thr||0):riding.heli?clamp(riding.rs/HELIFLY,0,1.2):0):0;MP.ws.send(JSON.stringify({type:'state',x:px,y:pyy,z:pz,yaw:ph,vehicle:!!(inCar||riding),vType:vt,vCol:vc,vPt:vp,vBk:vk,vThr:vth,vId:(riding&&!inCar&&riding.boat)?riding.name:null,outfit:worn,profile:mpProfileSnapshot(),pets:pets.slice(0,3).map(q=>({t:q.t,name:q.name,col:q.col,x:q.x,y:q.y,z:q.z,wear:q.wear||{}}))}))}catch(e){}}
  }
@@ -3697,8 +4049,11 @@ function microStep(dt){
  if(microT<=2&&!microW){microW=true;eyes.style.opacity=.4;toast('😴 Se te cierran los ojos...')}
  if(microT<=0){micro=1+lack*1.5;microDir=(Math.random()<.5?-1:1)*(.25+Math.random()*.35);eyes.style.opacity=1}}
 function barHud(){for(const[i,l,v,c]of[['eb','Energía',energy,'#9ccc3c']]){const e=$(i),p=Math.round(v);setTx(e,l+' '+p+'%');setBg(e,'linear-gradient(90deg,'+(p<25?'#d33':c)+' '+p+'%,rgba(0,0,0,.5) '+p+'%)')}}
-// ================= GUARDADO =================
-// ================= MASCOTAS =================
+
+// =================================================================================================
+// 26. MASCOTAS
+//     Tipos de mascota, modelo 3D, comportamiento y panel (tecla T).
+// =================================================================================================
 const PET_T={dog:{n:'Perro',e:'🐶',price:250,col:[0x8b5a2b,0xd2a56a,0x2b2b2b,0xeeeeee,0xb5651d],say:'¡Guau!',stop:2.2,sp:5.5},
  cat:{n:'Gato',e:'🐱',price:180,col:[0x777777,0xe08a2e,0x222222,0xeeeeee,0xc9a27a],say:'Miau~',stop:3.2,sp:4.2},
  rabbit:{n:'Conejo',e:'🐰',price:90,col:[0xeeeeee,0xb0a090,0x8b6a4a,0xdddddd],say:'*mueve la nariz*',stop:2.6,sp:3.6}},
@@ -3785,7 +4140,13 @@ function petAdoptHtml(){let h='<h3>🐾 Adopción</h3><p style="margin:4px 0">Ad
 function adoptPet(t){const T=PET_T[t];if(!T)return;if(pets.length>=PET_MAX){toast('Ya tienes '+PET_MAX+' mascotas (máximo)');return}
  const inp=document.getElementById('petName');let nm=petClean(inp?inp.value:'');if(!nm)nm=PET_NAMES[Math.floor(Math.random()*PET_NAMES.length)];
  if(!pay(T.price))return;addPet(t,nm,T.col[Math.floor(Math.random()*T.col.length)],80,70);toast(T.e+' ¡Has adoptado a '+nm+'!');if(petW)talk(petW)}
-// ================= RANGOS SOCIALES =================
+
+// =================================================================================================
+// 27. RANGOS SOCIALES Y GOBIERNO
+//     Rango social del jugador y gobierno municipal.
+// =================================================================================================
+
+// ---------- 27.1 Rangos sociales ----------
 // Escala: Ciudadano → Funcionario → Propietario → Empresario 1-2-3 → Gran empresario → Regidor → Vicealcalde → (Alcalde: pendiente, lo dará el servidor)
 // El rango es el MÁS ALTO conseguido (no baja si vendes un local). Se guarda en flags (rk, rkGran, rkReg).
 const RANKS=[{n:'Ciudadano',e:'🧑'},{n:'Funcionario',e:'🪪'},{n:'Propietario',e:'🏪'},{n:'Empresario rango 1',e:'💼'},{n:'Empresario rango 2',e:'💼'},{n:'Empresario rango 3',e:'💼'},{n:'Gran empresario',e:'🏆'},{n:'Regidor',e:'🏛️'},{n:'Vicealcalde',e:'🎖️'},{n:'Alcalde',e:'👑'}];
@@ -3820,7 +4181,8 @@ function rankUpdate(){if(!started)return;const t=performance.now();if(t-rkLast<1
  const first=flags.rk===undefined,old=flags.rk||0,nw=rankCalc();
  if(first||nw!==old){flags.rk=nw;if(!first&&nw>old){setTimeout(()=>toast('🏅 ¡Nuevo rango social: '+rankName(nw)+'!'),700);saveGame()}}
  const txt=rankName(myRank());if(rkHud.textContent!==txt)rkHud.textContent=txt}
-// ================= GOBIERNO MUNICIPAL (cliente): elecciones (V), despacho del Alcalde (E), impuestos y bans =================
+
+// ---------- 27.2 Gobierno municipal: elecciones (V), despacho del Alcalde (E), impuestos y bans ----------
 function getUid(){try{let u=localStorage.getItem('rls_uid');if(!u){u=(self.crypto&&crypto.randomUUID)?crypto.randomUUID():(String(Math.random()).slice(2)+Date.now());localStorage.setItem('rls_uid',u)}return u}catch(e){return 'tmp'+Math.random().toString(36).slice(2)}}
 var GOV={mayor:null,taxes:[],rate:0,cap:0,day:0,election:null,me:{},off:0};
 function myRank(){return GOV.me&&GOV.me.mayor?9:Math.min(8,flags.rk||0)}
@@ -3869,7 +4231,13 @@ function moTaxAdd(){const r=document.getElementById('moReason'),p=document.getEl
 function moTaxSave(id){const t=GOV.taxes.find(x=>x.id===id),i=document.getElementById('tx'+id);if(t&&i)govSend({type:'tax_set',id,reason:t.reason,pct:Number(i.value)})}
 function moTaxDel(id){govSend({type:'tax_del',id})}
 function moBan(){const t=document.getElementById('moBan');if(t&&t.value.trim()){if(govSend({type:'decree',text:t.value}))t.value=''}}
-// ================= NEGOCIOS DE OTROS JUGADORES: se ven en el mundo y se les puede comprar (L junto a su puerta) =================
+
+// =================================================================================================
+// 28. PROPIEDADES DE OTROS JUGADORES
+//     Negocios y casas de los demás jugadores, sincronizados con el servidor.
+// =================================================================================================
+
+// ---------- 28.1 Negocios de otros jugadores: se ven en el mundo y se les puede comprar (L junto a su puerta) ----------
 var bizSynced=false,bizSig='';
 const BIZ_CAT={super:'Comida',bar:'Comida',pan:'Comida',ropa:'Ropa',muebles:'Muebles'};
 function bizSyncSend(force){if(!bizSynced||!MP.connected)return;
@@ -3889,7 +4257,17 @@ function bizApply(m){const seen=new Set();
   const rc=e.occ?2:1;if(h.rcol!==rc){h.rcol=rc;setHouseColor(h,e.occ?0x95a5a6:0x16a085)}});
  HOUSES.forEach(h=>{if(h.local&&h.remote&&!seen.has(h.id)){h.remote=null;h.rsig='';h.rcol=0;if(!h.owned){h.ty='';h.lv=0;try{localIn(h,'')}catch(_){}if(h.om)h.door.leaf.material=h.om}}});
  const r=document.getElementById('bsRoot');if(r&&dlgOpen){const h=HOUSES[+r.dataset.k];if(h)bsRender(h)}}
-// ================= CASAS EN TERRENOS: se sincronizan con el servidor y las ven todos los jugadores =================
+
+// comprar en la tienda de otro jugador
+function bsOpen(id){openDlg();bsRender(HOUSES[id])}
+function bsRender(h){const e=h.remote;if(!e){dlg.innerHTML='<h2>🏪 Local</h2><p>Este negocio ya no está disponible.</p><div><button onclick="closeDlg()">Cerrar</button></div>';return}
+ if(e.occ){dlg.innerHTML='<h2>🏪 Local ocupado</h2><p>Este local es de <b>'+pcEsc(e.name)+'</b>'+(e.on?'':' (ahora desconectado)')+' y todavía no tiene ningún negocio abierto.</p><div><button onclick="closeDlg()">Cerrar</button></div>';return}
+ const T=LTYPES[e.ty]||{i:'🏪',n:'NEGOCIO'};let t='<div id="bsRoot" data-k="'+h.id+'"><h2>'+T.i+' '+pcEsc(T.n[0]+T.n.slice(1).toLowerCase())+'</h2><p style="margin:2px 0">Negocio de <b>'+pcEsc(e.name)+'</b> · '+BIZN[e.lv||1]+'</p><p style="margin:2px 0 8px">Tu dinero: <b>€'+Math.round(money)+'</b></p>';
+ (e.items||[]).forEach((q,i)=>{t+='<div class="r"><i class="ic">'+pcEsc(q.e||'🛒')+'</i><span>'+pcEsc(q.k)+'<br><small>En tienda: '+q.n+' · €'+q.p+'</small></span>'+(q.n>0?'<button onclick="bsBuy('+h.id+','+i+',1)">Comprar 1</button><button onclick="bsBuy('+h.id+','+i+',5)">×5</button>':'<b>Agotado</b>')+'</div>'});
+ dlg.innerHTML=t+'<div><button onclick="closeDlg()" style="background:#666">Salir</button></div></div>'}
+function bsBuy(id,i,n){const h=HOUSES[id],q=h&&h.remote&&h.remote.items[i];if(!q)return;n=Math.min(n,q.n);if(n<1){toast('Agotado');return}if(money<q.p*n){toast('No tienes suficiente dinero');return}if(!govSend({type:'biz_buy',x:h.x,z:h.z,k:q.k,n}))toast('Sin conexión con el servidor')}
+
+// ---------- 28.2 Casas en terrenos: se sincronizan con el servidor y las ven todos los jugadores ----------
 // El dueño publica su construcción (house_set, cada vez que cambia) y el servidor la reparte. Los terrenos de otros se dibujan con el mismo código que los tuyos (t.rem = su dueño, sin editarlos).
 // Las puertas se abren y se cierran solo en tu pantalla (no se sincroniza su estado).
 var houseSynced=false,houseOwnSig='',houseSent={},houseLast=0,housePend=null,houseSeen=new Set();
@@ -3922,13 +4300,11 @@ function houseOnConflict(m){const t=TERRENOS.find(q=>q.id===m.id);if(!t||!t.owne
  const back=Math.round(t.price+bmValue(t));if(BM.on&&BM.t===t)bmExit();if(dlgOpen)closeDlg();
  bmFReturn(t);t.setOwned(false);t.b=null;bmRebuild(t);houseSent[t.id]=undefined;money+=back;sfx.cash();estateRefresh();saveGame();
  toast('⚠️ El terreno nº '+t.id+' ya estaba registrado a nombre de '+String(m.owner||'otro jugador').slice(0,18)+'. Se te devuelven €'+back)}
-function bsOpen(id){openDlg();bsRender(HOUSES[id])}
-function bsRender(h){const e=h.remote;if(!e){dlg.innerHTML='<h2>🏪 Local</h2><p>Este negocio ya no está disponible.</p><div><button onclick="closeDlg()">Cerrar</button></div>';return}
- if(e.occ){dlg.innerHTML='<h2>🏪 Local ocupado</h2><p>Este local es de <b>'+pcEsc(e.name)+'</b>'+(e.on?'':' (ahora desconectado)')+' y todavía no tiene ningún negocio abierto.</p><div><button onclick="closeDlg()">Cerrar</button></div>';return}
- const T=LTYPES[e.ty]||{i:'🏪',n:'NEGOCIO'};let t='<div id="bsRoot" data-k="'+h.id+'"><h2>'+T.i+' '+pcEsc(T.n[0]+T.n.slice(1).toLowerCase())+'</h2><p style="margin:2px 0">Negocio de <b>'+pcEsc(e.name)+'</b> · '+BIZN[e.lv||1]+'</p><p style="margin:2px 0 8px">Tu dinero: <b>€'+Math.round(money)+'</b></p>';
- (e.items||[]).forEach((q,i)=>{t+='<div class="r"><i class="ic">'+pcEsc(q.e||'🛒')+'</i><span>'+pcEsc(q.k)+'<br><small>En tienda: '+q.n+' · €'+q.p+'</small></span>'+(q.n>0?'<button onclick="bsBuy('+h.id+','+i+',1)">Comprar 1</button><button onclick="bsBuy('+h.id+','+i+',5)">×5</button>':'<b>Agotado</b>')+'</div>'});
- dlg.innerHTML=t+'<div><button onclick="closeDlg()" style="background:#666">Salir</button></div></div>'}
-function bsBuy(id,i,n){const h=HOUSES[id],q=h&&h.remote&&h.remote.items[i];if(!q)return;n=Math.min(n,q.n);if(n<1){toast('Agotado');return}if(money<q.p*n){toast('No tienes suficiente dinero');return}if(!govSend({type:'biz_buy',x:h.x,z:h.z,k:q.k,n}))toast('Sin conexión con el servidor')}
+
+// =================================================================================================
+// 29. GUARDADO DE LA PARTIDA
+//     Guardar y cargar la partida en el navegador (localStorage): cada 30 s y al salir o cambiar de pestaña.
+// =================================================================================================
 const SAVE_KEY='rls_save',SAVE_VER=1;let noSave=false,lastPos=null;
 function gatherState(){
  if(!riding){if(inCar){const c=inCar;lastPos={x:c.x+Math.cos(c.h)*3,z:c.z-Math.sin(c.h)*3,py:c.y||0}}else lastPos={x:pl.x,z:pl.z,py:py}}
@@ -3968,7 +4344,11 @@ setInterval(saveGame,30000);
 addEventListener('beforeunload',saveGame);addEventListener('pagehide',saveGame);
 document.addEventListener('visibilitychange',()=>{if(document.hidden)saveGame()});
 document.addEventListener('pointerlockchange',()=>{if(!document.pointerLockElement)saveGame()});
-// ================= SONIDO (Web Audio) =================
+
+// =================================================================================================
+// 30. SONIDO
+//     Efectos de sonido con Web Audio y radio del coche (3 emisoras generadas).
+// =================================================================================================
 let stepPh=0;
 const sfx=(()=>{let ac=null,mg=null,nb=null,bn=null,muted=false,L=null,nextEv=0,nextCk=0,R={st:0,n:0,next:0,g:null,f:null,out:null,txt:''};try{muted=localStorage.getItem('rls_mute')==='1'}catch(e){}
  function init(){if(ac){if(ac.state==='suspended')ac.resume();return}
@@ -4100,7 +4480,11 @@ $('qbtn').addEventListener('click',e=>{e.stopPropagation();const o=['auto',0,1,2
 function toggleSound(){sfx.init();const m=sfx.toggle();sndLabel();toast(m?'🔇 Sonido silenciado':'🔊 Sonido activado')}
 addEventListener('keydown',e=>{sfx.init();if(e.code==='KeyC'&&started&&!e.repeat&&inCar){const m=sfx.radioKey(inCar);if(m)toast(m)}});
 addEventListener('pointerdown',()=>sfx.init());
-/* ===== MOVIL (fase 1): marco, M para abrir/cerrar, pantalla de inicio con 3 apps ===== */
+
+// =================================================================================================
+// 31. MÓVIL DEL JUGADOR
+//     Teléfono del juego (tecla M): pantalla de inicio y apps de chat, mapa y opciones.
+// =================================================================================================
 (function(){
 const st=document.createElement('style');
 st.textContent=`
@@ -4286,33 +4670,21 @@ setInterval(()=>{placeMini();if(typeof tod!=='number')return;
  $p('phMiniT').textContent=t;$p('phStT').textContent=t;$p('phClock').textContent=t},500);
 })();
 
+
+// =================================================================================================
+// 32. ARRANQUE
+//     Empieza el bucle principal (al final, cuando ya está todo definido).
+// =================================================================================================
 loop();
 </script>
-<style id="touchCss">
-body.touch{touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;overscroll-behavior:none;-webkit-tap-highlight-color:transparent}
-#tc{position:fixed;inset:0;z-index:8;pointer-events:none;display:none;font-family:system-ui,sans-serif}
-#tc.on{display:block}
-#tcL,#tcR{position:absolute;top:0;bottom:0;pointer-events:auto;touch-action:none}
-#tcL{left:0;width:45%}#tcR{right:0;width:55%}
-#tcjb{position:absolute;width:130px;height:130px;margin:-65px 0 0 -65px;border-radius:50%;background:rgba(15,20,30,.3);border:2px solid rgba(255,255,255,.5);pointer-events:none;opacity:.45;left:90px;bottom:auto;top:calc(100% - 100px)}
-#tcjb.act{opacity:.95}
-#tcjk{position:absolute;left:39px;top:39px;width:52px;height:52px;border-radius:50%;background:rgba(255,255,255,.7)}
-#tc .b{position:absolute;pointer-events:auto;border-radius:50%;background:rgba(15,20,30,.6);border:2px solid rgba(255,255,255,.65);color:#fff;font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center;touch-action:none;line-height:1.1;text-align:center}
-#tc .b.dn{background:rgba(47,127,224,.9)}
-#tcp{position:absolute;right:calc(16px + env(safe-area-inset-right));bottom:calc(196px + env(safe-area-inset-bottom));display:none;grid-template-columns:repeat(7,46px);gap:6px;pointer-events:auto}
-#tcp.show{display:grid}
-#tcp .b{position:static;width:46px;height:46px;font-size:17px}
-#tcAct{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom));display:flex;flex-direction:column;align-items:center;gap:8px;max-width:max(220px,calc(100vw - 400px));pointer-events:none;z-index:9}
-#tcAct button{pointer-events:auto;touch-action:none;display:flex;align-items:center;gap:8px;min-height:50px;padding:8px 18px 8px 10px;border-radius:28px;border:2px solid rgba(255,255,255,.85);background:rgba(47,127,224,.94);color:#fff;font:700 16px system-ui,sans-serif;box-shadow:0 3px 12px rgba(0,0,0,.45);text-align:left;line-height:1.15}
-#tcAct button.dn{background:#1b5fb8;transform:scale(.96)}
-#tcAct button i{font-style:normal;flex:none;width:30px;height:30px;border-radius:50%;background:#fff;color:#1b5fb8;display:flex;align-items:center;justify-content:center;font-size:15px}
-#tcAct .tcInfo{pointer-events:none;background:rgba(15,20,30,.65);color:#fff;font:600 14px system-ui,sans-serif;padding:5px 12px;border-radius:14px;text-align:center}
-body.touch #prompt{display:none}
-body.touch #phoneMini,body.touch #chatToggle{display:none!important}
-@media (orientation:portrait){#tcAct{bottom:calc(240px + env(safe-area-inset-bottom))}}
-#tcd{display:none!important;position:absolute;left:50%;top:2px;transform:translateX(-50%);font:11px monospace;color:#9fe3a8;background:rgba(0,0,0,.55);padding:2px 8px;border-radius:6px;pointer-events:none;white-space:nowrap}
-</style>
-<script id="touchJs">
+
+<!-- ========== 33. CONTROLES TÁCTILES ========== -->
+<script>
+// =================================================================================================
+// 33. CONTROLES TÁCTILES
+//     Solo en móviles/tabletas (o con ?touch=1): joystick a la izquierda, mirar arrastrando a la derecha,
+//     botones de acción y los avisos «E: …» convertidos en botones.
+// =================================================================================================
 (function(){
  const isTouch=matchMedia('(pointer:coarse)').matches||/[?&]touch=1/.test(location.search);
  if(!isTouch)return;
@@ -4388,42 +4760,13 @@ body.touch #phoneMini,body.touch #chatToggle{display:none!important}
 })();
 </script>
 
-<style id="mobileFix">
-/* ---- arreglos para movil ---- */
-html,body{overscroll-behavior:none}
-body.touch input,body.touch textarea{-webkit-user-select:text;user-select:text;touch-action:auto;font-size:16px!important}
-body.touch #ov{overflow:auto;justify-content:safe center;-webkit-overflow-scrolling:touch;touch-action:pan-y;padding:12px calc(16px + env(safe-area-inset-right)) 12px calc(16px + env(safe-area-inset-left))}
-body.touch #ov p{font-size:13px;margin:6px 0}
-body.touch #ov h1{font-size:24px;margin:4px 0}
-body.touch #dlg,body.touch #inv,body.touch #playerCard,body.touch #chatMessages{touch-action:pan-y;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
-body.touch #dlg,body.touch #inv{max-height:calc(var(--vh,1vh)*84);min-width:min(320px,92vw);max-width:94vw;padding:14px 16px}
-body.touch #dlg button,body.touch #inv button{min-height:40px;padding:8px 14px;font-size:15px;touch-action:manipulation}
-body.touch .tabs button{min-height:36px}
-body.touch #playerCard{max-height:calc(var(--vh,1vh)*84)}
-body.touch #chatPanel{height:min(290px,calc(var(--vh,1vh)*62));bottom:calc(10px + env(safe-area-inset-bottom));right:calc(10px + env(safe-area-inset-right))}
-/* HUD sin solapamientos + zonas seguras (notch) */
-body.touch #money{left:calc(14px + env(safe-area-inset-left));font-size:22px;top:8px}
-body.touch #obj{left:calc(14px + env(safe-area-inset-left));top:38px;font-size:13px;max-width:36vw}
-body.touch #hb,body.touch #eb,body.touch #clk{left:calc(14px + env(safe-area-inset-left))!important}
-body.touch #hb{top:86px!important;width:150px!important;font-size:11px!important}
-body.touch #eb{top:110px!important;width:150px!important;font-size:11px!important}
-body.touch #clk{top:138px!important;font-size:13px!important}
-body.touch #spd{bottom:auto;top:8px;left:50%;right:auto;transform:translateX(-50%);font-size:22px}
-body.touch #fuel{bottom:auto!important;top:40px!important;left:50%!important;right:auto!important;transform:translateX(-50%);width:150px!important}
-body.touch #toast{top:22%;font-size:18px;padding:0 70px;box-sizing:border-box}
-body.touch #mm{z-index:12;top:calc(8px + env(safe-area-inset-top));right:calc(8px + env(safe-area-inset-right))}
-body.touch #mpHud{right:auto!important;left:50%!important;transform:translateX(-50%);top:4px!important;width:auto!important;padding:3px 10px!important;font-size:10px!important;opacity:.8}
-body.touch #mpHud div{display:inline-block;margin:0 0 0 6px!important}
-body.touch #tcjb{left:calc(90px + env(safe-area-inset-left))}
-/* aviso para girar el movil */
-#rotWarn{display:none;position:fixed;inset:0;z-index:200;background:#0d141e;color:#fff;flex-direction:column;align-items:center;justify-content:center;text-align:center;font:600 18px system-ui;padding:30px}
-#rotWarn i{font-style:normal;font-size:64px;display:block;margin-bottom:14px;animation:rotHint 1.6s ease-in-out infinite}
-@keyframes rotHint{0%,30%{transform:rotate(0)}70%,100%{transform:rotate(-90deg)}}
-@media (pointer:coarse) and (orientation:portrait){#rotWarn{display:flex}}
-</style>
-
-<div id="rotWarn"><div><i>📱</i>Gira el móvil en horizontal<br><small style="font-weight:400;opacity:.7">El juego se ve y se controla mucho mejor así</small></div></div>
-<script id="mobileFixJs">
+<!-- ========== 34. AJUSTES PARA MÓVIL ========== -->
+<script>
+// =================================================================================================
+// 34. AJUSTES PARA MÓVIL
+//     Altura real de la pantalla, soltar los controles al cambiar de app, evitar zoom con gestos
+//     y guardar si se pierde el contexto WebGL.
+// =================================================================================================
 (function(){
  // altura real de pantalla en movil (la barra del navegador cambia el 100vh)
  const setVh=()=>document.documentElement.style.setProperty('--vh',(window.innerHeight/100)+'px');
