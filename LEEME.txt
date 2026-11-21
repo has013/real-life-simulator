@@ -23,7 +23,7 @@ IMPORTANTE
 - El límite de 20 jugadores lo aplica el servidor, no el navegador.
 - Esta primera versión sincroniza nombre, posición, altura y orientación de los jugadores. El resto de la simulación (economía, inventario, vehículos NPC, casas y progreso) sigue siendo local a cada jugador; no es todavía un mundo persistente con objetos compartidos.
 - No introduzcas datos personales en el nombre de usuario: es el nombre público que ven los demás.
-- Al actualizar el juego en el servidor, NO sustituyas accounts.json ni la carpeta saves/ (ni gov.json, biz.json,
+- Al actualizar el juego en el servidor, NO sustituyas accounts.json ni la carpeta saves/ (ni keys.json, gov.json, biz.json,
   houses.json y players.json): contienen las cuentas y las partidas de los jugadores. Si los sobrescribes, se pierden.
 
 CUENTAS DE USUARIO (NUEVO)
@@ -40,6 +40,20 @@ CUENTAS DE USUARIO (NUEVO)
   desde el mismo dispositivo (y navegador) en el que jugaba.
 - Tras 5 contraseñas incorrectas seguidas, ese usuario queda bloqueado 1 minuto.
 - Variables opcionales: ACCOUNTS_FILE (ruta de accounts.json) y SAVES_DIR (carpeta de las partidas).
+
+LLAVES DE LAS CASAS (NUEVO)
+- Solo se puede entrar en una casa con su llave. Vale para las casas y pisos de la ciudad y para las casas
+  construidas en los terrenos. Los locales (negocios) no llevan llave: son tiendas abiertas al público.
+- El dueño (también si la tiene alquilada o con hipoteca) tiene siempre su llave. Las llaves están en el inventario (I).
+- Desde el inventario, "Dar copia" y escribe el nombre de usuario de otra persona (no hace falta que esté conectada).
+  Esa persona recibe un aviso y la copia aparece en su inventario: ya puede abrir la puerta de tu casa con E.
+- Ves quién tiene copia de cada llave. Puedes quitársela a alguien ("quitar") o a todos a la vez
+  ("cambiar la cerradura"). Quien tiene una copia la puede tirar, pero no puede hacer más copias.
+- Si la casa cambia de dueño (venta, regalo, impago...), las copias dejan de valer solas.
+- Desde dentro de una casa siempre se puede abrir la puerta para salir.
+- Las copias las guarda el servidor en keys.json (variable opcional KEYS_FILE). Tampoco lo sobrescribas al actualizar.
+- Las casas y pisos de la ciudad no se comparten entre jugadores como las de los terrenos: con una copia
+  puedes entrar en esa casa, pero los muebles de dentro son los de tu propia partida.
 
 CHAT MULTIJUGADOR
 - El chat es compartido por todos los jugadores conectados.

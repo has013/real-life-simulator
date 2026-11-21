@@ -20,14 +20,15 @@
 //   11.  CUENTAS DE USUARIO Y PARTIDAS GUARDADAS
 //          11.1 Cuentas: registro, inicio de sesión y sesiones recordadas
 //          11.2 Partidas guardadas: un archivo por cuenta en saves/<uid>.json
-//   12.  CONEXIÓN DE CADA JUGADOR
-//          12.1 Entrada al mundo (join)
-//          12.2 Chat y mensajes privados
-//          12.3 Reparto de mensajes a cada sistema (transferencias, gobierno, negocios, casas, admin, dormir, barcos)
-//          12.4 Estado del jugador: posición, vehículo, ropa, mascotas y perfil
-//          12.5 Desconexión
-//   13.  RELOJ Y CLIMA DEL MUNDO
-//   14.  ARRANQUE, APAGADO Y ERRORES
+//   12.  LLAVES DE LAS CASAS
+//   13.  CONEXIÓN DE CADA JUGADOR
+//          13.1 Entrada al mundo (join)
+//          13.2 Chat y mensajes privados
+//          13.3 Reparto de mensajes a cada sistema (transferencias, gobierno, negocios, casas, admin, dormir, barcos, partidas, llaves)
+//          13.4 Estado del jugador: posición, vehículo, ropa, mascotas y perfil
+//          13.5 Desconexión
+//   14.  RELOJ Y CLIMA DEL MUNDO
+//   15.  ARRANQUE, APAGADO Y ERRORES
 // =================================================================================================
 
 // =================================================================================================
@@ -793,7 +794,66 @@ function handleSave(ws, p, msg) {
 }
 
 // =================================================================================================
-// 12. CONEXIÓN DE CADA JUGADOR
+// 12. LLAVES DE LAS CASAS
+//     Solo se entra en una casa con su llave. El dueño tiene siempre la suya y puede dar copias a otros usuarios
+//     (aunque no estén conectados) y quitarlas («cambiar la cerradura»).
+// =================================================================================================
+// Hay dos tipos de casa:
+// - 'plot':  casa construida en un terreno (id 0-63). El servidor ya sabe quién es el dueño (sección 8).
+// - 'house': casa o piso de la ciudad (id "x,z"). Su propiedad está en la partida de cada jugador, así que el cliente
+//            manda la lista de las suyas (key_sync) y el servidor la recuerda para saber si una copia sigue valiendo.
+// Una copia deja de valer sola si la casa cambia de dueño (venta, regalo, impago...). Los locales (negocios) no llevan llave.
+const KEYS_FILE = process.env.KEYS_FILE || path.join(__dirname, 'keys.json');
+const MAX_COPIES = 20; // copias de cada llave
+let keyGrants = [], houseOwners = {}, keysDirty = false; // copia: { kind, id, owner, ownerName, holder, holderName, t } · houseOwners: uid -> ["x,z", ...]
+{ const k = readJsonSafe(KEYS_FILE, 'keys'); if (k) { if (Array.isArray(k.grants)) keyGrants = k.grants; if (k.houseOwners && typeof k.houseOwners === 'object') houseOwners = k.houseOwners; } }
+function saveKeys() { try { writeJsonAtomic(KEYS_FILE, { grants: keyGrants, houseOwners }); keysDirty = false; } catch (e) { console.warn('No se pudo guardar keys.json', e.message); } }
+const keyIdOf = (kind, v) => { if (kind === 'plot') { const n = plotIdOf(v); return n === null ? null : String(n); } if (kind !== 'house') return null; const s = String(v == null ? '' : v); return /^-?\d{1,5},-?\d{1,5}$/.test(s) ? s : null; };
+const ownsHouse = (uid, kind, id) => kind === 'plot' ? !!(plots[id] && plots[id].uid === uid) : !!(houseOwners[uid] && houseOwners[uid].includes(id));
+const keyName = (kind, id) => kind === 'plot' ? 'casa del terreno nº ' + id : 'casa de (' + id.replace(',', ', ') + ')';
+// quita las copias que ya no valen porque la casa cambió de dueño; devuelve los uid a los que hay que avisar
+function keysPrune() { const hit = new Set(); keyGrants = keyGrants.filter(g => { if (ownsHouse(g.owner, g.kind, g.id)) return true; hit.add(g.owner); hit.add(g.holder); keysDirty = true; return false; }); return hit; }
+const keysMsg = uid => ({ type: 'keys', mine: keyGrants.filter(g => g.holder === uid).map(g => ({ kind: g.kind, id: g.id, owner: g.ownerName })), given: keyGrants.filter(g => g.owner === uid).map(g => ({ kind: g.kind, id: g.id, holder: g.holderName })) });
+function keysSendTo(uids) { for (const [w, q] of players) if (uids.has(q.uid)) send(w, keysMsg(q.uid)); }
+const keysTimer = setInterval(() => { const hit = keysPrune(); if (hit.size) keysSendTo(hit); if (keysDirty) saveKeys(); }, 5000); // p. ej. un terreno que ha cambiado de dueño
+function handleKeys(ws, p, msg) {
+  const err = text => send(ws, { type: 'key_err', text });
+  if (msg.type === 'key_sync') { // casas y pisos de la ciudad que tiene este jugador (los terrenos ya los sabe el servidor)
+    const list = Array.isArray(msg.houses) ? [...new Set(msg.houses.slice(0, 200).map(v => keyIdOf('house', v)).filter(Boolean))].sort() : [];
+    if (JSON.stringify(houseOwners[p.uid] || []) !== JSON.stringify(list)) { if (list.length) houseOwners[p.uid] = list; else delete houseOwners[p.uid]; keysDirty = true; }
+    const hit = keysPrune(); hit.add(p.uid); return keysSendTo(hit);
+  }
+  const kind = msg.kind, id = keyIdOf(kind, msg.id);
+  if (id === null) return err('Llave no válida');
+  if (msg.type === 'key_give') { // el dueño da una copia a otro usuario (por su nombre de usuario)
+    if (!ownsHouse(p.uid, kind, id)) return err('Esa casa no es tuya: solo el dueño puede hacer copias de la llave');
+    const to = String(msg.to || '').trim(), acc = accounts.users[userKey(to)];
+    if (!acc) return err('No existe ningún usuario llamado «' + to.slice(0, 18) + '»');
+    if (acc.uid === p.uid) return err('Ya tienes la llave de tu casa');
+    const mine = keyGrants.filter(g => g.kind === kind && g.id === id && g.owner === p.uid);
+    if (mine.some(g => g.holder === acc.uid)) return err(acc.name + ' ya tiene una copia de esta llave');
+    if (mine.length >= MAX_COPIES) return err('Como mucho puedes dar ' + MAX_COPIES + ' copias de cada llave');
+    keyGrants.push({ kind, id, owner: p.uid, ownerName: p.name, holder: acc.uid, holderName: acc.name, t: Date.now() }); keysDirty = true;
+    for (const [w, q] of players) if (q.uid === acc.uid) send(w, { type: 'key_new', kind, id, from: p.name });
+    keysSendTo(new Set([p.uid, acc.uid]));
+    console.log('[llaves]', p.name, 'da una copia de la llave de la', keyName(kind, id), 'a', acc.name);
+    return send(ws, { type: 'key_ok', text: '🔑 Le has dado a ' + acc.name + ' una copia de la llave de la ' + keyName(kind, id) });
+  }
+  if (msg.type === 'key_revoke') { // quitar la copia a alguien (holder) o a todos («cambiar la cerradura»)
+    const who = msg.holder ? String(msg.holder) : null, hit = new Set([p.uid]);
+    keyGrants = keyGrants.filter(g => { if (g.kind === kind && g.id === id && g.owner === p.uid && (!who || g.holderName === who)) { hit.add(g.holder); return false; } return true; });
+    keysDirty = true; keysSendTo(hit);
+    return send(ws, { type: 'key_ok', text: who ? 'Le has quitado la copia de la llave a ' + who : '🔒 Has cambiado la cerradura: ya nadie más tiene copia' });
+  }
+  if (msg.type === 'key_drop') { // quien tiene una copia la tira
+    const hit = new Set([p.uid]);
+    keyGrants = keyGrants.filter(g => { if (g.kind === kind && g.id === id && g.holder === p.uid) { hit.add(g.owner); return false; } return true; });
+    keysDirty = true; return keysSendTo(hit);
+  }
+}
+
+// =================================================================================================
+// 13. CONEXIÓN DE CADA JUGADOR
 //     Qué pasa cuando alguien entra, cada mensaje que envía y cuando se va.
 // =================================================================================================
 wss.on('connection', ws => {
@@ -805,7 +865,7 @@ wss.on('connection', ws => {
     let msg; try { msg = JSON.parse(raw.toString()); } catch { return; }
     if (ws.kicked || !msg || typeof msg !== 'object') return; // conexión sustituida por otra de la misma cuenta
     if (typeof msg.type === 'string' && msg.type.startsWith('auth_')) { handleAuth(ws, msg).catch(e => { ws.authBusy = false; console.error('[cuentas]', e); }); return; } // ver sección 11
-    // ---------- 12.1 Entrada al mundo (join): solo con una cuenta que haya iniciado sesión ----------
+    // ---------- 13.1 Entrada al mundo (join): solo con una cuenta que haya iniciado sesión ----------
     if (!ws.joined) {
       if (msg.type !== 'join' || !ws.account) return;
       const again = [...players.values()].some(q => q.uid === ws.account.uid); // ya estaba dentro: no cuenta como plaza nueva
@@ -816,11 +876,11 @@ wss.on('connection', ws => {
       const player = { id, uid: ws.account.uid, name: ws.account.name, x:24, y:0, z:1.5, yaw:0, vehicle:false, vType:null, vPt:0, vBk:0, vThr:0, vCol:0x4477aa, outfit:{}, pets:[], profile:{money:0,rk:0,properties:[],businesses:[],pets:[],career:[]} };
       players.set(ws, player); touchKnown(player);
       send(ws, {type:'welcome', id, players:[...players.values()].map(pub), chat:chatHistory, world:{tod:world.tod,wx:world.wx}, features:{boats:1,biz:1,admin:1,dm:1,houses:1}});
-      broadcast({type:'joined', player:pub(player)}, ws); send(ws, govMsg(ws)); send(ws, bizMsg(ws)); send(ws, boatsMsg()); send(ws, { type: 'admin_pending', cmds: (adminPending[player.uid] || []).slice(0, 50) }); send(ws, { type: 'biz_pending', sales: (bizPending[player.uid] || []).slice(0, 100) }); if (ownsBiz(player.uid)) broadcastBiz(); sendHouses(ws, player); sleepCheck();
+      broadcast({type:'joined', player:pub(player)}, ws); send(ws, govMsg(ws)); send(ws, bizMsg(ws)); send(ws, boatsMsg()); send(ws, { type: 'admin_pending', cmds: (adminPending[player.uid] || []).slice(0, 50) }); send(ws, { type: 'biz_pending', sales: (bizPending[player.uid] || []).slice(0, 100) }); if (ownsBiz(player.uid)) broadcastBiz(); sendHouses(ws, player); send(ws, keysMsg(player.uid)); sleepCheck();
       return;
     }
     const p = players.get(ws); if (!p) return;
-    // ---------- 12.2 Chat y mensajes privados ----------
+    // ---------- 13.2 Chat y mensajes privados ----------
     if (msg.type === 'chat') {
       const text = String(msg.text || '').replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, 180);
       if (!text) return;
@@ -842,7 +902,7 @@ wss.on('connection', ws => {
       send(ws, { type: 'dm_sent', to: { id: tp.id, name: tp.name }, text, time: now });
       return;
     }
-    // ---------- 12.3 Reparto de mensajes a cada sistema (transferencias, gobierno, negocios, casas, admin, dormir, barcos) ----------
+    // ---------- 13.3 Reparto de mensajes a cada sistema (transferencias, gobierno, negocios, casas, admin, dormir, barcos, partidas, llaves) ----------
     if (typeof msg.type === 'string' && msg.type.startsWith('transfer')) { handleTransfer(ws, p, msg); return; }
     if (typeof msg.type === 'string' && (msg.type.startsWith('election_') || msg.type.startsWith('tax_') || msg.type === 'decree')) { handleGov(ws, p, msg); return; }
     if (typeof msg.type === 'string' && msg.type.startsWith('biz_')) { handleBiz(ws, p, msg); return; }
@@ -852,7 +912,8 @@ wss.on('connection', ws => {
     if (msg.type === 'pend_ack') { const n = toInt(msg.n, 0, 100); if (adminPending[p.uid]) { adminPending[p.uid] = adminPending[p.uid].slice(n); if (!adminPending[p.uid].length) delete adminPending[p.uid]; knownDirty = true; } return; }
     if (typeof msg.type === 'string' && msg.type.startsWith('boat_')) { handleBoat(ws, p, msg); return; }
     if (msg.type === 'save' || msg.type === 'save_delete') { handleSave(ws, p, msg); return; }
-    // ---------- 12.4 Estado del jugador: posición, vehículo, ropa, mascotas y perfil ----------
+    if (typeof msg.type === 'string' && msg.type.startsWith('key_')) { handleKeys(ws, p, msg); return; } // llaves (sección 12)
+    // ---------- 13.4 Estado del jugador: posición, vehículo, ropa, mascotas y perfil ----------
     if (msg.type !== 'state') return;
     const n = v => Number.isFinite(Number(v)) ? Math.max(-1000, Math.min(2000, Number(v))) : 0;
     // Barcos: solo se acepta vType 'boat' si el barco está libre o ya lo pilota este jugador (también cubre reconexiones).
@@ -889,13 +950,13 @@ wss.on('connection', ws => {
     if (boatChanged) broadcastBoats();
     broadcast({type:'state', player:pub(p)}, ws);
   });
-  // ---------- 12.5 Desconexión ----------
+  // ---------- 13.5 Desconexión ----------
   ws.on('close', () => { dropTransfersOf(ws); const p=players.get(ws); if(p){const freed=releaseBoat(p);if(gov.election&&gov.election.candidates.some(c=>c.uid===p.uid))console.log('[elecciones] el candidato '+p.name+' se desconectó: la votación sigue abierta');players.delete(ws);broadcast({type:'left',id:p.id});sleepCheck();if(freed)broadcastBoats();if(ownsBiz(p.uid))broadcastBiz();} });
   ws.on('error', () => {});
 });
 
 // =================================================================================================
-// 13. RELOJ Y CLIMA DEL MUNDO
+// 14. RELOJ Y CLIMA DEL MUNDO
 // =================================================================================================
 // Reloj y clima únicos para todo el servidor. Un día del juego dura 12 minutos reales.
 // Si no hay ningún jugador conectado, el tiempo del juego se detiene (hora y clima quedan congelados hasta que entre alguien).
@@ -914,12 +975,12 @@ const worldTick = setInterval(() => {
 }, 1000);
 
 // =================================================================================================
-// 14. ARRANQUE, APAGADO Y ERRORES
+// 15. ARRANQUE, APAGADO Y ERRORES
 //     Comprobación de conexiones vivas, arranque del servidor, guardar todo al apagar y no caerse por un error.
 // =================================================================================================
 const heartbeat = setInterval(() => { for (const ws of wss.clients) { if (!ws.isAlive) { ws.terminate(); continue; } ws.isAlive=false; ws.ping(); } }, 30000);
 server.listen(PORT, '0.0.0.0', () => { console.log(`Real Life Simulator multiplayer: http://localhost:${PORT} (max ${MAX_PLAYERS})`); console.log('Funciones activas: sincronización de barcos, reserva de locales, casas en terrenos, panel de administrador'); });
-const shutdown = () => { saveGov(); saveBiz(); saveHouses(); savePlayers(); saveAccounts(); flushSaves(); clearInterval(accountsTimer); clearInterval(savesTimer); clearInterval(playersTimer); clearInterval(bizTimer); clearInterval(housesTimer); clearInterval(govTimer); clearInterval(heartbeat); clearInterval(worldTick); server.close(); remoteFlush().then(() => process.exit(0)); setTimeout(() => process.exit(0), 4000).unref(); };
+const shutdown = () => { saveGov(); saveBiz(); saveHouses(); savePlayers(); saveAccounts(); flushSaves(); saveKeys(); clearInterval(accountsTimer); clearInterval(savesTimer); clearInterval(keysTimer); clearInterval(playersTimer); clearInterval(bizTimer); clearInterval(housesTimer); clearInterval(govTimer); clearInterval(heartbeat); clearInterval(worldTick); server.close(); remoteFlush().then(() => process.exit(0)); setTimeout(() => process.exit(0), 4000).unref(); };
 process.on('SIGINT', shutdown); process.on('SIGTERM', shutdown); // los hostings apagan con SIGTERM: se guarda todo antes de salir
 // Un error en un mensaje suelto no debe tumbar el servidor (y con él a todos los jugadores): se registra y se sigue.
 process.on('uncaughtException', e => console.error('[error no controlado]', e && e.stack || e));

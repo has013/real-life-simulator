@@ -87,6 +87,7 @@
          24.2 Mensajes privados: pestañas del chat
          24.3 Transferencias entre jugadores (dinero, objetos, casas y negocios)
          24.4 Cuentas: registrarse e iniciar sesión (pantalla de entrada)
+         24.5 Llaves de las casas
    25.  BUCLE PRINCIPAL
    26.  MASCOTAS
    27.  RANGOS SOCIALES Y GOBIERNO
@@ -2718,7 +2719,7 @@ const HRS={super:[8,22],dealer:[9,20],food:[8,22],furn:[10,20],shop:[10,21],bar:
 const pad2=n=>(n<10?'0':'')+n;
 function isOpen(k){const h=HRS[k];return !h||(tod>=h[0]&&tod<h[1])}
 function hrsTxt(k){return pad2(HRS[k][0])+':00'}
-function lockedFor(d){if(d.shop)return !isOpen(d.shop)&&!d.open&&(pl.z-d.z)*d.fz>0;if(d.house&&!d.open&&(pl.z-d.z)*d.fz>0){const h=d.prop||(d.prop=HOUSES.find(q=>q.door===d));return !!(h&&!h.local&&!h.owned)}return false}
+function lockedFor(d){if(d.shop)return !isOpen(d.shop)&&!d.open&&(pl.z-d.z)*d.fz>0;if(d.house&&!d.open&&(pl.z-d.z)*d.fz>0){const h=d.prop||(d.prop=HOUSES.find(q=>q.door===d));return !!(h&&!h.local&&!h.owned&&!hasKey('house',houseKeyId(h)))}if(d.plot!==undefined&&!d.open)return plotLocked(d); /* llaves: 24.5 */return false}
 const fd=document.createElement('div');fd.style.cssText='position:fixed;inset:0;background:#000;opacity:0;pointer-events:none;transition:opacity .8s;z-index:8;color:#fff;display:flex;align-items:center;justify-content:center;font:700 22px system-ui';document.body.appendChild(fd);
 function fade(msg,fn){fd.textContent=msg;fd.style.opacity=1;setTimeout(()=>{if(fn)fn();fd.style.opacity=0},1800)}
 let micro=0,microT=10,microW=false,microDir=0;
@@ -2990,8 +2991,8 @@ function renderInv(){const e=$('inv'),cats={};
  const cs=cars.filter(c=>c.owned),hs=HOUSES.filter(x=>x.owned);
  h+='<h3>Vehículos</h3>'+(cs.map(c=>'<div>'+c.spec.name+'</div>').join('')||'<div>ninguno</div>');
  const ts=TERRENOS.filter(x=>x.owned);h+='<h3>Propiedades</h3>'+((hs.map(x=>'<div>Casa en ('+x.x+', '+x.z+')</div>').join('')+ts.map(x=>'<div>Terreno nº '+x.id+' ('+x.w+'×'+x.d+' m)</div>').join(''))||'<div>ninguna</div>');
- h+=rankHtml();h+=skillsHtml();h+=jobsInv();const pc={};TERRENOS.forEach(t=>{if(t.owned&&t.b)for(const v of t.b.m.values())pc[v[0]]=(pc[v[0]]||0)+1});const pk=Object.keys(pc);if(pk.length)h+='<h3>Colocado en casa</h3>'+pk.map(k=>'<div>'+k+' ×'+pc[k]+'</div>').join('');
- e.innerHTML=h+'<div><button onclick="toggleInv()" style="background:#666">Cerrar (I)</button></div>';e.style.display='block'}
+ h+=keysInvHtml();h+=rankHtml();h+=skillsHtml();h+=jobsInv();const pc={};TERRENOS.forEach(t=>{if(t.owned&&t.b)for(const v of t.b.m.values())pc[v[0]]=(pc[v[0]]||0)+1});const pk=Object.keys(pc);if(pk.length)h+='<h3>Colocado en casa</h3>'+pk.map(k=>'<div>'+k+' ×'+pc[k]+'</div>').join('');
+ e.innerHTML=h+'<div><button onclick="toggleInv()" style="background:#666">Cerrar (I)</button></div>';e.style.display='block';keysInvBind()}
 function useItem(k){const o=inv[k];if(!o||o.n<1)return;
  if(o.cat==='Muebles'){const q=TERRENOS.find(x=>x.owned&&Math.abs(pl.x-x.x)<x.w/2+10&&Math.abs(pl.z-x.z)<x.d/2+10);
   if(q){invOpen=false;$('inv').style.display='none';BM.fi=FURN[k]?k:null;bmEnter(q);BM.tool='furn';BM.hv=null;bmToolsUpd();bmGhostUpd();toast('🛋️ Haz clic en una casilla con suelo para colocar: '+k);return}
@@ -3343,7 +3344,7 @@ function bmRebuild(t){
    const open=!!(t._open&&t._open[pfx+k]),pv=new THREE.Group(),lw=L-.54,lg=new THREE.Mesh(hz?new THREE.BoxGeometry(lw,2.6,.08):new THREE.BoxGeometry(.08,2.6,lw),BMAT.garage);lg.castShadow=true;lg.position.y=-1.3;pv.position.set(gx,yb+2.6,gz);pv.add(lg);scene.add(pv);
    const hw=lw/2,dc=hz?{x0:gx-hw,x1:gx+hw,z0:gz-T/2,z1:gz+T/2}:{x0:gx-T/2,x1:gx+T/2,z0:gz-hw,z1:gz+hw};dc.y0=yb-.3;dc.y1=yb+2.6;dc.on=!open;colliders.push(dc);t._cols.push(dc);
    const dq=Object.assign({},dc,{car:true});colliders.push(dq);t._cols.push(dq);
-   const dr={key:pfx+k,pv,col:dc,col2:dq,x:gx,z:gz,fz:1,leaf:lg,open,ang:open?1:0,bmy:yb,up:!!pfx,gar:1};lg.scale.y=Math.max(.03,1-dr.ang*.97);DOORS.push(dr);t._doors.push(dr)}
+   const dr={plot:t.id,key:pfx+k,pv,col:dc,col2:dq,x:gx,z:gz,fz:1,leaf:lg,open,ang:open?1:0,bmy:yb,up:!!pfx,gar:1};lg.scale.y=Math.max(.03,1-dr.ang*.97);DOORS.push(dr);t._doors.push(dr)}
   else if(ty===1)seg(-C/2,C/2,0,BWH,'wall',true);
   else if(ty===2){const dw=1.4;seg(-C/2,-dw/2,0,BWH,'wall',true);seg(dw/2,C/2,0,BWH,'wall',true);seg(-dw/2,dw/2,2.3,BWH-2.3,'door',false);
    // hoja de la puerta (articulada en un lateral; E para abrir/cerrar, como las demás puertas del juego)
@@ -3351,7 +3352,7 @@ function bmRebuild(t){
    if(hz){pv.position.set(cx-dw/2,yb,cz);lg.position.set(dw/2,1.15,0)}else{pv.position.set(cx,yb,cz-dw/2);lg.position.set(0,1.15,dw/2)}
    pv.add(lg);scene.add(pv);
    const dc=hz?{x0:cx-dw/2,x1:cx+dw/2,z0:cz-T/2,z1:cz+T/2}:{x0:cx-T/2,x1:cx+T/2,z0:cz-dw/2,z1:cz+dw/2};dc.y0=yb-.3;dc.y1=yb+2.3;dc.on=!open;colliders.push(dc);t._cols.push(dc);
-   const dr={key:pfx+k,pv,col:dc,x:cx,z:cz,fz:1,leaf:lg,open,ang:open?-1.9:0,bmy:yb,up:!!pfx};pv.rotation.y=dr.ang;DOORS.push(dr);t._doors.push(dr)}
+   const dr={plot:t.id,key:pfx+k,pv,col:dc,x:cx,z:cz,fz:1,leaf:lg,open,ang:open?-1.9:0,bmy:yb,up:!!pfx};pv.rotation.y=dr.ang;DOORS.push(dr);t._doors.push(dr)}
   else if(ty===4){if(AA===A)bmBox(A.y0,cx,by-.1,cz,hz?C+.5:.5,.24,hz?.5:C+.5);seg(-C/2,-C/2+.14,0,1.25,'fence',false,.14);seg(C/2-.14,C/2,0,1.25,'fence',false,.14);seg(-C/2,C/2,.8,.09,'fence',false,.07);seg(-C/2,C/2,.35,.09,'fence',false,.07);
    for(let q=1;q<=4;q++){const m=-C/2+q*C/5;seg(m-.035,m+.035,0,1.05,'fence',false,.06)}
    if(hz)col(cx-C/2,cx+C/2,cz-.1,cz+.1,yb-.3,yb+1.5);else col(cx-.1,cx+.1,cz-C/2,cz+C/2,yb-.3,yb+1.5)} // más alta de lo que se ve: no se salta
@@ -3519,7 +3520,7 @@ function nearest(){if(seat)return{kind:'stand',txt:'E: levantarte'};if(inCar)ret
  if(riding&&riding.plane){return riding.state==='park'?{kind:'planeoff',txt:'E: bajar del avión · terminal'+(riding.t>0?' (despegue en '+Math.ceil(riding.t)+' s)':'')}:{kind:'planein',txt:'✈ '+riding.name+' · '+PSTX[riding.state]}}
  if(riding){const st=riding.route.stops[riding.ns];return riding.state==='dwell'?{kind:'busoff',txt:'E: bajar del bus · parada '+st.name}:{kind:'busin',txt:riding.route.name+' en marcha · próxima parada '+st.name}}let best=null,bd=1e9;
  const t=(o,x,z,r,kind,txt)=>{const d=Math.hypot(pl.x-x,pl.z-z);if(d<r&&d<bd){bd=d;best={kind,o,txt}}};
- DOORS.forEach(d=>(d.bmy!==undefined&&Math.abs(d.bmy-py)>2.2)?0:t(d,d.x,d.z,d.gar?4.6:3.2,'door',lockedFor(d)?(d.shop?'Cerrado · abre a las '+hrsTxt(d.shop):'🔒 Cerrada con llave · no es tu propiedad'):(d.open?'E: cerrar puerta':'E: abrir puerta')+(d.gar?' del garaje':'')+(d.house?((q=>q.local?(q.owned?' (tu local) · L: gestionar':(q.remote?(q.remote.occ?' · OCUPADO · local de '+bizWho(q.remote):' · '+((LTYPES[q.remote.ty]||{}).n||'Negocio')+' de '+bizWho(q.remote)+' · L: comprar'):' · local en venta')):(q.owned?' (tu casa)':''))(HOUSES.find(h=>h.door===d))):'')));
+ DOORS.forEach(d=>(d.bmy!==undefined&&Math.abs(d.bmy-py)>2.2)?0:t(d,d.x,d.z,d.gar?4.6:3.2,'door',lockedFor(d)?(d.shop?'Cerrado · abre a las '+hrsTxt(d.shop):'🔒 Cerrada con llave · necesitas la llave'):(d.open?'E: cerrar puerta':'E: abrir puerta')+(d.gar?' del garaje':'')+(d.house?((q=>q.local?(q.owned?' (tu local) · L: gestionar':(q.remote?(q.remote.occ?' · OCUPADO · local de '+bizWho(q.remote):' · '+((LTYPES[q.remote.ty]||{}).n||'Negocio')+' de '+bizWho(q.remote)+' · L: comprar'):' · local en venta')):(q.owned?' (tu casa)':''))(HOUSES.find(h=>h.door===d))):'')));
  WORKERS.forEach(w=>t(w,w.x,w.z,3,'talk','E: hablar con '+w.name));INTERACTS.forEach(o=>{if(o.y>py-.2&&o.y<py+2.2)t(o,o.x,o.z,2.3,'obj',IDEF[o.type].txt(o))});cars.forEach(c=>t(c,c.x,c.z,3.5,'car','E: conducir '+c.spec.name));AVIO.forEach(a=>t(a,a.x,a.z,6.2,'avion','E: subir a la avioneta '+a.name));BOATS.forEach(b=>t(b,b.x,b.z,b.L/2+2.4,'boat',b.pilot?'⛵ '+b.name+' · lo pilota '+boatPilotName(b):'E: subir '+boatA(b)+' '+b.name));HELIS.forEach(a=>{if(Math.abs(py-G-a.alt)<3)t(a,a.x,a.z,7,'heli','E: subir al helicóptero '+a.name)});
  bmNear(t);
  STOPS.forEach(q=>t(q,q.x,q.z,4,'busin','Parada de autobús · '+q.route.name));
@@ -3529,7 +3530,7 @@ function nearest(){if(seat)return{kind:'stand',txt:'E: levantarte'};if(inCar)ret
  if(pp)best={kind:'plane',o:pp,txt:'E: subir al avión '+pp.name+' ('+PLANEFARE+' €) · vuelo panorámico'};return best}
 function enterCar(c){inCar=c;c.mode='player';c.v=0;body.visible=false;if(c.m.userData.rider)c.m.userData.rider.visible=true;pl.x=c.x;pl.z=c.z}
 function interact(){if(seat){seat=null;setSit(body,false);return}const n=nearest();if(!n)return;
- if(n.kind==='door'){if(lockedFor(n.o)){toast(n.o.shop?'Cerrado':'🔒 Está cerrada con llave: solo puedes entrar en tus propiedades');return}n.o.open=!n.o.open;n.o.col.on=!n.o.open;if(n.o.col2)n.o.col2.on=n.o.col.on;sfx.door(n.o.open)}
+ if(n.kind==='door'){if(lockedFor(n.o)){toast(n.o.shop?'Cerrado':'🔒 Está cerrada con llave: necesitas la llave (el dueño te puede dar una copia)');return}n.o.open=!n.o.open;n.o.col.on=!n.o.open;if(n.o.col2)n.o.col2.on=n.o.col.on;sfx.door(n.o.open)}
  else if(n.kind==='talk')talk(n.o);else if(n.kind==='obj')IDEF[n.o.type].act(n.o);else if(n.kind==='bterr')bmEnter(n.o);else if(n.kind==='car')enterCar(n.o);
  else if(n.kind==='boat')boardBoat(n.o);else if(n.kind==='boatoff'){if(riding&&riding.net){toast('Recoge la red antes de bajar (G)');return}leaveBoat()}else if(n.kind==='avion')boardAvion(n.o);else if(n.kind==='avioff')leaveAvion();else if(n.kind==='heli')boardHeli(n.o);else if(n.kind==='helioff')leaveHeli();else if(n.kind==='plane')boardPlane(n.o);else if(n.kind==='planeoff')leavePlane();else if(n.kind==='planein'){toast('Abróchate el cinturón: solo puedes bajar en la terminal')}
  else if(n.kind==='bus')boardBus(n.o);else if(n.kind==='busoff')leaveBus();else if(n.kind==='busin'){if(riding)toast('El bus solo para en las paradas')}
@@ -3811,7 +3812,7 @@ function mpConnect(){mpHud();if(location.protocol==='file:'){mpStatus('Abre el j
  // el nombre ya no se pregunta: es el de la cuenta (24.4). Tu propio nombre no se dibuja sobre tu cabeza (los demás jugadores sí ven el tuyo)
  const proto=location.protocol==='https:'?'wss://':'ws://';let ws;try{ws=new WebSocket(proto+location.host)}catch(e){mpStatus('No se pudo conectar',false);return}MP.ws=ws;
  ws.onopen=()=>{MP.connected=true;MP.retry=0;mpStatus('Conectado',true);accOnOpen()}; // primero se inicia sesión (24.4); cuando el servidor la acepta se envía 'join'
- ws.onmessage=e=>{let m;try{m=JSON.parse(e.data)}catch(_){return}if(accOnMsg(m))return;
+ ws.onmessage=e=>{let m;try{m=JSON.parse(e.data)}catch(_){return}if(accOnMsg(m)||keysOnMsg(m))return;
   if(m.type==='welcome'){MP.id=m.id;MP.feat=m.features||{};if(m.world){tod=m.world.tod;wx=m.world.wx} (m.players||[]).forEach(d=>{if(d.id!==MP.id)mpUpsert(d)});(m.chat||[]).forEach(chatAdd);mpCount()}
   else if(m.type==='world'){if(Number.isFinite(m.tod))tod=m.tod;if(Number.isInteger(m.wx)&&m.wx>=0&&m.wx<WX.length)wx=m.wx}
   else if(m.type==='wake'){if(SLP){const s=SLP;SLP=null;slpLeave();if(s.cost)money=Math.max(0,money-s.cost);if(s.room)flags.room=0;sleepFor(Number(m.h)||8,s.rate,s.msg,true)}}
@@ -4085,6 +4086,47 @@ function accLogout(){if(!confirm('¿Cerrar sesión en este dispositivo? La próx
  $('accTabReg').addEventListener('click',()=>{ACC.mode='reg';accMsg('');accUi()});
  $('accOut').addEventListener('click',accLogout);
  accUi()}
+
+// ---------- 24.5 Llaves de las casas ----------
+// Solo se entra en una casa (de la ciudad o construida en un terreno) con su llave. El dueño tiene siempre la suya; desde el
+// inventario (I) puede dar copias a otros usuarios y quitarlas. El servidor guarda quién tiene copia (sección 12 de server.js).
+// Desde dentro de una casa siempre se puede abrir la puerta para salir. Los locales (negocios) no llevan llave.
+const KEYS={mine:[],given:[],own:[],giving:null,sig:null}; // mine: copias que tengo · given: copias que he dado · own: llaves de mis casas
+const houseKeyId=h=>Math.round(h.x)+','+Math.round(h.z);
+const keyLabel=(kind,id)=>kind==='plot'?'Casa del terreno nº '+id:'Casa en ('+String(id).replace(',',', ')+')';
+function hasKey(kind,id){id=String(id);return KEYS.mine.some(k=>k.kind===kind&&k.id===id)}
+// ¿está el jugador dentro de la casa construida en el terreno t? (en una casilla con suelo, o arriba en la planta 2)
+function inPlotHouse(t){const b=t.b;if(!b)return false;const g=bmGrid(t),k=Math.floor((pl.x-g.ox)/BCELL)+','+Math.floor((pl.z-g.oz)/BCELL);return b.f.has(k)||(py>bmBy(t)+1.5&&b.r.has(k))}
+// puerta de una casa de terreno: cerrada para quien no es el dueño ni tiene copia de la llave (desde dentro se abre siempre)
+function plotLocked(d){const t=TERRENOS.find(q=>q.id===d.plot);return !!(t&&!t.owned&&t.rem&&!hasKey('plot',t.id)&&!inPlotHouse(t))}
+// casas y pisos de la ciudad que tengo: se mandan al servidor cuando cambian (los terrenos ya los sabe él)
+function keysSync(force){if(!ACC.ok)return;const hs=HOUSES.filter(h=>h.owned&&!h.local).map(houseKeyId).sort(),sig=hs.join(';');if(!force&&sig===KEYS.sig)return;if(govSend({type:'key_sync',houses:hs}))KEYS.sig=sig}
+setInterval(()=>keysSync(false),3000);
+function keysOnMsg(m){switch(m.type){
+ case 'welcome':setTimeout(()=>keysSync(true),300);return false; // la bienvenida la sigue tratando 24.1
+ case 'keys':KEYS.mine=Array.isArray(m.mine)?m.mine:[];KEYS.given=Array.isArray(m.given)?m.given:[];if(invOpen)renderInv();return true;
+ case 'key_new':toast('🔑 '+m.from+' te ha dado una copia de la llave: '+keyLabel(m.kind,m.id));return true;
+ case 'key_ok':toast(m.text);return true;
+ case 'key_err':toast('⚠️ '+m.text);return true}
+ return false}
+// sección «Llaves» del inventario
+function keysInvHtml(){
+ KEYS.own=HOUSES.filter(h=>h.owned&&!h.local).map(h=>({kind:'house',id:houseKeyId(h)})).concat(TERRENOS.filter(t=>t.owned).map(t=>({kind:'plot',id:String(t.id)})));
+ let h='<h3>🔑 Llaves</h3>';if(!KEYS.own.length&&!KEYS.mine.length)return h+'<div>ninguna</div>';
+ KEYS.own.forEach((k,i)=>{const cp=KEYS.given.filter(g=>g.kind===k.kind&&g.id===k.id);
+  h+='<div class="r"><span>🔑 '+keyLabel(k.kind,k.id)+' <small>(tuya)</small></span><button onclick="keyGiveForm('+i+')">Dar copia</button></div>';
+  if(KEYS.giving===i)h+='<div class="r"><input id="keyTo" maxlength="18" list="keyPl" placeholder="Nombre de usuario" autocomplete="off" style="flex:1;min-width:0;padding:6px;border-radius:6px;border:1px solid #ffffff55;background:#182638;color:#fff"><datalist id="keyPl">'+[...MP.players.values()].map(p=>'<option value="'+pcEsc(p.name)+'">').join('')+'</datalist><button onclick="keyGive('+i+')">Dar</button><button onclick="KEYS.giving=null;renderInv()" style="background:#666">✕</button></div>';
+  if(cp.length)h+='<div style="margin:0 0 8px 34px;font-size:13px;color:#cfd9e4">Tienen copia: '+cp.map(g=>'<b>'+pcEsc(g.holder)+'</b> <button onclick="keyRevoke('+i+','+KEYS.given.indexOf(g)+')" style="padding:2px 7px;font-size:12px;background:#8a3b32">quitar</button>').join(' ')+(cp.length>1?' <button onclick="keyRevoke('+i+',-1)" style="padding:2px 7px;font-size:12px;background:#8a3b32">cambiar la cerradura</button>':'')+'</div>'});
+ KEYS.mine.forEach((k,i)=>{h+='<div class="r"><span>🔑 '+keyLabel(k.kind,k.id)+' <small>(copia de '+pcEsc(k.owner)+')</small></span><button onclick="keyDrop('+i+')" style="background:#8a3b32">Tirar</button></div>'});
+ return h}
+function keysInvBind(){const i=$('keyTo');if(!i)return;['keydown','keyup'].forEach(ev=>i.addEventListener(ev,e=>{e.stopPropagation();if(ev==='keydown'&&e.key==='Enter')keyGive(KEYS.giving)}));i.focus()} // escribir el nombre no cierra el inventario
+const keyNet=()=>{if(MP.ws&&MP.ws.readyState===1&&ACC.ok)return true;toast('Necesitas estar conectado al servidor');return false};
+function keyGiveForm(i){if(!keyNet())return;KEYS.giving=i;renderInv()}
+function keyGive(i){const k=KEYS.own[i],e=$('keyTo'),to=e?e.value.trim():'';if(!k||!to||!keyNet())return;govSend({type:'key_give',kind:k.kind,id:k.id,to});KEYS.giving=null;renderInv()}
+function keyRevoke(i,j){const k=KEYS.own[i],g=KEYS.given[j];if(!k||!keyNet())return;
+ if(j<0){if(!confirm('¿Cambiar la cerradura de la '+keyLabel(k.kind,k.id).toLowerCase()+'? Todas las copias dejarán de abrir.'))return;govSend({type:'key_revoke',kind:k.kind,id:k.id})}
+ else if(g)govSend({type:'key_revoke',kind:k.kind,id:k.id,holder:g.holder})}
+function keyDrop(i){const k=KEYS.mine[i];if(!k||!keyNet())return;if(!confirm('¿Tirar la copia de la llave de la '+keyLabel(k.kind,k.id).toLowerCase()+'? Ya no podrás entrar.'))return;govSend({type:'key_drop',kind:k.kind,id:k.id})}
 
 // =================================================================================================
 // 25. BUCLE PRINCIPAL
