@@ -97,7 +97,7 @@ canvas{display:block}
 <script>
 'use strict';
 const IS_TOUCH=matchMedia('(pointer:coarse)').matches||/[?&]touch=1/.test(location.search);
-// ================= UTILIDADES Y ESCENA =================
+// ================= UTILIDADES Y ESCENA =================___
 let G=.12;const P=54,N=5,LAND0=-140,LAND1=1300,BEACH=8,WLIM0=LAND0+2,WLIM1=LAND1-2,CE=(N-1)*P+40,MC=(LAND0+LAND1)/2,MS=LAND1-LAND0+40,MOFF=MS/2-MC,clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 // terreno: 0 en la ciudad; colinas suaves fuera; baja hacia el mar (orilla a ~66 m del borde de la ciudad)
 function heightRaw(x,z){const e=Math.max(-14-x,x-N*P,-14-z,z-N*P,0),ss=(a,b,v)=>{v=clamp((v-a)/(b-a),0,1);return v*v*(3-2*v)},ed=isl(x,z);let h=0;
