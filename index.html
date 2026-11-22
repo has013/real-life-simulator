@@ -431,7 +431,7 @@ function mkTex(wall,win,brick){const S=128,mk=()=>{const c=document.createElemen
  const t=new THREE.CanvasTexture(c),te=new THREE.CanvasTexture(e);for(const x of[t,te]){x.wrapS=x.wrapT=THREE.RepeatWrapping;x.anisotropy=4}EMT.push(te);EMM.set(c,te);return t}
 const TEX=[['#c9b79c','#3b556b'],['#b5654a','#2e3f52'],['#d8d2c4','#44627a'],['#8f9aa6','#26384a'],['#e0c27a','#3b556b'],['#a7b8a0','#2e4a5e']].map((a,i)=>mkTex(a[0],a[1],i===1));
 function sign(text,x,y,z,w,fz,col){const c=document.createElement('canvas');c.width=256;c.height=64;const g=c.getContext('2d');
- g.fillStyle=col;g.fillRect(0,0,256,64);g.fillStyle='#fff';g.font='bold 30px sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText(text,128,34);
+ g.fillStyle=col;g.fillRect(0,0,256,64);g.fillStyle='#fff';g.font='bold 30px sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText(text,128,34,244);
  const m=new THREE.Mesh(new THREE.PlaneGeometry(w,w/4),new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(c)}));
  m.position.set(x,y,z+fz*.3);if(fz<0)m.rotation.y=Math.PI;scene.add(m)}
 
@@ -748,7 +748,7 @@ function hotelUp(px,pz,w,d){const Y=[0,4.57,7.57,10.57,13.57],Y5=16.57,C=0xcfc8b
  sl(W,E,Z0,Z1,Y5);box(px,Y5,pz,w+.3,.3,d+.3,0x555555,false);
  addElev(px,pz,5,{e0,e1,z0,z1,ys:Y,H:Y5-.3-G,bx:e0-.5})}
 function shopIn(key,cx,cz,fz,w,d,zf){
- const S=SHOPS[key],L=d/2-.4,F=(x,y,l,sx,sy,sz,c,s)=>box(cx+x,G+.03+y,cz+fz*l,sx,sy,sz,c,s),big=w>20,bar=key==='bar',cl=()=>pick([0xd9473a,0x3a9ad9,0xe0b020,0x4aa35a,0xe8e8e8,0xff8a3a]);
+ const S=SHOPS[key],L=d/2-.4,F=(x,y,l,sx,sy,sz,c,s)=>box(cx+x,G+.03+y,cz+fz*l,sx,sy,sz,c,s),big=w>20,bar=key==='bar'||key==='burger',cl=()=>pick([0xd9473a,0x3a9ad9,0xe0b020,0x4aa35a,0xe8e8e8,0xff8a3a]);
  const gym=key==='gym';F(0,0,-L+3.3,bar?9:5,1,.9,gym?0x2b2f33:0x8b5a2b,true);F(0,1,-L+3.3,bar?9.2:5.2,.06,1.05,gym?0xf39c12:0x2f2f2f,false);if(!gym)F(1.5,1.06,-L+3.3,.6,.35,.45,0x222222,false);
  if(gym)gymIn(F,L,w,cl); // gimnasio: sin estanterías (gymIn gasta los mismos números aleatorios que una tienda, para no alterar el mapa)
  else{F(0,0,-L+.35,w-3,2.4,.5,0xd7dbde,true);for(let r=0;r<4;r++)for(let x=-(w-4)/2;x<=(w-4)/2;x+=1.2)F(x,.35+r*.55,-L+.85,.9,.4,.3,cl(),false)}
@@ -913,6 +913,7 @@ food:{n:'ALIMENTACIÓN',c:'#d97a1a',wall:0xf0d9a8,floor:0xd8c9a8,L:'A',col:'#e88
 furn:{n:'MUEBLES',c:'#7a4a2a',wall:0xe3d3c0,floor:0xb89a78,L:'M',col:'#9b6a3a',worker:'Vendedora',job:['Montador',250],items:[['Sofá',450],['Cama',380],['Mesa',220],['Lámpara',60],['Armario',300],['Sillón',200],['Mesa de centro',90],['Estantería',160],['Mueble de TV',350],['Alfombra',70],['Planta grande',40],['Nevera',420],['Cocina',380],['Encimera',260],['Taburete',45],['Mostrador',350],['Caja registradora',280],['Estantería de tienda',220],['Góndola',300],['Vitrina',400],['Nevera expositora',550],['Barra de bar',480],['Perchero',120],['Cartel luminoso',150]]},
 shop:{n:'MODA',c:'#8a2be2',wall:0xe8dff0,floor:0xcfc8d8,L:'T',col:'#a84be8',worker:'Dependienta',job:['Dependiente',140],items:[['Camiseta',25],['Camisa',45],['Chaqueta',95],['Vaqueros',60],['Pantalón corto',30],['Zapatillas',80],['Gorra',15],['Sombrero',30],['Gafas de sol',20],['Bufanda',18],['Mochila',40],['Reloj',35]]},
 bar:{n:'BAR',c:'#b8860b',wall:0xe8c9a0,floor:0x8a6a4a,L:'B',col:'#e0b020',worker:'Camarero',job:['Camarero',120],items:[['Café',2],['Cerveza',3],['Tapa',5]]},
+burger:{n:'HAMBURGUESERÍA',c:'#c62828',wall:0xfff1c1,floor:0xd9d2c5,L:'🍔',col:'#ffb300',worker:'Cocinero',job:['Cocinero de comida rápida',120],items:[['Hamburguesa',6],['Hamburguesa doble',9],['Patatas fritas',3],['Pollo frito',7],['Nuggets',5],['Perrito caliente',4],['Refresco de cola',2],['Batido',4],['Menú completo',12]]},
 estate:{n:'INMOBILIARIA',c:'#1f5fa8',wall:0xdfe6ee,floor:0xc2c8d0,L:'I',col:'#2f7fe0',worker:'Agente',job:null},
 gym:{n:'GIMNASIO',c:'#d35400',wall:0xe9ecef,floor:0x3a3f45,L:'💪',col:'#f39c12',worker:'Monitora',job:null,items:[]},
 hotel:{n:'HOTEL',c:'#6a2c91',wall:0xe8d8c0,floor:0xb08a5a,L:'H',col:'#8e44ad',worker:'Recepcionista',job:['Botones',160],items:[]},
@@ -1106,8 +1107,10 @@ let petPlaced=false;const petT=t=>(t==='shop:shop'&&!petPlaced)?(petPlaced=true,
 const SEQ=['house','apt','house','shop:food','house','apt','shop:furn','house','tower','shop:bar','house','shop:bank','shop:shop','house','shop:estate'];let si=0;
 // Gimnasios: la 3.ª y la 5.ª inmobiliaria del barrio principal (nº 2 y 4 contando desde 0; en x≈65,z≈244 y x≈173,z≈190) son gimnasios. Quedan 4 inmobiliarias.
 let estN=0;const GYM_AT=[2,4];
+// Hamburgueserías: el 2.º y el 4.º bar del barrio principal (nº 1 y 3 contando desde 0). Mismo interior que un bar (shopIn), así no cambia nada más del mapa.
+let barN=0;const BURGER_AT=[1,3];
 function place(t,px,pz,fz){if(t==='house')house(px,pz,fz);else if(t==='apt')apt(px,pz,fz,false);else if(t==='tower')apt(px,pz,fz,true);
- else{let k=t.split(':')[1];if(k==='estate'&&GYM_AT.includes(estN++))k='gym';shop(k,px,pz,fz,16)}}
+ else{let k=t.split(':')[1];if(k==='estate'&&GYM_AT.includes(estN++))k='gym';if(k==='bar'&&BURGER_AT.includes(barN++))k='burger';shop(k,px,pz,fz,16)}}
 for(let i=0;i<N;i++)for(let j=0;j<N;j++){const x0=i*P,z0=j*P;
  if(i==PKI&&j==PKJ){makeParking(x0,z0);continue}
  if(GAS.some(g=>g[0]==i&&g[1]==j)){si+=4;makeGas(x0,z0);continue}
@@ -2875,7 +2878,7 @@ const pl={x:24,z:1.5},inv={},flags={},K={},body=person(0xdd3322,outfitOpts());sc
 const ov=$('ov'),dlg=$('dlg'),mm=$('mm'),ctx=mm.getContext('2d');
 const playing=()=>started&&ov.style.display==='none'&&!dlgOpen;
 function toast(t){const e=$('toast');e.textContent=t;clearTimeout(toast.t);toast.t=setTimeout(()=>e.textContent='',2600)}
-const ICON={'Comida para mascotas':'🦴','Manzanas':'🍎','Pan':'🍞','Agua':'💧','Pizza':'🍕','Leche':'🥛','Bocadillo':'🥪','Fruta':'🍓','Refresco':'🥤','Chocolate':'🍫','Sofá':'🛋️','Cama':'🛏️','Mesa':'🍽️','Lámpara':'💡','Armario':'🗄️','Sillón':'🪑','Mesa de centro':'🪵','Estantería':'📚','Mueble de TV':'📺','Alfombra':'🟥','Planta grande':'🪴','Nevera':'🧊','Cocina':'🍳','Encimera':'🚰','Taburete':'🪑','Mostrador':'🛍️','Caja registradora':'🧾','Estantería de tienda':'📦','Góndola':'🛒','Vitrina':'🪟','Nevera expositora':'🥶','Barra de bar':'🍸','Perchero':'👗','Cartel luminoso':'🪧','Café':'☕','Cerveza':'🍺','Tapa':'🍢','Bidón de gasolina':'⛽'},CARIC={hatch:'🚗',van:'🚐',sport:'🏎️',moto:'🏍️',bici:'🚲',patinete:'🛴'};
+const ICON={'Comida para mascotas':'🦴','Manzanas':'🍎','Pan':'🍞','Agua':'💧','Pizza':'🍕','Leche':'🥛','Bocadillo':'🥪','Fruta':'🍓','Refresco':'🥤','Chocolate':'🍫','Sofá':'🛋️','Cama':'🛏️','Mesa':'🍽️','Lámpara':'💡','Armario':'🗄️','Sillón':'🪑','Mesa de centro':'🪵','Estantería':'📚','Mueble de TV':'📺','Alfombra':'🟥','Planta grande':'🪴','Nevera':'🧊','Cocina':'🍳','Encimera':'🚰','Taburete':'🪑','Mostrador':'🛍️','Caja registradora':'🧾','Estantería de tienda':'📦','Góndola':'🛒','Vitrina':'🪟','Nevera expositora':'🥶','Barra de bar':'🍸','Perchero':'👗','Cartel luminoso':'🪧','Café':'☕','Cerveza':'🍺','Tapa':'🍢','Bidón de gasolina':'⛽','Hamburguesa':'🍔','Hamburguesa doble':'🍔','Patatas fritas':'🍟','Pollo frito':'🍗','Nuggets':'🍗','Perrito caliente':'🌭','Refresco de cola':'🥤','Batido':'🥤','Menú completo':'🍱'},CARIC={hatch:'🚗',van:'🚐',sport:'🏎️',moto:'🏍️',bici:'🚲',patinete:'🛴'};
 const row=(n,p,f,ic)=>`<div class="r">${ic?`<i class="ic">${ic}</i>`:''}<span>${n}</span><b>€${p}</b><button onclick="${f}">Comprar</button></div>`;
 function openDlg(){dlgOpen=true;dlg.classList.remove('wide');dlg.style.display='block';document.exitPointerLock&&document.exitPointerLock();for(const k in K)K[k]=false}
 function closeDlg(){if(SLP)return;dlgOpen=false;dlg.style.display='none';try{ren.domElement.requestPointerLock()}catch(e){}}
@@ -3092,6 +3095,7 @@ const JOB_REQ={
  'furn:shift':{fisica:3,orient:2},     // Montador (Muebles)
  'shop:shift':{negoc:3,calc:2},     // Dependiente (Moda)
  'bar:shift':{comm:2,social:3},      // Camarero (Bar)
+ 'burger:shift':{social:2},          // Cocinero de comida rápida (Hamburguesería)
  'hotel:shift':{social:2,calc:1},    // Botones (Hotel)
  'gas:shift':{calc:2,social:2},      // Mozo de gasolinera (Gasolinera)
  'town:shift':{comm:3,social:4},     // Administrativo (Ayuntamiento)
@@ -3105,7 +3109,7 @@ function jobReqLine(k,id){const r=jobReq(k,id),a=SKILLS.filter(q=>(r[q.k]||0)>0)
 function jobCanDo(k,id){const m=jobMissing(k,id);if(!m.length)return true;const r=jobReq(k,id);toast('🔒 Te faltan puntos: '+m.map(q=>q.n+' ('+(skills[q.k]||0)+'/'+r[q.k]+')').join(', '));return false}
 let skillsOpen=false;
 function skillsHtml(){return '<details'+(skillsOpen?' open':'')+' ontoggle="skillsOpen=this.open"><summary style="cursor:pointer;font-weight:700;font-size:1.17em;margin:12px 0 6px">🧠 Habilidades</summary>'+SKILLS.map(q=>'<div class="r"><span>'+q.e+' '+q.n+'</span><b>'+skills[q.k]+' pts</b></div>').join('')+'</details>'}let hunger=100,thirst=100,energy=100,eff=0;let seat=null;
-const HRS={gym:[7,23],super:[8,22],dealer:[9,20],food:[8,22],furn:[10,20],shop:[10,21],bar:[12,24],estate:[9,19],hotel:[0,24],town:[9,18],bank:[9,18],pet:[10,21],gas:[0,24],garage:[8,20],ffood:[7,20],ffurn:[7,20],fcloth:[7,20]};
+const HRS={gym:[7,23],super:[8,22],dealer:[9,20],food:[8,22],furn:[10,20],shop:[10,21],bar:[12,24],burger:[11,24],estate:[9,19],hotel:[0,24],town:[9,18],bank:[9,18],pet:[10,21],gas:[0,24],garage:[8,20],ffood:[7,20],ffurn:[7,20],fcloth:[7,20]};
 const pad2=n=>(n<10?'0':'')+n;
 function isOpen(k){const h=HRS[k];return !h||(tod>=h[0]&&tod<h[1])}
 function hrsTxt(k){return pad2(HRS[k][0])+':00'}
@@ -3507,13 +3511,17 @@ const IDEF={
  sink:{txt:()=>'E: lavarte las manos',act:()=>toast('Te lavas las manos')},
  bath:{txt:()=>'E: darte un baño',act:()=>fade('Te das un baño relajante...',()=>toast('Te sientes limpio'))},
  wardrobe:{txt:()=>'E: abrir el armario',act:()=>{const r=Object.keys(inv).filter(k=>inv[k].cat==='Ropa'&&inv[k].n>0);toast(r.length?'Tu ropa: '+r.join(', ')+(Object.keys(worn).length?' · Llevas puesto: '+Object.values(worn).join(', '):'')+' (ponte o quítate cosas en el inventario, tecla I)':'El armario está vacío (compra ropa en Moda)')}},
- stove:{txt:()=>'E: cocinar',act:()=>{const k=Object.keys(inv).find(x=>inv[x].cat==='Comida'&&inv[x].n>0);if(!k){toast('No tienes ingredientes: compra comida');return}inv[k].n--;const g=Math.round((FOOD[k]||10)*1.5);hunger=Math.min(100,hunger+g);toast('Cocinas y comes: '+k+' (hambre +'+g+')')}},
+ stove:{txt:()=>'E: cocinar',act:()=>{const k=Object.keys(inv).find(x=>inv[x].cat==='Comida'&&inv[x].n>0);if(!k){toast('No tienes ingredientes: compra comida');return}inv[k].n--;const g=Math.round((FOOD[k]||10)*1.5);hunger=Math.min(100,hunger+g);toast('Cocinas y comes: '+k+' (hambre +'+g+')'+junkEat(k))}},
  fishmkt:{txt:()=>'E: vender pescado en la lonja',act:()=>fishMarketOpen()},
  shelf:{txt:()=>'E: ver productos',act:o=>talk(WORKERS.find(w=>w.key===o.extra))}};
-const FOOD={Manzanas:15,Pan:20,Agua:5,Pizza:45,Leche:12,Bocadillo:35,Fruta:15,Refresco:8,Chocolate:12,'Café':6,Cerveza:5,Tapa:25,'Pescado fresco':40};
-const THIRST={Agua:35,Leche:15,Refresco:25,Cerveza:10,'Café':8},ENERGY={'Café':25,Chocolate:10,Refresco:8};
+const FOOD={Manzanas:15,Pan:20,Agua:5,Pizza:45,Leche:12,Bocadillo:35,Fruta:15,Refresco:8,Chocolate:12,'Café':6,Cerveza:5,Tapa:25,'Pescado fresco':40,
+ 'Hamburguesa':40,'Hamburguesa doble':55,'Patatas fritas':20,'Pollo frito':40,'Nuggets':30,'Perrito caliente':30,'Refresco de cola':8,'Batido':15,'Menú completo':70};
+// Comida basura (hamburguesería): quita el hambre pero resta Condición Física. Valor = puntos (enteros) que resta.
+const JUNK={'Hamburguesa':1,'Hamburguesa doble':2,'Patatas fritas':1,'Pollo frito':1,'Nuggets':1,'Perrito caliente':1,'Refresco de cola':1,'Batido':1,'Menú completo':2};
+function junkEat(k){const j=JUNK[k];if(!j)return'';const b=skills.fisica;addSkill('fisica',-j);const l=b-skills.fisica;return l?' · 💪 Condición Física −'+l+' ('+skills.fisica+')':' · 🍟 comida basura'}
+const THIRST={Agua:35,Leche:15,Refresco:25,Cerveza:10,'Café':8,'Refresco de cola':25,'Batido':15},ENERGY={'Café':25,Chocolate:10,Refresco:8,'Refresco de cola':8};
 function eat(k){const o=inv[k];o.n--;const g=FOOD[k]||10,t=THIRST[k]||0,en=ENERGY[k]||0;hunger=Math.min(100,hunger+g);energy=Math.min(100,energy+en);
- toast((t&&g<=8?'Has bebido: ':'Has comido: ')+k+' (hambre +'+g+''+(en?', energía +'+en:'')+')')}
+ toast((t&&g<=8?'Has bebido: ':'Has comido: ')+k+' (hambre +'+g+''+(en?', energía +'+en:'')+')'+junkEat(k))}
 function eatQuick(){const k=Object.keys(inv).find(x=>inv[x].cat==='Comida'&&inv[x].n>0);if(!k){toast('No tienes comida: cómprala en un comercio');return}eat(k)}
 function toggleInv(){const e=$('inv');
  if(invOpen){invOpen=false;e.style.display='none';dlgOpen=false;try{ren.domElement.requestPointerLock()}catch(x){}return}
