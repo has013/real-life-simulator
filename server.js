@@ -49,7 +49,7 @@ let nextId = 1;
 
 // =================================================================================================
 // 2. SERVIDOR HTTP Y WEBSOCKET
-//     Sirve el juego (index.html) y /health; send() y broadcast() envían mensajes a uno o a todos.
+//     Sirve el juego (index.html y los ficheros de js/) y /health; send() y broadcast() envían mensajes a uno o a todos.
 // =================================================================================================
 const gameFile = path.join(__dirname, 'index.html');
 const server = http.createServer((req, res) => {
@@ -57,6 +57,16 @@ const server = http.createServer((req, res) => {
   if (req.url === '/' || req.url === '/index.html') {
     res.writeHead(200, {'content-type':'text/html; charset=utf-8', 'cache-control':'no-store'});
     return fs.createReadStream(gameFile).pipe(res);
+  }
+  // Ficheros del juego (js/*.js). Solo nombres sencillos (letras, números y guiones): nada de «..» ni subcarpetas.
+  const js = /^\/js\/([a-z0-9-]+\.js)(\?.*)?$/.exec(req.url || '');
+  if (js) {
+    const f = path.join(__dirname, 'js', js[1]);
+    return fs.stat(f, (err, st) => {
+      if (err || !st.isFile()) { res.writeHead(404); return res.end('Not found'); }
+      res.writeHead(200, {'content-type':'text/javascript; charset=utf-8', 'cache-control':'no-store'});
+      fs.createReadStream(f).pipe(res);
+    });
   }
   res.writeHead(404); res.end('Not found');
 });

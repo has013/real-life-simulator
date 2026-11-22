@@ -1,7 +1,9 @@
 REAL LIFE SIMULATOR · MULTIJUGADOR PÚBLICO (20 JUGADORES)
 
 ARCHIVOS
-- index.html: tu juego con el cliente multijugador integrado.
+- index.html: la página del juego (aspecto, pantallas y cartel rojo de errores). Carga los ficheros de js/.
+- js/: el código del juego, dividido en ficheros pequeños por temas (qué hay en cada uno: GUIA.md).
+- GUIA.md: guía para pedir cambios a Claude. Pégala al empezar cada chat.
 - server.js: servidor HTTP + WebSocket del mundo público.
 - package.json: dependencia del servidor.
 - accounts.json: cuentas de usuario (nombre y contraseña cifrada). Lo actualiza el servidor.
@@ -20,6 +22,8 @@ Configura el puerto mediante la variable PORT si el proveedor lo requiere. Compa
 
 IMPORTANTE
 - No abras index.html directamente como archivo file://. Debes entrar por http://localhost:3000 o por la URL pública del servidor.
+- Al subir el juego, sube también la carpeta js/ entera: sin ella el juego no arranca (sale el cartel rojo).
+- Si algo falla, sale un cartel rojo con el error, el fichero y la línea. Pulsa «Copiar error» y pégalo en el chat de Claude.
 - El límite de 20 jugadores lo aplica el servidor, no el navegador.
 - Se comparte entre todos: los jugadores (posición, vehículo, ropa, mascotas), el chat, la hora y el clima, los barcos,
   las casas construidas en terrenos, los negocios, las llaves, las elecciones y las transferencias.
