@@ -3810,7 +3810,9 @@ function mpRemove(id){const p=MP.players.get(id);if(!p)return;MP.remoteRoot.remo
 function mpCount(){const e=document.getElementById('mpCount');if(e)e.textContent=(MP.players.size+1)+' / 20 jugadores'}
 function mpConnect(){mpHud();if(location.protocol==='file:'){mpStatus('Abre el juego desde el servidor online',false);return}
  // el nombre ya no se pregunta: es el de la cuenta (24.4). Tu propio nombre no se dibuja sobre tu cabeza (los demás jugadores sí ven el tuyo)
- const proto=location.protocol==='https:'?'wss://':'ws://';let ws;try{ws=new WebSocket(proto+location.host)}catch(e){mpStatus('No se pudo conectar',false);return}MP.ws=ws;
+ const proto=location.protocol==='https:'?'wss://':'ws://';// Live Server (puerto 55xx) solo sirve archivos: el mundo está en el servidor Node (puerto 3000). ?server=host:puerto lo cambia
+ const qs=/[?&]server=([^&]+)/.exec(location.search),host=qs?decodeURIComponent(qs[1]):/^55\d\d$/.test(location.port)?location.hostname+':3000':location.host;
+ let ws;try{ws=new WebSocket(proto+host)}catch(e){mpStatus('No se pudo conectar',false);return}MP.ws=ws;
  ws.onopen=()=>{MP.connected=true;MP.retry=0;mpStatus('Conectado',true);accOnOpen()}; // primero se inicia sesión (24.4); cuando el servidor la acepta se envía 'join'
  ws.onmessage=e=>{let m;try{m=JSON.parse(e.data)}catch(_){return}if(accOnMsg(m)||keysOnMsg(m))return;
   if(m.type==='welcome'){MP.id=m.id;MP.feat=m.features||{};if(m.world){tod=m.world.tod;wx=m.world.wx} (m.players||[]).forEach(d=>{if(d.id!==MP.id)mpUpsert(d)});(m.chat||[]).forEach(chatAdd);mpCount()}
