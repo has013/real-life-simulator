@@ -2372,7 +2372,7 @@ const MLINES=[{id:'M1',hex:'#d62828',st:['hos','cen','aer'],off:0},{id:'M2',hex:
  // medidas en coordenadas locales: a = a lo largo de la escalera (+ hacia la calle), b = de lado. La boca es el cuadrado a,b ∈ [-2,2]; la escalera baja hasta a=A0;
  // el andén va de A1 a A0 (el tren para centrado en AS) y las vías siguen por túneles cortos hasta AE (fondo) y AN (lado de la escalera)
  MG={DEP:6,CEIL:2,A0:-7.6,A1:-33.6,AS:-20.6,AE:-38.6,AN:-2.6,TB:4.8},
- MT={from:null,sel:null,view:null,ovk:null,pt:0};
+ MT={from:null,sel:null,view:null,pt:0,cab:null,rt:0,lastH:null};
 const metroLinesOf=k=>MLINES.filter(l=>l.st.includes(k)),metroFare=(a,b)=>a.isl!==b.isl?MFARE_ISL:MFARE,
  metroChip=l=>'<span style="display:inline-block;min-width:26px;padding:1px 5px;border-radius:5px;background:'+l.hex+';color:#fff;font:700 12px system-ui;text-align:center">'+l.id+'</span>',
  mHex=h=>parseInt(h.slice(1),16),mMod=(a,b)=>((a%b)+b)%b,mNow=()=>Date.now()/1000,
@@ -2529,7 +2529,7 @@ function metroWhere(x,z,y){for(const X of METRO){const[a,b]=X.loc(x,z);if(a>MG.A
 // --- cada fotograma: trenes y paneles de las estaciones cercanas, y el viaje si vas montado ---
 function metroStep(){const T=mNow(),pan=(MT.pt+=1)%15===0;
  for(const X of METRO){const near=Math.hypot(pl.x-X.x,pl.z-X.z)<150;X.tracks.forEach(t=>{t.train.visible=false;if(near&&(pan||!t.panel.last))mPanelDraw(t.panel,t,mNext(X,t,T))});if(!near)continue;
-  for(const L of metroLinesOf(X.k))for(let k=0;k<MSC.NT;k++){const q=mTrainAt(L,k,T);if(q.X!==X||Math.abs(q.a-MG.AS)>28)continue;const t=mTrack(X,L,q.d);if(!t)continue;
+  for(const L of metroLinesOf(X.k))for(let k=0;k<MSC.NT;k++){if(riding&&riding.metro&&riding.L===L&&riding.k===k)continue; /* el tuyo se ve por dentro (mCabin) */const q=mTrainAt(L,k,T);if(q.X!==X||Math.abs(q.a-MG.AS)>28)continue;const t=mTrack(X,L,q.d);if(!t)continue;
    const p=mPose(X,t,q.a,q.d);t.train.position.set(p.x,X.yR,p.z);t.train.rotation.y=p.h;t.train.visible=true}}
  if(riding&&riding.metro)metroRide(T)}
 // --- billetes: la máquina abre el plano para elegir destino ---
@@ -2541,25 +2541,60 @@ function metroWay(X){const tk=flags.mticket;if(!tk||!MST[tk.to]||tk.to===X.k)ret
  return{line:l.line,d:Math.sign(l.line.st.indexOf(l.st[1])-l.line.st.indexOf(l.st[0])),dest:MST[tk.to].name}}
 // --- subir y bajar ---
 function metroBoard(o){if(riding||inCar)return;if(!flags.mticket){toast('🎫 Necesitas un billete: cómpralo en la máquina, al pie de la escalera');return}
- riding={metro:true,L:o.t.line,k:o.k,x:pl.x,z:pl.z,h:yaw,alt:py,hex:mHex(o.t.line.hex)};body.visible=false;metroRide(mNow());toast('🚇 Has subido al '+o.t.line.id+' dirección '+mTermName(o.t.line,o.dout))}
-function metroRide(T){const R=riding,q=mTrainAt(R.L,R.k,T),s=q.s,X=q.X||MST[s.to],t=mTrack(X,R.L,q.d),p=mPose(X,t,q.a,q.d);
- Object.assign(R,{x:p.x,z:p.z,h:p.h,alt:X.yF,X,t,s});metroOverlay(!q.X||Math.abs(q.a-MG.AS)>13?R:null)} // en el túnel espera (oculto) en la estación siguiente, tras la pantalla del viaje
+ riding={metro:true,L:o.t.line,k:o.k,x:pl.x,z:pl.z,h:yaw,alt:py,hex:mHex(o.t.line.hex)};body.visible=false;MT.cab=mCabin(o.t.line);MT.lastH=null;pitch=.35;
+ metroRide(mNow());yaw=MT.cab.g.rotation.y;toast('🚇 Has subido al '+o.t.line.id+' dirección '+mTermName(o.t.line,o.dout)+' · mira la pantalla del vagón')}
+// cada fotograma montado: el vagón va con el tren mientras está en la estación; en el túnel se pasa a un tramo de túnel aparte con luces que desfilan
+function metroRide(T){const R=riding,q=mTrainAt(R.L,R.k,T),s=q.s,X=q.X||MST[s.to],t=mTrack(X,R.L,q.d),p=mPose(X,t,q.a,q.d),C=MT.cab,TU=mTunnel(),
+ dt=MT.rt?Math.min(.2,T-MT.rt):0,tun=!q.X||Math.abs(q.a-MG.AS)>11;MT.rt=T;
+ Object.assign(R,{x:p.x,z:p.z,h:p.h,alt:X.yF,X,t,s});C.g.visible=true;TU.g.visible=tun;
+ if(tun){C.g.position.set(0,TU.y,0);C.g.rotation.y=0;TU.off=(TU.off+11*dt)%TU.step;TU.mov.position.z=-TU.off}
+ else{C.g.position.set(p.x,X.yR,p.z);C.g.rotation.y=p.h}
+ if((MT.pt&1)===0)mDisp(C,R,T)}
 function metroLeave(){const R=riding;if(!R||!R.metro||!R.s.dwell)return;const X=R.X,t=R.t,p=X.Q(MG.AS+(Math.random()*8-4),t.side*2.1);
- riding=null;body.visible=true;metroOverlay(null);pl.x=p[0];pl.z=p[1];py=X.yF;vy=0;yaw=Math.atan2(-t.side*X.s[0],-t.side*X.s[1]);body.position.set(pl.x,py,pl.z);
+ riding=null;body.visible=true;MT.cab.g.visible=false;mTunnel().g.visible=false;MT.rt=0;pl.x=p[0];pl.z=p[1];py=X.yF;vy=0;yaw=Math.atan2(-t.side*X.s[0],-t.side*X.s[1]);pitch=.35;body.position.set(pl.x,py,pl.z);
  const tk=flags.mticket;if(tk&&tk.to===X.k){delete flags.mticket;toast('🚇 Has llegado a '+X.name+' · sube por la escalera para salir')}
  else toast('🚇 Has bajado en '+X.name+(tk&&MST[tk.to]?' · tu billete sigue valiendo hasta '+MST[tk.to].name:''));try{saveGame()}catch(e){}}
-// pantalla mientras el tren va por el túnel: la línea con sus estaciones, el tren avanzando y la próxima estación
-const mtEl=document.createElement('div');mtEl.style.cssText='position:fixed;inset:0;background:radial-gradient(circle,#1d2838,#05070b);z-index:7;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;color:#fff;font:600 19px system-ui;text-align:center;padding:20px;opacity:0;pointer-events:none;transition:opacity .5s';
-document.body.appendChild(mtEl);
-function metroOverlay(R){if(!R||R.s.dwell){if(MT.ovk!==null){MT.ovk=null;mtEl.style.opacity=0}return}
- const s=R.s,L=R.L,n=L.st.length-1,pos=i=>6+i*88/n,key=L.id+s.from+s.to;
- if(MT.ovk!==key){MT.ovk=key;let bar='<div style="position:relative;width:min(560px,86vw);height:70px">';
-  for(let i=0;i<n;i++){const sea=MST[L.st[i]].isl!==MST[L.st[i+1]].isl;bar+='<div style="position:absolute;top:31px;height:8px;left:'+pos(i)+'%;width:'+(88/n)+'%;background:'+L.hex+(sea?';background-image:repeating-linear-gradient(90deg,transparent 0 10px,rgba(0,0,0,.45) 10px 16px)':'')+'"></div>'}
-  L.st.forEach((k,i)=>{bar+='<div style="position:absolute;top:26px;left:calc('+pos(i)+'% - 9px);width:12px;height:12px;border-radius:50%;background:'+(k===s.to?'#ffd966':'#fff')+';border:3px solid #1a1a1a"></div><div style="position:absolute;top:50px;left:calc('+pos(i)+'% - 60px);width:120px;font:600 12px system-ui">'+MST[k].name+'</div>'});
-  bar+='<div class="mtTrain" style="position:absolute;top:0;font-size:26px;transform:translateX(-50%)">🚇</div></div>';
-  mtEl.innerHTML='<div>'+metroChip(L)+' dirección '+mTermName(L,s.d)+'</div>'+bar+'<div class="mtSub" style="font-size:15px;font-weight:500;opacity:.85"></div>'}
- const i0=L.st.indexOf(s.from),i1=L.st.indexOf(s.to),u=clamp(s.since/MSC.RUN,0,1),e=u*u*(3-2*u);
- mtEl.querySelector('.mtTrain').style.left=(pos(i0)+(pos(i1)-pos(i0))*e)+'%';setTx(mtEl.querySelector('.mtSub'),'Próxima estación: '+MST[s.to].name+' · llegada en '+Math.ceil(s.rem)+' s');mtEl.style.opacity=1}
+// interior del vagón delantero (coordenadas del tren: x de lado, y desde el carril, z hacia delante): asientos, barras, ventanas abiertas y la pantalla al fondo
+function mCabin(L){MT.cabs=MT.cabs||{};if(MT.cabs[L.id])return MT.cabs[L.id];const A=[],B=[],W=1.34,F=.95,TOP=3.15,lc=mHex(L.hex),bx=(x0,x1,y0,y1,z0,z1,c,b)=>(b?B:A).push([mBox(Math.min(x0,x1),Math.max(x0,x1),y0,y1,z0,z1),c]);
+ bx(-W,W,F-.1,F,.2,9.8,0x5d6670);bx(-W,W,TOP,TOP+.05,.2,9.8,0xe9eaec,true);bx(-.2,.2,TOP-.04,TOP,.6,9.4,0xfffbea,true); // suelo, techo y luz
+ for(const sd of[-1,1]){const xi=sd>0?W-.06:-W,xo=sd>0?W:-W+.06;
+  bx(xi,xo,F,1.7,.2,9.8,0xe6e9ec);bx(xi,xo,2.75,TOP,.2,9.8,0xe6e9ec); // pared bajo y sobre las ventanas (las ventanas quedan abiertas: se ve el andén o el túnel)
+  for(const z of[.45,1.3,2.7,4.3,5.7,7.3,8.7,9.55])bx(xi,xo,1.7,2.75,z-.12,z+.12,0xb8bdc3);
+  for(const z of[2,5,8]){bx(sd>0?W-.08:-W,sd>0?W:-W+.08,F,1.7,z-.65,z+.65,0x8d949c);bx(sd>0?W-.08:-W,sd>0?W:-W+.08,2.75,2.95,z-.65,z+.65,0x8d949c)} // puertas, con su ventana
+  for(const[z0,z1]of[[.35,1.35],[2.75,4.25],[5.75,7.25],[8.65,9.5]]){bx(sd*.88,sd*W,F,1.4,z0,z1,lc);bx(sd*1.18,sd*W-sd*.06,1.4,2.05,z0,z1,lc)}
+  bx(sd*.55-.03,sd*.55+.03,TOP-.25,TOP-.19,.6,9.4,0xf2c230)} // barra de techo
+ for(const z of[2,5])for(const x of[-.55,.55])bx(x-.03,x+.03,F,TOP,z-.03,z+.03,0xf2c230); // barras verticales junto a las puertas (no las de delante, para que no tapen la pantalla)
+ bx(-W,W,F,TOP,9.6,9.72,0xcfd3d8);bx(-.5,.5,F,2.25,9.58,9.6,0x6b737c);bx(-W,W,F,TOP,.08,.2,0xcfd3d8);bx(-.55,.55,F,2.3,.2,.22,0x6b737c); // tabiques de los extremos con su puerta
+ const g=new THREE.Group();g.add(new THREE.Mesh(mMergeGeo(A),MLAM),new THREE.Mesh(mMergeGeo(B),MBAS));
+ const c=document.createElement('canvas');c.width=1024;c.height=256;const tx=new THREE.CanvasTexture(c),sc=new THREE.Mesh(new THREE.PlaneGeometry(2.4,.6),new THREE.MeshBasicMaterial({map:tx}));
+ sc.position.set(0,2.62,9.575);sc.rotation.y=Math.PI;g.add(sc);g.add(new THREE.Mesh(mBox(-1.26,1.26,2.28,2.96,9.58,9.6),mat(0x22262c)));
+ g.visible=false;scene.add(g);return MT.cabs[L.id]={g,c,tx,last:''}}
+// tramo de túnel (lejos, muy por debajo del mundo) donde va el vagón entre estaciones; las luces y traviesas se desplazan para dar sensación de marcha
+function mTunnel(){if(MT.tun)return MT.tun;const A=[],B=[],M=[],B2=[],Y=-300,H=40,step=8,bx=(l,x0,x1,y0,y1,z0,z1,c)=>l.push([mBox(x0,x1,Y+y0,Y+y1,z0,z1),c]);
+ bx(B,-2.6,2.6,-.4,0,-H,H,0x2a2622);bx(B,-2.6,-2.3,-.4,4.8,-H,H,0x3c3d40);bx(B,2.3,2.6,-.4,4.8,-H,H,0x3c3d40);bx(B,-2.6,2.6,4.8,5,-H,H,0x303134);
+ bx(B,-2.6,2.6,-.4,5,-H-.3,-H,0x000000);bx(B,-2.6,2.6,-.4,5,H,H+.3,0x000000);
+ for(const sd of[-1,1])for(const y of[2.9,3.05])bx(B,sd*2.22,sd*2.3,y,y+.05,-H,H,0x151515); // cables
+ for(let z=-H;z<H;z+=step){for(const sd of[-1,1])bx(B2,sd*2.18,sd*2.3,2.2,2.5,z,z+.5,0xffe7a8);bx(M,-1.1,1.1,0,.07,z+2,z+2.26,0x4d4036);bx(M,-1.1,1.1,0,.07,z+6,z+6.26,0x4d4036)}
+ const g=new THREE.Group(),mov=new THREE.Group();g.add(new THREE.Mesh(mMergeGeo(B),MBAS));mov.add(new THREE.Mesh(mMergeGeo(B2),MBAS),new THREE.Mesh(mMergeGeo(M),MBAS));g.add(mov);g.visible=false;scene.add(g);
+ return MT.tun={g,mov,y:Y,step,off:0}}
+// pantalla de a bordo: la línea en el sentido de la marcha, el tren avanzando entre estaciones y la próxima parada
+function mDisp(C,R,T){const s=R.s,L=R.L,d=s.dwell?s.dout:s.d,list=d>0?L.st.slice():L.st.slice().reverse(),n=list.length-1,X0=110,X1=914,px=i=>X0+(X1-X0)*i/n;
+ let pos,nextK;if(s.dwell){pos=list.indexOf(s.at);nextK=s.at}else{const i0=list.indexOf(s.from),u=clamp(s.since/MSC.RUN,0,1);pos=i0+u*u*(3-2*u);nextK=s.to}
+ const g=C.c.getContext('2d'),bl=Math.floor(T*2)%2;g.fillStyle='#0a0e13';g.fillRect(0,0,1024,256);g.fillStyle=L.hex;g.fillRect(0,0,1024,58);
+ g.fillStyle='#fff';g.font='bold 36px Arial,sans-serif';g.textAlign='left';g.textBaseline='middle';g.fillText(L.id+'  →  '+mTermName(L,d),24,30);
+ g.textAlign='right';g.font='bold 28px Arial,sans-serif';const now=new Date();g.fillText(pad2(now.getHours())+':'+pad2(now.getMinutes()),1000,30);
+ g.lineCap='round';g.lineWidth=12;g.strokeStyle='#3a4350';g.beginPath();g.moveTo(px(0),128);g.lineTo(px(n),128);g.stroke();g.strokeStyle=L.hex;g.beginPath();g.moveTo(px(pos),128);g.lineTo(px(n),128);g.stroke();
+ list.forEach((k,i)=>{const past=i<pos-.01,cur=k===nextK;g.beginPath();g.arc(px(i),128,cur?17:13,0,7);g.fillStyle=past?'#555c66':cur?'#ffd966':'#fff';g.fill();g.lineWidth=4;g.strokeStyle='#0a0e13';g.stroke();
+  g.fillStyle=past?'#6b737c':cur?'#ffd966':'#fff';g.font=(cur?'bold ':'')+'26px Arial,sans-serif';g.textAlign='center';g.fillText(MST[k].name,px(i),176)});
+ if(!s.dwell){g.beginPath();g.arc(px(pos),128,bl?12:9,0,7);g.fillStyle='#5fe07a';g.fill()}
+ g.textAlign='left';g.font='bold 30px Arial,sans-serif';g.fillStyle=s.dwell?'#5fe07a':'#ffcf4a';
+ g.fillText(s.dwell?'Estación '+MST[s.at].name+' · puertas abiertas · sale en '+Math.ceil(s.left)+' s':'Próxima estación: '+MST[s.to].name+' · '+Math.ceil(s.rem)+' s',24,226);C.tx.needsUpdate=true}
+// cámara montado: dentro del vagón, de pie mirando hacia delante (a la pantalla); el ratón deja girar un poco la cabeza
+function metroCam(){const C=MT.cab,h=C.g.rotation.y,w=a=>Math.atan2(Math.sin(a),Math.cos(a));
+ if(MT.lastH!==null&&Math.abs(w(h-MT.lastH))>1)yaw+=h-MT.lastH;MT.lastH=h; // el tren cambia de sentido en las cabeceras: la vista gira con él
+ const rel=clamp(w(yaw-h),-1.3,1.3),pd=clamp(pitch-.35,-.6,.6);yaw=h+rel;pitch=.35+pd;
+ C.g.updateMatrixWorld();const p=new THREE.Vector3(0,2.45,6.2).applyMatrix4(C.g.matrixWorld);cam.position.copy(p);
+ cam.lookAt(p.x+Math.sin(yaw)*Math.cos(pd),p.y-Math.sin(pd),p.z+Math.cos(yaw)*Math.cos(pd))}
 // texto del HUD: en el tren, o los próximos trenes de la estación en la que estás
 function metroHud(){const T=mNow(),tk=flags.mticket;
  if(riding&&riding.metro){const R=riding,s=R.s;if(!s)return'';return'🚇 '+R.L.id+' dirección '+mTermName(R.L,s.dwell?s.dout:s.d)+' · '+(s.dwell?'Estación '+R.X.name+' · puertas abiertas, sale en '+Math.ceil(s.left)+' s':'próxima estación: '+MST[s.to].name)+(tk&&MST[tk.to]?'\n🎫 Billete hasta '+MST[tk.to].name:'')}
@@ -4064,7 +4099,8 @@ const slabLo=f=>f.y===G?-.3:f.y-.3,slabHi=f=>f.y===G?G:f.y;
 function slabAt(x,y,z,y0){for(const f of FLOORS){const lo=slabLo(f);if(lo>y0+.5&&y>lo-.05&&y<slabHi(f)+.05&&x>f.x0&&x<f.x1&&z>f.z0&&z<f.z1)return true}return false}
 function ceilAt(x,z,y0){let c=99;for(const f of FLOORS){const lo=slabLo(f);if(lo>y0+.5&&lo<c&&x>f.x0&&x<f.x1&&z>f.z0&&z<f.z1)c=lo}return c}
 let camD=0;
-function updCam(dt){
+function updCam(dt){if(riding&&riding.metro&&MT.cab){metroCam();return} // en el metro: vista desde dentro del vagón (10.5)
+
  const rc=inCar||riding;if(rc)yaw+=Math.atan2(Math.sin(rc.h-yaw),Math.cos(rc.h-yaw))*Math.min(1,(riding&&riding.avion?7:riding&&riding.heli?4.5:riding&&riding.boat?3.5:2.5)*dt);
  if(riding&&riding.avion){const a=riding;pitch+=((.2-a.pt*.7)-pitch)*Math.min(1,4*dt)} // cámara automática tras la avioneta (el ratón no la mueve)
  if(riding&&riding.heli){const a=riding;pitch+=((.32-a.pt*.5)-pitch)*Math.min(1,4*dt)} // ídem tras el helicóptero
