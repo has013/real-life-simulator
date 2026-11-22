@@ -685,12 +685,6 @@ function carMesh(t,col){const s=SPEC[t],w=s.w,l=s.l,h=s.h,y0=.32,sp=t==='sport',
   const gh=new THREE.Mesh(glowGeo,glowH);gh.position.set(q*w*.34,y0+h*.42,l/2+.04);g.add(gh);
   const gt=new THREE.Mesh(glowGeo,glowT);gt.rotation.y=Math.PI;gt.position.set(q*w*.32,y0+h*.46,-l/2-.05);g.add(gt)});
  g.add(bm);g.userData.beams=bm;return g}
-function carMeshOld(t,col){const s=SPEC[t],g=new THREE.Group();
- part(new THREE.BoxGeometry(s.w,s.h,s.l),col,0,.35+s.h/2,0,g);
- if(t==='van')part(new THREE.BoxGeometry(s.w+.02,.6,1.2),0x223344,0,.35+s.h-.5,s.l*.3,g);
- else part(new THREE.BoxGeometry(s.w*.9,s.cab,s.l*.5),0x223344,0,.35+s.h+s.cab/2,-s.l*.05,g);
- [-1,1].forEach(k=>part(new THREE.BoxGeometry(.2,.55,s.l*.7),0x111111,k*s.w/2,.3,0,g));
- return g}
 function spawnCar(t,col,x,z,h,mode,extra){const m=carMesh(t,col);m.userData.col=col;scene.add(m);
  const c=Object.assign({m,t,spec:SPEC[t],x,z,h,v:0,mode,fuel:SPEC[t].tank*(.3+Math.random()*.7)},extra||{});if(c.lm||c.lt)applyUp(c);m.position.set(x,c.y||0,z);m.rotation.y=h;cars.push(c);return c}
 
@@ -903,24 +897,11 @@ function apt(px,pz,fz,tall){
    FLOORS.push(...elPieces(px,pz,sx0).map(r=>Object.assign(r,{y})),{x0:sx0,x1:sx1,z0:pz-7.6,z1:pz-5,y},{x0:sx0,x1:sx1,z0:pz+5,z1:pz+7.6,y})}
   else box((sx0+sx1)/2,y-.3,pz,2.4,.3,15.2,0xcfc8bc,false)}
  for(let m=0;m<fl;m++)aptLevel(px,pz,m);addElev(px,pz,fl)}
-function aptOld(px,pz,fz,tall){const fl=tall?8+(rnd()*5|0):3+(rnd()*3|0);facade(px,pz,16,16,G,fl,true);
- box(px,G,pz+fz*8.05,1.6,2.3,.15,0x333333,false);BLD.push([px-8,pz-8,16,16,'#7b8590'])}
 function shop(key,px,pz,fz,w,dd){const S=SHOPS[key],d=dd||16,big=w>20,dw=big?6:3.2;
  const dr=hollow(px,pz,w,d,4.2,fz,S.wall,dw,S.floor,key==='hotel'?[px+13.75,px+16.35,pz-5.6,pz-3.25]:0),zf=pz+fz*d/2;dr.shop=key;
  sign(S.n,px,G+3.35,zf,big?10:6,fz,S.c);if(key==='hotel'||key==='town'||key==='bank')civicIn(key,px,pz,fz,w,d,zf);else shopIn(key,px,pz,fz,w,d,zf);
  PLACES.push({x:px,z:zf+fz*3,key,l:S.L,c:S.col});
  if(!big)facade(px,pz,w,d,G+4.45,1+(rnd()*2|0),false);if(key==='hotel')hotelUp(px,pz,w,d);if(key==='town'){facade(px,pz,w,d,G+4.45,1,false);facade(px,pz,6,6,G+7.75,3,false);pyramid(px,pz,6,G+17.05,0x555a60)}}
-function shopInOld(key,cx,cz,fz,w,d,zf){
- const S=SHOPS[key],L=d/2-.4,F=(x,y,l,sx,sy,sz,c,s)=>box(cx+x,G+.03+y,cz+fz*l,sx,sy,sz,c,s),big=w>20;
- F(0,0,-L+3.3,5,1,.9,0x8b5a2b,true);F(0,1,-L+3.3,1,.3,.5,0x333333,false);
- const wk=person(0x2255aa),wz=cz+fz*(-L+1.8);wk.position.set(cx,G+.03,wz);wk.rotation.y=fz>0?0:Math.PI;scene.add(wk);
- WORKERS.push({x:cx,z:wz,key,name:S.worker,sp:{x:cx,z:zf+fz*4.8}});
- if(key==='dealer'){[-12,-5,5,12].forEach((x,i)=>{const c=carMesh(['hatch','sport','van','sport'][i],[0x3a7bd5,0xd11f1f,0xeeeeee,0xffcc00][i]),zc=cz+fz*1.5;
-  c.position.set(cx+x,G+.03,zc);c.rotation.y=fz>0?0:Math.PI;scene.add(c);colliders.push({x0:cx+x-1.3,x1:cx+x+1.3,z0:zc-2.6,z1:zc+2.6,y1:2,on:true})})}
- else if(key==='bar')[-5,0,5].forEach(x=>{F(x,0,.5,1.4,.9,1.4,0x6b4a2b,true);F(x-1.2,0,.5,.5,.5,.5,0xaa3333,false);F(x+1.2,0,.5,.5,.5,.5,0xaa3333,false)});
- else if(key==='furn')[[-5,0x3b6ea5],[5,0xa53b3b]].forEach(a=>{F(a[0],0,1,3,.8,1.2,a[1],true);F(a[0],0,3.5,2,.6,3.2,0xdddddd,true)});
- else if(key==='estate')[-5,5].forEach(x=>F(x,0,.5,2.4,.8,1.2,0x9c7a55,true));
- else (big?[-14,-10,-6,6,10,14]:[-6,-3.6,3.6,6]).forEach(x=>{F(x,0,.8,1,2,6,0xcfd4d8,true);F(x,2,.8,.8,.3,5.5,pick([0xd9473a,0x3a9ad9,0xe0b020,0x4aa35a]),false)})}
 const SHOPS={
 super:{n:'SUPERMERCADO',c:'#16803c',wall:0xe9e4d4,floor:0xd8d8d0,L:'S',col:'#1c9c4c',worker:'Cajera',job:['Reponedor',150],items:[['Manzanas',3],['Pan',2],['Agua',1],['Pizza',9],['Leche',2],['Comida para mascotas',6]]},
 dealer:{n:'CONCESIONARIO',c:'#b3261e',wall:0xdde3e8,floor:0xbfc5cc,L:'C',col:'#e03a30',worker:'Vendedor',job:['Ayudante de ventas',400],cars:[['hatch',2800,0x3a7bd5],['van',5200,0xeeeeee],['sport',9500,0xd11f1f],['moto',1800,0xe67e22],['bici',250,0x2ecc71],['patinete',120,0xe74c3c]]},
@@ -1006,7 +987,6 @@ function shopTab(t){SHOPTAB=t;const el=$('sb');if(!el)return;const g=TABS[t][0],
 // 5. CIUDAD
 //     Calles, manzanas, mar, aparcamientos y edificios del barrio principal, con sus señales y semáforos.
 // =================================================================================================
-const ext=N*P-P+54; // extensión
 const PKI=1,PKJ=3,PX=PKI*P,PZ=PKJ*P;const mkHole=()=>{const hp=new THREE.Path();hp.moveTo(PX+3,-(PZ+3));[[8,3],[8,0],[14,0],[14,3],[37,3],[37,37],[3,37]].forEach(a=>hp.lineTo(PX+a[0],-(PZ+a[1])));hp.closePath();return hp};
 const mkPlane=(x0,x1,z0,z1,c,y)=>{const sh=new THREE.Shape();sh.moveTo(x0,-z0);sh.lineTo(x1,-z0);sh.lineTo(x1,-z1);sh.lineTo(x0,-z1);sh.lineTo(x0,-z0);sh.holes.push(mkHole());const m=new THREE.Mesh(new THREE.ShapeGeometry(sh),mat(c));m.rotation.x=-Math.PI/2;m.position.y=y;scene.add(m);return m};
 mkPlane(-14,270,-14,270,0x3d3d40,0);
@@ -1070,25 +1050,6 @@ function makeParking(bx,bz){
  IA(box(bx+17,G,bz+8,.8,.45,2.4,0x8b5a2b,true),'sit');
  [[5.5,10],[5.5,15],[17,14]].forEach(p=>{const t=new THREE.Mesh(new THREE.CylinderGeometry(.2,.25,2.4,6),mat(0x6b4a2b));t.position.set(bx+p[0],G+1.2,bz+p[1]);scene.add(t);
   const f=new THREE.Mesh(new THREE.SphereGeometry(1.6,8,6),mat(0x2f8a3a));f.position.set(bx+p[0],G+3.4,bz+p[1]);scene.add(f);colliders.push({x0:bx+p[0]-.3,x1:bx+p[0]+.3,z0:bz+p[1]-.3,z1:bz+p[1]+.3,y1:3,on:true})})}
-function makeParkingOld(bx,bz){
- const colB=(x0,x1,z0,z1,y0,y1,both)=>{colliders.push({x0,x1,z0,z1,y0,y1,on:true,car:true});if(both)colliders.push({x0,x1,z0,z1,y0,y1,on:true})};
- const slab=(a,b,c,d,y,h,col)=>box(bx+(a+b)/2,y,bz+(c+d)/2,b-a,h,d-c,col,false);
- const wall=(a,b,c,d)=>{slab(a,b,c,d,-6.7,6.4,0x8d8d8d);colB(bx+a,bx+b,bz+c,bz+d,-6.8,-.3,true)};
- [[0,3,0,40],[37,40,0,40],[3,8,0,3],[14,37,0,3],[3,37,37,40]].forEach(r=>slab(r[0],r[1],r[2],r[3],0,G,0xb9b6ad));
- [[3,37,10,37],[3,8,3,10],[14,37,3,10]].forEach(r=>{slab(r[0],r[1],r[2],r[3],-.3,G+.3,0xc4bfb3);const q={x0:bx+r[0],x1:bx+r[1],z0:bz+r[2],z1:bz+r[3]};
-  colliders.push(Object.assign({y0:-.3,y1:9,on:true,car:true},q));colliders.push(Object.assign({y0:-.3,y1:G,on:true},q));FLOORS.push(Object.assign({y:G},q))});
- wall(2.4,3,2.4,37.6);wall(37,37.6,2.4,37.6);wall(3,37,37,37.6);wall(3,8,2.4,3);wall(14,37,2.4,3);
- [[3,26,3,37],[32,37,3,37],[26,32,3,10],[26,32,24,37]].forEach(r=>{slab(r[0],r[1],r[2],r[3],-3.5,.3,0x6e6e72);FLOORS.push({x0:bx+r[0],x1:bx+r[1],z0:bz+r[2],z1:bz+r[3],y:-3.2})});
- slab(3,37,3,37,-6.7,.3,0x5f5f64);FLOORS.push({x0:bx+3,x1:bx+37,z0:bz+3,z1:bz+37,y:-6.4});
- const a=Math.atan2(3.2,14),rl=Math.hypot(14,3.2);
- [[11,7,-3.2,8,14,0,14],[29,17,-6.4,26,32,10,24]].forEach(r=>{const m=box(bx+r[0],0,bz+r[1],6,.25,rl,0x55555a,false);m.position.y=r[2]+1.6-.125;m.rotation.x=a;RAMPS.push({x0:bx+r[3],x1:bx+r[4],z0:bz+r[5],z1:bz+r[6],y0:r[2],up:-1,rise:3.2})});
- [-3.2,-6.4].forEach(lv=>{[[10,20],[18,20],[10,32],[18,32],[34,32]].forEach(p=>{box(bx+p[0],lv,bz+p[1],.8,3,.8,0xa8a8a8,false);colB(bx+p[0]-.4,bx+p[0]+.4,bz+p[1]-.4,bz+p[1]+.4,lv,lv+3,true)});
-  for(let k=0;k<8;k++)slab(6+k*4,6.1+k*4,31.5,36.5,lv+.01,.02,0xffffff)});
- [-.3,-3.5].forEach((c,li)=>[8,16,li?36:32].forEach(x=>[16,26,34].forEach(z=>{if(li&&x>25&&x<33&&z<25&&z>9)return;slab(x,x+1.2,z,z+.6,c-.15,.1,0xfffbe0)})));
- [[-3.2,12,'hatch'],[-3.2,24,'sport'],[-3.2,28,'van'],[-6.4,16,'hatch'],[-6.4,32,'sport']].forEach(c=>{const k=spawnCar(c[2],pick([0xc0392b,0x2980b9,0xf1c40f,0x27ae60,0xecf0f1,0x34495e]),bx+c[1],bz+34,Math.PI,'parked',{y:c[0]});k.m.position.y=c[0]});
- box(bx+7.4,0,bz+1,.4,4.5,.4,0x888888,true);box(bx+14.6,0,bz+1,.4,4.5,.4,0x888888,true);box(bx+11,4.2,bz+1,7.6,.3,.4,0x888888,false);sign('PARKING',bx+11,3.35,bz+1,6,-1,'#2a6fd6');
- ROOMS.push({x0:bx+3,x1:bx+37,z0:bz+3,z1:bz+37,h:0,ug:true});PITS.push({x0:bx+3,x1:bx+37,z0:bz+3,z1:bz+37},{x0:bx+8,x1:bx+14,z0:bz-.01,z1:bz+3});
- BLD.push([bx+3,bz+3,34,34,'#55555c']);PLACES.push({x:bx+11,z:bz-3,key:'park',l:'P',c:'#2a6fd6'})}
 let SPR=null,SPRP=null;
 function civicIn(key,cx,cz,fz,w,d,zf){const S=SHOPS[key],L=d/2-.4,hot=key==='hotel',F=(x,y,l,sx,sy,sz,c,s)=>box(cx+x,G+.03+y,cz+fz*l,sx,sy,sz,c,s);
  F(0,0,-L+3.3,7,1,.9,hot?0x5a3b22:0x8b5a2b,true);F(0,1,-L+3.3,7.2,.06,1.05,0x2f2f2f,false);F(2,1.06,-L+3.3,.6,.35,.45,0x222222,false);
@@ -1488,8 +1449,6 @@ function portUpd(t){for(const b of PORTBOATS){const g=b.g;g.position.y=b.y+Math.
 const BOATS=[],BOATSPEC={lancha:{L:6.2,B:2.3,max:32,acc:9,turn:1.5,lat:1.1,art:'la lancha'},velero:{L:8.6,B:2.9,max:14,acc:3.2,turn:.95,lat:2.2,art:'el velero'},pesquero:{L:8,B:2.7,max:11,acc:3.4,turn:.85,lat:2,art:'el pesquero'}}; // max = m/s (lancha ~115 km/h, velero ~50, pesquero ~40)
 const BGLASS=new THREE.MeshLambertMaterial({color:0x7fb8d8,transparent:true,opacity:.55}),BLIGHT={r:new THREE.MeshBasicMaterial({color:0xff2a2a}),g:new THREE.MeshBasicMaterial({color:0x22e060}),w:new THREE.MeshBasicMaterial({color:0xfff6d0})},HULLM=new THREE.MeshLambertMaterial({vertexColors:true,side:THREE.DoubleSide});
 let boatSeed=4242;const boatR=()=>(boatSeed=boatSeed*16807%2147483647)/2147483647;
-function boatHullGeo(L,B,y0,h,tp){const sh=new THREE.Shape(),b=B/2;sh.moveTo(-L/2,0);sh.lineTo(-L/2+tp*.35,-b*.5);sh.lineTo(-L/2+tp,-b);sh.lineTo(L/2,-b);sh.lineTo(L/2,b);sh.lineTo(-L/2+tp,b);sh.lineTo(-L/2+tp*.35,b*.5);sh.closePath();
- const g=new THREE.ExtrudeGeometry(sh,{depth:h,bevelEnabled:false});g.rotateX(-Math.PI/2);g.translate(0,y0,0);return g}
 function boatTxtMesh(t,w,h,bg,fg){const c=document.createElement('canvas');c.width=256;c.height=Math.max(32,Math.round(256*h/w));const g=c.getContext('2d');if(bg){g.fillStyle=bg;g.fillRect(0,0,c.width,c.height)}
  g.fillStyle=fg;let fs=Math.round(c.height*.6);g.font='bold '+fs+'px sans-serif';while(fs>8&&g.measureText(t).width>c.width*.92){fs-=2;g.font='bold '+fs+'px sans-serif'}
  g.textAlign='center';g.textBaseline='middle';g.fillText(t,c.width/2,c.height/2+1);
@@ -2382,7 +2341,6 @@ const TERRENOS=(function(){
  const gm=lm(0x58b85a,-1.5);
  list.forEach(t=>{t.mark=null;t.setOwned=function(v){t.owned=!!v;if(v&&!t.mark){const o=mk(),x0=t.x-t.w/2,z0=t.z-t.d/2,n=10,sx=t.w/n,sz=t.d/n;for(let i=0;i<n;i++)for(let j=0;j<n;j++)floor(o,x0+i*sx,z0+j*sz,x0+(i+1)*sx,z0+(j+1)*sz,.075);t.mark=build(o,gm,true)}if(t.mark)t.mark.visible=!!v}});
  return list})();
-function terrenoAt(x,z){return TERRENOS.find(t=>Math.abs(x-t.x)<=t.w/2&&Math.abs(z-t.z)<=t.d/2)||null}
 
 
 // =================================================================================================
@@ -3199,9 +3157,6 @@ function useItem(k){const o=inv[k];if(!o||o.n<1)return;
   toast(TERRENOS.some(x=>x.owned)?'Acércate a tu terreno, pulsa E para construir y elige 🛋️ Muebles':'Necesitas un terreno propio con suelo para colocar muebles');return}
  else if(o.cat==='Ropa'){const it=CLOTH[k];if(!it)toast('Te has puesto: '+k);else{if(worn[it.slot]===k){delete worn[it.slot];toast('Te has quitado: '+k)}else{worn[it.slot]=k;toast('Te has puesto: '+k)}applyOutfit()}}else if(o.cat==='Combustible')useJerry(k);else if(o.cat==='Mascotas')feedPets(k);else if(o.cat==='Ropa de mascota')wearPet(k);else eat(k)
  renderInv()}
-function toggleInvOld(){const e=$('inv');if(e.style.display==='block'){e.style.display='none';return}
- const cs=cars.filter(c=>c.owned).map(c=>c.spec.name),hs=HOUSES.filter(h=>h.owned).map(h=>`${h.local?'Local':h.apt?'Piso':'Casa'} (${h.x}, ${h.z})`).concat(TERRENOS.filter(t=>t.owned).map(t=>'Terreno nº '+t.id+' ('+t.w+'×'+t.d+' m)'));
- e.innerHTML='<b>Inventario</b><br>'+(Object.keys(inv).map(k=>k+' ×'+inv[k]).join('<br>')||'(vacío)')+'<br><b>Vehículos</b><br>'+(cs.join(', ')||'ninguno')+'<br><b>Propiedades</b><br>'+(hs.join('<br>')||'ninguna');e.style.display='block'}
 function objective(){if(!flags.worked)return['Trabaja un turno: pulsa E junto a un trabajador de un comercio','super'];
  if(!flags.car)return['Compra un coche en el concesionario (C)','dealer'];if(!flags.house)return['Compra una casa en la inmobiliaria (I)','estate'];return['¡Objetivos completados! Explora la ciudad.',null]}
 
@@ -3970,7 +3925,7 @@ function navDraw(tf){
 // 23. DÍA/NOCHE Y CLIMA
 //     Hora del día, tiempo (sol, nubes, lluvia), luces de las farolas y sombras.
 // =================================================================================================
-let tod=9,wx=0,wxT=0,wxNext=90;
+let tod=9,wx=0,wxT=0;
 const WX=[{n:'Soleado',i:'☀️',cl:.25,gr:0,dim:1,rain:0},{n:'Nublado',i:'☁️',cl:1,gr:.5,dim:.85,rain:0},{n:'Lluvia',i:'🌧️',cl:1,gr:.85,dim:.7,rain:1}],cur={cl:.25,gr:0,dim:1,rain:0};
 const C1=new THREE.Color(),C2=new THREE.Color(),C3=new THREE.Color(),C4=new THREE.Color();
 const cloudMat=new THREE.MeshLambertMaterial({color:0xffffff,fog:false}),clouds=[];
