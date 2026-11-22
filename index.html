@@ -3765,8 +3765,8 @@ const BM={on:false,t:null,tool:'floor',zoom:1.2,hv:null,grid:null,st:0,lvl:1,sd:
   glass:new THREE.MeshLambertMaterial({color:0x9fd4f0,transparent:true,opacity:.45}),roof:new THREE.MeshLambertMaterial({color:0xa24b3b}),slab:new THREE.MeshLambertMaterial({color:0xc9a06a}),roof2:new THREE.MeshLambertMaterial({color:0xa24b3b}),stair:new THREE.MeshLambertMaterial({color:0x8a6a45}),fence:new THREE.MeshLambertMaterial({color:0xd9c7a0}),y0:new THREE.MeshLambertMaterial({color:0xbdb8ac,polygonOffset:true,polygonOffsetFactor:-4,polygonOffsetUnits:-4}),y1:new THREE.MeshLambertMaterial({color:0x5f9e4a,polygonOffset:true,polygonOffsetFactor:-4,polygonOffsetUnits:-4}),y2:new THREE.MeshLambertMaterial({color:0xcdb784,polygonOffset:true,polygonOffsetFactor:-4,polygonOffsetUnits:-4})},
  bmBox=(o,cx,y0,cz,w,h,d)=>{for(let i=0;i<BUNIT.length;i+=3)o.push(BUNIT[i]*w+cx,BUNIT[i+1]*h+y0+h/2,BUNIT[i+2]*d+cz)};
 BMAT.roofp=new THREE.MeshLambertMaterial({color:0x9a4637});
-// hasta 5 plantas: cada planta (2..5) tiene sus propios materiales de techo/suelo para poder hacerlos translúcidos solo al editar esa planta
-const BMAXL=5,BLH=BWH+.25,BLS=/^[2-5]:/,BMATL=[null,null,{r:BMAT.roof2,p:BMAT.roofp,s:new THREE.MeshLambertMaterial({color:0xc9a06a})}];
+// hasta 10 plantas: cada planta (2..10) tiene sus propios materiales de techo/suelo para poder hacerlos translúcidos solo al editar esa planta
+const BMAXL=10,BLH=BWH+.25,BLS=/^(?:[2-9]|10):/,BMATL=[null,null,{r:BMAT.roof2,p:BMAT.roofp,s:new THREE.MeshLambertMaterial({color:0xc9a06a})}];
 for(let n=3;n<=BMAXL;n++)BMATL[n]={r:new THREE.MeshLambertMaterial({color:0xa24b3b}),p:new THREE.MeshLambertMaterial({color:0x9a4637}),s:new THREE.MeshLambertMaterial({color:0xc9a06a})};
 BMAT.garage=new THREE.MeshLambertMaterial({map:(()=>{const c=document.createElement('canvas');c.width=16;c.height=256;const x=c.getContext('2d');x.fillStyle='#c9ced3';x.fillRect(0,0,16,256);x.fillStyle='#8a9199';for(let q=0;q<8;q++)x.fillRect(0,q*32+29,16,3);return new THREE.CanvasTexture(c)})()});
 
@@ -3844,12 +3844,12 @@ function bmDes(t,o){if(!o||typeof o!=='object')return;const b=bmData(t),g=bmGrid
  (o.o||[]).forEach(q=>{if(!Array.isArray(q))return;const[k,v]=q;if(okc(k)&&v>=0&&v<=2&&v===Math.floor(v))b.o.set(k,v)});
  (o.rt||[]).forEach(q=>{if(!Array.isArray(q))return;const[k,v]=q;if(okc(k)&&(v===1||v===2))b.rt.set(k,v)});
  (o.m||[]).forEach(q=>{if(!Array.isArray(q))return;const[k,v]=q,ks=String(k);if(!Array.isArray(v)||!Object.prototype.hasOwnProperty.call(FURN,v[0])||!okc(ks.replace(BLS,'')))return;const d=+v[1];b.m.set(ks,[v[0],(d>=0&&d<=3&&d===Math.floor(d))?d:2])});
- (o.s||[]).forEach(q=>{if(!Array.isArray(q))return;const[k,d]=q,ks=String(k);if(okc(ks.replace(/^[2-4]:/,''))&&d>=0&&d<=3&&d===Math.floor(d))b.s.set(ks,d)});
+ (o.s||[]).forEach(q=>{if(!Array.isArray(q))return;const[k,d]=q,ks=String(k);if(okc(ks.replace(/^[2-9]:/,''))&&d>=0&&d<=3&&d===Math.floor(d))b.s.set(ks,d)});
  (o.U||[]).forEach(q=>{if(!Array.isArray(q))return;const n=+q[0],v=q[1];if(!(n>=3&&n<=BMAXL&&n===Math.floor(n))||!v||typeof v!=='object')return;const Lu=bmL(b,n,true);(v.r||[]).forEach(k=>okc(k)&&Lu.r.add(k));ed(v.e,Lu.e,4);(v.rt||[]).forEach(w=>{if(!Array.isArray(w))return;const[k,x]=w;if(okc(k)&&(x===1||x===2))Lu.rt.set(k,x)})});
  bmRebuild(t)}
 // celdas ocupadas por las escaleras que SUBEN DESDE la planta n (por defecto la 1): celda → clave de la escalera (cada una ocupa su celda y la siguiente en su dirección).
 // Las escaleras de la planta 1 se guardan como «i,j»; las de las plantas 2-4 como «n:i,j». Esas mismas celdas son el hueco del suelo de la planta n+1.
-function bmStairMap(t,n){n=n||1;const b=t.b,g=bmGrid(t),m=new Map();if(!b)return m;for(const[k,d]of b.s){const q=/^(\d):(.*)$/.exec(k),ln=q?+q[1]:1;if(ln!==n)continue;const kc=q?q[2]:k,p=kc.split(','),i=+p[0],j=+p[1],v=BDIR[d],i2=i+v[0],j2=j+v[1];if(i2<0||j2<0||i2>=g.nx||j2>=g.nz)continue;m.set(kc,k);m.set(i2+','+j2,k)}return m}
+function bmStairMap(t,n){n=n||1;const b=t.b,g=bmGrid(t),m=new Map();if(!b)return m;for(const[k,d]of b.s){const q=/^(\d+):(.*)$/.exec(k),ln=q?+q[1]:1;if(ln!==n)continue;const kc=q?q[2]:k,p=kc.split(','),i=+p[0],j=+p[1],v=BDIR[d],i2=i+v[0],j2=j+v[1];if(i2<0||j2<0||i2>=g.nx||j2>=g.nz)continue;m.set(kc,k);m.set(i2+','+j2,k)}return m}
 function bmStairOK(t,i,j,d){const g=bmGrid(t),v=BDIR[d],i2=i+v[0],j2=j+v[1];return{ok:i2>=0&&j2>=0&&i2<g.nx&&j2<g.nz,k2:i2+','+j2}}
 // Garaje: ocupa 2 aristas seguidas (la 1ª guarda el tipo 5 y dibuja toda la puerta, la 2ª guarda el tipo 6). Si la siguiente no cabe, usa la anterior.
 function bmGPair(t,o,i,j){const g=bmGrid(t),ok=(a,b)=>o==='h'?(a>=0&&a<g.nx&&b>=0&&b<=g.nz):(a>=0&&a<=g.nx&&b>=0&&b<g.nz),d=o==='h'?[1,0]:[0,1];let a=[i,j],c=[i+d[0],j+d[1]];if(!ok(c[0],c[1])){c=a;a=[i-d[0],j-d[1]]}
@@ -3857,8 +3857,8 @@ function bmGPair(t,o,i,j){const g=bmGrid(t),ok=(a,b)=>o==='h'?(a>=0&&a<g.nx&&b>=
 // quita lo que se queda sin base (paredes sobre el hueco de una escalera, escaleras sin suelo debajo, muebles sin sitio) y devuelve el reembolso (50 %)
 function bmClean(t){const b=t.b;let ref=0;
  for(let n=2;n<=BMAXL;n++){const Ln=bmL(b,n),sb=bmStairMap(t,n-1);for(const[k,ty]of[...Ln.e])if(bmStMid(sb,k)){Ln.e.delete(k);ref+=Math.round((BCOST[ETOOL[ty]]||0)/2)}}
- for(const[k,d]of[...b.s]){const q=/^(\d):(.*)$/.exec(k);if(!q)continue;const n=+q[1],c1=q[2],pp=c1.split(','),st=bmStairOK(t,+pp[0],+pp[1],d);if(n>=BMAXL||!st.ok||![c1,st.k2].every(c=>bmHasFloor(b,n,c))){b.s.delete(k);ref+=Math.round(BCOST.stair/2)}}
- for(const[k,v]of[...b.m]){const q=/^(\d):(.*)$/.exec(k),lv=q?+q[1]:1,c=q?q[2]:k;if(!bmFCan(t,c,lv)){b.m.delete(k);bmFGive(v[0]);BM.fr=(BM.fr|0)+1}}
+ for(const[k,d]of[...b.s]){const q=/^(\d+):(.*)$/.exec(k);if(!q)continue;const n=+q[1],c1=q[2],pp=c1.split(','),st=bmStairOK(t,+pp[0],+pp[1],d);if(n>=BMAXL||!st.ok||![c1,st.k2].every(c=>bmHasFloor(b,n,c))){b.s.delete(k);ref+=Math.round(BCOST.stair/2)}}
+ for(const[k,v]of[...b.m]){const q=/^(\d+):(.*)$/.exec(k),lv=q?+q[1]:1,c=q?q[2]:k;if(!bmFCan(t,c,lv)){b.m.delete(k);bmFGive(v[0]);BM.fr=(BM.fr|0)+1}}
  return ref}
 // Tejado inclinado sobre un rectángulo (x0..x1, z0..z1) que arranca en la altura yb. ty 1 = 2 aguas (cumbrera en el lado largo, con piñones) · ty 2 = 4 aguas.
 function bmPitch(A,x0,z0,x1,z1,yb,ty){const W=x1-x0,D=z1-z0,ax=W>=D,L=ax?W:D,S=ax?D:W,h=Math.min(S/2*.7,4),cen=[(x0+x1)/2,yb+h*.25,(z0+z1)/2],
@@ -3911,7 +3911,7 @@ function bmRebuild(t){
    const open=!!(t._open&&t._open[pfx+k]),pv=new THREE.Group(),lw=L-.54,lg=new THREE.Mesh(hz?new THREE.BoxGeometry(lw,2.6,.08):new THREE.BoxGeometry(.08,2.6,lw),BMAT.garage);lg.castShadow=true;lg.position.y=-1.3;pv.position.set(gx,yb+2.6,gz);pv.add(lg);scene.add(pv);
    const hw=lw/2,dc=hz?{x0:gx-hw,x1:gx+hw,z0:gz-T/2,z1:gz+T/2}:{x0:gx-T/2,x1:gx+T/2,z0:gz-hw,z1:gz+hw};dc.y0=yb-.3;dc.y1=yb+2.6;dc.on=!open;colliders.push(dc);t._cols.push(dc);
    const dq=Object.assign({},dc,{car:true});colliders.push(dq);t._cols.push(dq);
-   const dr={plot:t.id,key:pfx+k,pv,col:dc,col2:dq,x:gx,z:gz,fz:1,leaf:lg,open,ang:open?1:0,bmy:yb,up:pfx?+pfx[0]:0,gar:1};lg.scale.y=Math.max(.03,1-dr.ang*.97);DOORS.push(dr);t._doors.push(dr)}
+   const dr={plot:t.id,key:pfx+k,pv,col:dc,col2:dq,x:gx,z:gz,fz:1,leaf:lg,open,ang:open?1:0,bmy:yb,up:pfx?parseInt(pfx):0,gar:1};lg.scale.y=Math.max(.03,1-dr.ang*.97);DOORS.push(dr);t._doors.push(dr)}
   else if(ty===1)seg(-C/2,C/2,0,BWH,'wall',true);
   else if(ty===2){const dw=1.4;seg(-C/2,-dw/2,0,BWH,'wall',true);seg(dw/2,C/2,0,BWH,'wall',true);seg(-dw/2,dw/2,2.3,BWH-2.3,'door',false);
    // hoja de la puerta (articulada en un lateral; E para abrir/cerrar, como las demás puertas del juego)
@@ -3919,7 +3919,7 @@ function bmRebuild(t){
    if(hz){pv.position.set(cx-dw/2,yb,cz);lg.position.set(dw/2,1.15,0)}else{pv.position.set(cx,yb,cz-dw/2);lg.position.set(0,1.15,dw/2)}
    pv.add(lg);scene.add(pv);
    const dc=hz?{x0:cx-dw/2,x1:cx+dw/2,z0:cz-T/2,z1:cz+T/2}:{x0:cx-T/2,x1:cx+T/2,z0:cz-dw/2,z1:cz+dw/2};dc.y0=yb-.3;dc.y1=yb+2.3;dc.on=!open;colliders.push(dc);t._cols.push(dc);
-   const dr={plot:t.id,key:pfx+k,pv,col:dc,x:cx,z:cz,fz:1,leaf:lg,open,ang:open?-1.9:0,bmy:yb,up:pfx?+pfx[0]:0};pv.rotation.y=dr.ang;DOORS.push(dr);t._doors.push(dr)}
+   const dr={plot:t.id,key:pfx+k,pv,col:dc,x:cx,z:cz,fz:1,leaf:lg,open,ang:open?-1.9:0,bmy:yb,up:pfx?parseInt(pfx):0};pv.rotation.y=dr.ang;DOORS.push(dr);t._doors.push(dr)}
   else if(ty===4){if(AA===A)bmBox(A.y0,cx,by-.1,cz,hz?C+.5:.5,.24,hz?.5:C+.5);seg(-C/2,-C/2+.14,0,1.25,'fence',false,.14);seg(C/2-.14,C/2,0,1.25,'fence',false,.14);seg(-C/2,C/2,.8,.09,'fence',false,.07);seg(-C/2,C/2,.35,.09,'fence',false,.07);
    for(let q=1;q<=4;q++){const m=-C/2+q*C/5;seg(m-.035,m+.035,0,1.05,'fence',false,.06)}
    if(hz)col(cx-C/2,cx+C/2,cz-.1,cz+.1,yb-.3,yb+1.5);else col(cx-.1,cx+.1,cz-C/2,cz+C/2,yb-.3,yb+1.5)} // más alta de lo que se ve: no se salta
@@ -3927,7 +3927,7 @@ function bmRebuild(t){
  for(const[k,ty]of b.e)edge(k,ty,by,A,'');
  for(let n=2;n<=BMAXL;n++){const Ln=bmL(b,n),sb=smL(n-1);for(const[k,ty]of Ln.e)if(!bmStMid(sb,k))edge(k,ty,yL(n),AU[n],n+':')}
  // escaleras: peldaños sólidos (visual + colisión por debajo) y una rampa invisible por la que sube el jugador. Cada una sube desde su planta (clave «n:i,j»; la planta 1 no lleva prefijo).
- for(const[k,d]of b.s){const sq=/^(\d):(.*)$/.exec(k),n=sq?+sq[1]:1,kc=sq?sq[2]:k;if(n>=BMAXL||smL(n).get(kc)!==k)continue;const p=kc.split(','),i=+p[0],j=+p[1],v=BDIR[d],i2=i+v[0],j2=j+v[1],
+ for(const[k,d]of b.s){const sq=/^(\d+):(.*)$/.exec(k),n=sq?+sq[1]:1,kc=sq?sq[2]:k;if(n>=BMAXL||smL(n).get(kc)!==k)continue;const p=kc.split(','),i=+p[0],j=+p[1],v=BDIR[d],i2=i+v[0],j2=j+v[1],
    xa=g.ox+Math.min(i,i2)*C,xb=g.ox+(Math.max(i,i2)+1)*C,za=g.oz+Math.min(j,j2)*C,zb=g.oz+(Math.max(j,j2)+1)*C,ax=v[0]!==0,sg=ax?v[0]:v[1],
    yb=yL(n),y0=n===1?by+.14:yb,rise=yL(n+1)-y0,ns=12,run=2*C/ns,sh=rise/ns,low=ax?(sg>0?xa:xb):(sg>0?za:zb);
   for(let q=0;q<ns;q++){const a0=low+sg*q*run,a1=low+sg*(q+1)*run,lo=Math.min(a0,a1),hi=Math.max(a0,a1),top=y0+(q+.5)*sh;
@@ -3936,7 +3936,7 @@ function bmRebuild(t){
   const rp={x0:xa,x1:xb,z0:za,z1:zb,y0,up:sg,rise,ax};RAMPS.push(rp);t._rp.push(rp)}
  // muebles: una malla por planta (colores por vértice) + una malla sin sombreado para lo que brilla (pantalla de la lámpara). Clave de la planta n≥2: «n:i,j».
  {const FP=[],FC=[],GP=[],GC=[];for(let n=0;n<=BMAXL;n++){FP.push([]);FC.push([]);GP.push([]);GC.push([])}
-  for(const[k,v]of b.m){const mq=/^(\d):(.*)$/.exec(k),lv=mq?+mq[1]:1,pk=(mq?mq[2]:k).split(','),i=+pk[0],j=+pk[1],def=FURN[v[0]];if(!def)continue;
+  for(const[k,v]of b.m){const mq=/^(\d+):(.*)$/.exec(k),lv=mq?+mq[1]:1,pk=(mq?mq[2]:k).split(','),i=+pk[0],j=+pk[1],def=FURN[v[0]];if(!def)continue;
    const d=v[1],fo=bmFOff(def,d),cx=g.ox+(i+.5)*C+fo[0],cz=g.oz+(j+.5)*C+fo[1],yb=lv>1?yL(lv):by+.14,L=lv;
    const a=(lx,ly,lz,sx,sy,sz,hex,gl)=>{let x=lx,z=lz,w=sx,e=sz;if(d===0){x=-lx;z=-lz}else if(d===1){x=lz;z=-lx;w=sz;e=sx}else if(d===3){x=-lz;z=lx;w=sz;e=sx}
     const c=fcol(hex),P=gl?GP[L]:FP[L],CC=gl?GC[L]:FC[L];for(let q=0;q<BUNIT.length;q+=3){P.push(BUNIT[q]*w+cx+x,BUNIT[q+1]*sy+yb+ly+sy/2,BUNIT[q+2]*e+cz+z);CC.push(c.r,c.g,c.b)}};
@@ -3971,7 +3971,7 @@ function bmFurnUpd(){const e=$('bmFurn');if(!e)return;if(!BM.on||BM.tool!=='furn
 function bmHelpUpd(){$('bmHelp').textContent=(IS_TOUCH?'Toca o arrastra para colocar · dos dedos: mover la vista y zoom':'Clic o arrastra para colocar · clic derecho o Espacio+arrastrar (o WASD / flechas): mover la vista · Inicio: centrar · rueda: zoom · teclas 1-'+bmTL().length+': herramienta · Tab / Mayús+Tab: cambiar de planta · Esc: salir')+(BM.lvl>=2?' · Planta '+BM.lvl+': puedes construir paredes, techos y muebles sin suelo debajo; el suelo 🪵 es opcional (€'+BCOST.slab+' por casilla; borrar sobre una casilla vacía lo quita) · techo plano, a 2 aguas o a 4 aguas (la cumbrera sigue el lado largo; sobre un techo ya puesto cambia su tipo)'+(BM.lvl<BMAXL?' · escalera: '+(IS_TOUCH?'↻ gira':'R gira')+' (2 celdas, necesita suelo debajo; sube a la planta '+(BM.lvl+1)+')':' · es la planta más alta (máximo '+BMAXL+')')+' · techo plano = suelo de la planta de arriba':' · el techo de cada planta es el suelo de la siguiente (hasta '+BMAXL+' plantas) · escalera: '+(IS_TOUCH?'↻ gira':'R gira')+' (ocupa 2 celdas) · garaje: 2 lados seguidos (tecla 0) · suelo exterior: '+(IS_TOUCH?'el botón':'R')+' cambia el tipo')+' · muebles (tecla B): se colocan sobre suelo, '+(IS_TOUCH?'↻ gira':'R gira')+' · borrar devuelve el 50 % (los muebles vuelven al inventario)'}
 function bmToolsUpd(){$('bmTools').innerHTML=bmTL().map(k=>'<button data-k="'+k+'" class="'+(BM.tool===k?'on':'')+'">'+BICON[k]+' '+(BM.lvl>=2&&k==='roof'?'Techo plano':BNAME[k])+(k==='furn'?'<br><small style="margin:0;color:#9fe3b4">inventario</small>':BCOST[k]?'<br><small style="margin:0;color:#ffd966">€'+BCOST[k]+'</small>':'<br><small style="margin:0">50 %</small>')+'</button>').join('');
  $('bmTools').querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{BM.tool=b.dataset.k;BM.hv=null;bmToolsUpd();bmGhostUpd()}));
- $('bmLvs').innerHTML=Array.from({length:BMAXL},(_,i)=>'<button data-l="'+(i+1)+'" class="'+(BM.lvl===i+1?'on':'')+'" style="min-width:44px">'+(i===0?'🏢 ':'')+'P'+(i+1)+'</button>').join('');$('bmLvs').querySelectorAll('button').forEach(x=>x.addEventListener('click',()=>bmLevel(+x.dataset.l)));$('bmRot').style.display=(BM.tool==='stair'||BM.tool==='yard'||BM.tool==='furn')?'':'none';$('bmRot').textContent=BM.tool==='yard'?'🎨 '+YNAME[BM.yv]:'↻ Girar';bmFurnUpd();bmHelpUpd()}
+ $('bmLvs').innerHTML=Array.from({length:BMAXL},(_,i)=>'<button data-l="'+(i+1)+'" class="'+(BM.lvl===i+1?'on':'')+'" style="min-width:40px;padding:7px 6px">'+(i===0?'🏢 ':'')+'P'+(i+1)+'</button>').join('');$('bmLvs').querySelectorAll('button').forEach(x=>x.addEventListener('click',()=>bmLevel(+x.dataset.l)));$('bmRot').style.display=(BM.tool==='stair'||BM.tool==='yard'||BM.tool==='furn')?'':'none';$('bmRot').textContent=BM.tool==='yard'?'🎨 '+YNAME[BM.yv]:'↻ Girar';bmFurnUpd();bmHelpUpd()}
 function bmLevel(n){if(!BM.on)return;BM.lvl=n;if(!bmTL().includes(BM.tool))BM.tool=n>=2?'wall':'floor';BM.hv=null;if(BM.grid)BM.grid.position.y=(n-1)*BLH;bmToolsUpd();bmInfoUpd();bmGhostUpd();bmRoofVis()}
 function bmInfoUpd(){const t=BM.t;if(t)$('bmInfo').textContent='🏗️ Terreno nº '+t.id+' · '+t.w+'×'+t.d+' m · planta '+BM.lvl+'/'+BMAXL+' · 💶 €'+Math.round(money)+' · '+bmCount(t)+' módulos'}
 // ---- cursor (fantasma) y rejilla ----
