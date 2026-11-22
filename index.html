@@ -37,6 +37,7 @@
          6.1 Biblioteca (oeste, tras la autopista): el edificio. Sus actividades: busca «Biblioteca, parte 2»
          6.2 Universidad (al sur de la biblioteca): el edificio. Matrícula y clases: busca «Universidad, parte 2»
          6.3 Aeropuerto (afueras, al sur del barrio): terminal con torre de control, plataforma y pista
+         6.4 Hospital (afueras, cerca de la ciudad): recepción, sala de espera y 3 habitaciones; aquí se define el punto de aparición tras un desmayo
    7.   PUERTO, BARCOS Y PESCA
          7.1 Puerto (zona E del mapa: bahía al sur de la autopista, junto a la costa del aeropuerto)
          7.2 Barcos: modelos y amarre (fase 1), subir y navegar (fase 2) y sincronización (fase 3)
@@ -1383,6 +1384,71 @@ function airport(){const sd0=seed,px=101,pz=352,w=64,d=24,H=9,fz=-1,L=d/2-.4,zf=
  seed=sd0}
 airport();
 
+// ---------- 6.4 Hospital (afueras, cerca de la ciudad): recepción, sala de espera y 3 habitaciones con cama ----------
+// Cuerpo 16x26 m, de cara al oeste (la ciudad). El código busca SOLO un solar libre cerca de HOS_PREF: terreno llano, sin agua ni playa,
+// lejos de la autopista y sin pisar otros edificios. Si no hay sitio, no se coloca (aviso en la consola) y el desmayo te deja en el punto de inicio.
+// Al colocarse, HOSPITAL_SPAWN pasa a ser el suelo junto a la cama de la habitación central. Interacciones: IDEF.hosdesk (recepción) e IDEF.hosbed (cama).
+const HOSPITAL_FEE=200,HOSPITAL_RECOVER=50,HOSPITAL_SPAWN={x:24,z:1.5,y:0};
+function hospitalDesk(){openDlg();dlg.innerHTML='<h2>🏥 Hospital</h2><p>Recepcionista: «Buenos días. Por €'+HOSPITAL_FEE+' le hacemos un chequeo completo y le dejamos como nuevo.»</p><p><small>Ahora mismo: hambre '+Math.round(hunger)+'% · energía '+Math.round(energy)+'%</small></p><button onclick="hospitalHeal()">Atención médica (€'+HOSPITAL_FEE+')</button> <button onclick="closeDlg()">Cerrar</button>'}
+function hospitalHeal(){if(!pay(HOSPITAL_FEE))return;hunger=100;energy=100;closeDlg();toast('🏥 Te han atendido: hambre y energía al 100 % (-€'+HOSPITAL_FEE+')');saveGame()}
+(function(){
+const HOS_PREF={x:285,z:150},RW=16,RD=26,M=4,H=4.2,T=.4,hA=(x,z)=>heightAt(x,z);
+// ---- 1) buscar solar ----
+const rects=[];BLD.forEach(b=>rects.push([b[0],b[1],b[0]+b[2],b[1]+b[3]]));FACS.forEach(s=>rects.push([s.x-s.w/2-4,s.z-s.d/2-14,s.x+s.w/2+4,s.z+s.d/2+3]));
+rects.push([AP.x0-30,AP.z0-30,AP.x1+30,AP.z1+30],[-30,-30,N*P+2,N*P+2]);FLOORS.forEach(f=>rects.push([f.x0,f.z0,f.x1,f.z1]));PITS.forEach(f=>rects.push([f.x0,f.z0,f.x1,f.z1]));
+const hit=(a0,a1,a2,a3,r)=>a0<r[2]&&a2>r[0]&&a1<r[3]&&a3>r[1];
+const cand=[];for(let x=150;x<=312;x+=3)for(let z=-80;z<=330;z+=3)cand.push([x,z,Math.hypot(x-HOS_PREF.x,z-HOS_PREF.z)]);cand.sort((a,b)=>a[2]-b[2]);
+let pos=null;
+for(const[cx,cz]of cand){const xa=cx-RW/2,xb=cx+RW/2,za=cz-RD/2,zb=cz+RD/2,a0=xa-M,a1=za-M,a2=xb+M,a3=zb+M;
+ if(a2>316)continue;if(rects.some(r=>hit(a0,a1,a2,a3,r)))continue;
+ if(colliders.some(c=>c.x0<a2-4&&c.x1>a0+4&&c.z0<a3-4&&c.z1>a1+4))continue;
+ let ok=true,gmin=1e9,gmax=-1e9;
+ for(let x=a0;x<=a2&&ok;x+=3)for(let z=a1;z<=a3;z+=3){if(isl(x,z)<=BEACH+2||hwNear(x,z).d<=9||portPf(x,z)<1){ok=false;break}}
+ if(!ok)continue;
+ for(let x=xa;x<=xb;x+=2)for(let z=za;z<=zb;z+=2){const h=hA(x,z);gmin=Math.min(gmin,h);gmax=Math.max(gmax,h)}
+ if(gmax-gmin>2.3)continue;
+ let gf=1e9;for(let x=xa-6;x<=xa-1.5;x+=1.5)for(let z=cz-3;z<=cz+3;z+=1.5)gf=Math.min(gf,hA(x,z));
+ const F=gmax+.2;if(F-gf>2.8)continue;
+ pos={cx,cz,gmin,gf,F};break}
+if(!pos){console.warn('Hospital: no hay un solar libre; no se coloca');return}
+// ---- 2) construir ----
+const{cx,cz,gmin,gf,F}=pos,XA=cx-RW/2,XB=cx+RW/2,ZA=cz-RD/2,ZB=cz+RD/2,XM=XA+8.2,
+ wl=0xf4f6f7,fl=0xdfe9e4,rd=0xc62828,gl=0x6f8fa8,st=0xbdb7aa,wd=0x5a3d26,
+ W=(xa,xb,za,zb,y,h,c)=>box((xa+xb)/2,y,(za+zb)/2,xb-xa,h,zb-za,c,true),B=(x,y,z,w,h,d,c)=>box(x,y,z,w,h,d,c,false);
+// base, suelo y muros
+W(XA,XB,ZA,ZB,gmin-.6,F-gmin+.6,st);FLOORS.push({x0:XA,x1:XB,z0:ZA,z1:ZB,y:F});B(cx,F,cz,RW-2*T,.04,RD-2*T,fl);
+W(XB-T,XB,ZA,ZB,F,H,wl);W(XA,XB,ZA,ZA+T,F,H,wl);W(XA,XB,ZB-T,ZB,F,H,wl);
+W(XA,XA+T,ZA,cz-1.5,F,H,wl);W(XA,XA+T,cz+1.5,ZB,F,H,wl);W(XA,XA+T,cz-1.5,cz+1.5,F+3.2,H-3.2,wl); // fachada con puerta de 3 m
+// tabique entre el vestíbulo y las habitaciones (3 puertas) y divisiones entre habitaciones
+const zc=[cz-8.5,cz,cz+8.5];{let z0=ZA+T;for(const c of zc){W(XM-T/2,XM+T/2,z0,c-1.1,F,H,wl);z0=c+1.1}W(XM-T/2,XM+T/2,z0,ZB-T,F,H,wl)}
+for(const z of[cz-4.25,cz+4.25])W(XM+T/2,XB-T,z-T/2,z+T/2,F,H,wl);
+// cubierta, franja roja y ventanas
+W(XA-.3,XB+.3,ZA-.3,ZB+.3,F+H,.5,0xe8ebec);B(XA-.04,F+H-.9,cz,.08,.6,RD,rd);
+for(let z=ZA+2;z<=ZB-1.5;z+=3.2)if(Math.abs(z-cz)>2.4)B(XA-.03,F+1.2,z,.06,1.6,1.3,gl);
+for(const x of[cx-3,cx+3]){B(x,F+1.2,ZA-.03,1.3,1.6,.06,gl);B(x,F+1.2,ZB+.03,1.3,1.6,.06,gl)}
+for(const c of zc)B(XB+.03,F+1.2,c,.06,1.6,1.6,gl);
+// cartel sobre la cubierta
+{const cv=document.createElement('canvas');cv.width=1024;cv.height=128;const g=cv.getContext('2d');g.fillStyle='#ffffff';g.fillRect(0,0,1024,128);
+ g.fillStyle='#c62828';g.fillRect(40,24,80,80);g.fillStyle='#ffffff';g.fillRect(70,34,20,60);g.fillRect(50,54,60,20);
+ g.fillStyle='#c62828';g.font='bold 80px Arial,sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText('H O S P I T A L',580,68);
+ B(XA+.5,F+H+.5,cz,.3,1.3,10,wl);const sg=new THREE.Mesh(new THREE.PlaneGeometry(9.6,1.2),new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(cv)}));
+ sg.rotation.y=-Math.PI/2;sg.position.set(XA+.33,F+H+1.15,cz);sg.userData.st=1;scene.add(sg)}
+// escalinata de entrada (peldaños de ≤35 cm; el jugador sube por FLOORS)
+{const NS=Math.max(2,Math.ceil((F-gf)/.35)),SH=(F-gf)/NS,dx=.9;for(let k=1;k<=NS;k++){const xe=XA-(NS-k)*dx,xa=xe-dx,y=gf+SH*k;B((xa+xe)/2,gf-.6,cz,dx,y-gf+.6,6,st);FLOORS.push({x0:xa,x1:xe,z0:cz-3,z1:cz+3,y})}}
+// vestíbulo: mostrador de recepción con recepcionista, cruz en la pared y bancos de espera
+W(XA+2.9,XA+3.9,cz-10,cz-3,F,1.1,0xb08a5a);B(XA+3.4,F+1.1,cz-6.5,1.3,.06,7.4,0xeceff1);IA(B(XA+3.4,F+1.16,cz-3.6,.35,.1,.35,rd),'hosdesk');
+{const rp=person(0x2e9d6a,{fem:true});rp.position.set(XA+4.7,F,cz-6.5);rp.rotation.y=-Math.PI/2;scene.add(rp)}
+B(XM-T/2-.03,F+1.6,cz-4.25,.05,1.4,.4,rd);B(XM-T/2-.03,F+2.1,cz-4.25,.05,.4,1.4,rd);
+for(const z of[cz+4,cz+7.5,cz+11]){B(XA+1.4,F+.42,z,.5,.08,2.4,0x2b6cb0);B(XA+1.4,F,z-1,.08,.42,.08,wd);B(XA+1.4,F,z+1,.08,.42,.08,wd);B(XA+.8,F+.5,z,.08,.55,2.4,0x2b6cb0)}
+// habitaciones: cama (sólida) con colchón, almohada y manta, y una mesilla
+for(const c of zc){const bx=XM+3.9,bz=c+1.9;W(bx-1,bx+1,bz-.5,bz+.5,F,.5,0xcfd8dc);B(bx,F+.5,bz,2,.15,.95,0xffffff);B(bx+.7,F+.65,bz,.5,.1,.6,0xe3f2fd);B(bx-.2,F+.65,bz,1.2,.06,.97,0x4fc3f7);
+ IA(B(bx-.6,F+.71,bz,.3,.06,.3,rd),'hosbed');W(XB-T-.6,XB-T,c-1.8,c-.8,F,.7,0xb0bec5)}
+// minimapa, destino en el mapa y punto de aparición tras un desmayo (suelo junto a la cama de la habitación central)
+BLD.push([XA,ZA,RW,RD,'#f4f6f7']);PLACES.push({x:XA-6,z:cz,key:'hospital',l:'H',c:'#c62828',nt:1});
+HOSPITAL_SPAWN.x=XM+1.8;HOSPITAL_SPAWN.z=cz-.8;HOSPITAL_SPAWN.y=F;
+console.info('Hospital colocado en x='+Math.round(cx)+', z='+Math.round(cz));
+})();
+
 
 // =================================================================================================
 // 7. PUERTO, BARCOS Y PESCA
@@ -2722,6 +2788,13 @@ function hrsTxt(k){return pad2(HRS[k][0])+':00'}
 function lockedFor(d){if(d.shop)return !isOpen(d.shop)&&!d.open&&(pl.z-d.z)*d.fz>0;if(d.house&&!d.open&&(pl.z-d.z)*d.fz>0){const h=d.prop||(d.prop=HOUSES.find(q=>q.door===d));return !!(h&&!h.local&&!h.owned&&!hasKey('house',houseKeyId(h)))}if(d.plot!==undefined&&!d.open)return plotLocked(d); /* llaves: 24.5 */return false}
 const fd=document.createElement('div');fd.style.cssText='position:fixed;inset:0;background:#000;opacity:0;pointer-events:none;transition:opacity .8s;z-index:8;color:#fff;display:flex;align-items:center;justify-content:center;font:700 22px system-ui';document.body.appendChild(fd);
 function fade(msg,fn){fd.textContent=msg;fd.style.opacity=1;setTimeout(()=>{if(fn)fn();fd.style.opacity=0},1800)}
+// DESMAYO: con hambre 0 % y energía 0 % te desmayas y apareces en el hospital con 200 € menos.
+// El hospital está en la sección 6.4 (ahí se definen HOSPITAL_FEE, HOSPITAL_RECOVER y HOSPITAL_SPAWN).
+let collapsing=false;
+function collapse(){collapsing=true;seat=null;setSit(body,false);
+ fade('Te has desmayado... Despiertas en el hospital',()=>{const fee=Math.min(money,HOSPITAL_FEE);money-=fee;hunger=HOSPITAL_RECOVER;energy=HOSPITAL_RECOVER;
+  pl.x=HOSPITAL_SPAWN.x;pl.z=HOSPITAL_SPAWN.z;py=HOSPITAL_SPAWN.y;vy=0;body.position.set(pl.x,py,pl.z);
+  toast('🏥 Te han atendido en el hospital: -€'+fee);collapsing=false;saveGame()})}
 let micro=0,microT=10,microW=false,microDir=0;
 const eyes=document.createElement('div');eyes.style.cssText='position:fixed;inset:0;background:#000;opacity:0;pointer-events:none;transition:opacity .35s;z-index:7';document.body.appendChild(eyes);
 // Dormir: avanza la hora, restaura energía y gasta hambre/sed según las horas dormidas
@@ -2963,6 +3036,8 @@ const IDEF={
  libatlas:{txt:()=>'E: estudiar el atlas y los mapas (15 min)',act:()=>atStart()},
  mayordesk:{txt:()=>'E: despacho del Alcalde',act:()=>mayorOffice()},
  libpc:{txt:()=>'E: usar el ordenador (simulación de negocios, 15 min)',act:()=>bzStart()},
+ hosdesk:{txt:()=>'E: recepción del hospital (atención médica €'+HOSPITAL_FEE+')',act:()=>hospitalDesk()},
+ hosbed:{txt:()=>'E: descansar en la cama del hospital',act:()=>{if(energy>90)toast('No necesitas descansar ahora mismo');else fade('Descansas en la cama...',()=>sleepFor(2,10,'Has descansado en el hospital',true,true))}},
  souv:{txt:()=>'E: comprar souvenir (€12)',act:()=>{if(!pay(12))return;flags.souv=(flags.souv||0)+1;toast('Has comprado un souvenir de la montaña ('+flags.souv+')')}},
  bed:{txt:()=>'E: dormir',act:()=>{if(tod>=19||tod<6)sleepNight('Duermes hasta la mañana...',14,'Amanece');else if(energy>90)toast('No tienes sueño ahora mismo');else fade('Echas una siesta...',()=>sleepFor(2,10,'Has echado una siesta',true,true))}},
  sit:{txt:()=>'E: sentarte',act:o=>sitAt(o)},
@@ -4146,7 +4221,7 @@ const clock=new THREE.Clock();let tm=0,objT=1;
 let fpsCap=0,fpsLast=0;try{const v=+localStorage.getItem('rls_fps');if(v===30||v===45||v===60)fpsCap=v}catch(e){}
 function loop(){requestAnimationFrame(loop);if(fpsCap){const now=performance.now(),iv=1000/fpsCap;if(now-fpsLast<iv-3)return;fpsLast=now}const dt=Math.min(clock.getDelta(),.05);mpTick(dt);
  if(started&&ov.style.display==='none'){tm+=dt;SEA.position.y=-.4+Math.sin(tm*.8)*.04;seaTex.offset.set(tm*.004,tm*.002);WINDT.value=tm;smokeUpd(tm);portUpd(tm);if(SEA.material.uniforms)SEA.material.uniforms.tm.value=tm;if(!dlgOpen||invOpen)hunger=Math.max(0,hunger-dt*.2);if(!dlgOpen||invOpen){const wk=(working||task)?.12:0;thirst=100;energy=seat?Math.min(100,energy+dt*.5):Math.max(0,energy-dt*(.1+.5*eff+wk))}
-  if(hunger<=0&&(tm%25)<dt)toast('¡Tienes mucha hambre! Come algo (F)');if(energy<=0&&((tm+16)%25)<dt)toast('Estás agotado: siéntate a descansar o toma un café');
+  if(hunger<=0&&energy<=0&&!collapsing&&!inCar&&!riding&&!working&&!task&&!dlgOpen)collapse();if(hunger<=0&&(tm%25)<dt)toast('¡Tienes mucha hambre! Come algo (F)');if(energy<=0&&((tm+16)%25)<dt)toast('Estás agotado: siéntate a descansar o toma un café');
   for(const d of DOORS){if(d.gar){d.ang+=((d.open?1:0)-d.ang)*Math.min(1,5*dt);d.leaf.scale.y=Math.max(.03,1-d.ang*.97);continue}const tg=d.open?-d.fz*1.9:0;d.ang+=(tg-d.ang)*Math.min(1,8*dt);d.pv.rotation.y=d.ang}
   if(!dlgOpen){if(inCar)driveCar(inCar,dt);else if(!riding)stepFoot(dt)}
   microStep(dt);
