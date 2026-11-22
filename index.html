@@ -360,15 +360,17 @@ function rayRing(ring,c0,s){let best=1e9;const n=ring.length;for(let i=0;i<n;i++
  for(let it=0;it<6;it++){const o=h;h=o.map((_,i)=>{let q=0;for(let k=-3;k<=3;k++)q+=o[(i+k+o.length)%o.length];return q/7})}
  const ring=pts.map((p,i)=>[p[0],p[1],h[i]]),SP=[[[-14,155],[-1,0]],[[155,-14],[0,-1]],[[101,N*P],[0,1]]].map(([c0,s])=>{const d=rayRing(pts,c0,s);return[c0,[c0[0]+s[0]*d,c0[1]+s[1]*d],[c0[0]+s[0]*(d+26),c0[1]+s[1]*(d+26)]]});
  HW.junc.push(...SP.map(q=>q[1]));
- ring.forEach(p=>p.push(p[2]+bumpAt(p[0],p[1])));ring.push(ring[0].slice());ring.kind='ring';HW.polys.push(ring);
+ ring.push(ring[0].slice());ring.kind='ring';HW.polys.push(ring);
  const yAt=(x,z)=>{let d0=1e9,y=0;for(const p of ring){const d=Math.hypot(p[0]-x,p[1]-z);if(d<d0){d0=d;y=p[2]}}return y};
  for(const[c0,jn,en]of SP){const L1=Math.hypot(jn[0]-c0[0],jn[1]-c0[1]),L2=Math.hypot(en[0]-jn[0],en[1]-jn[1]),s=[(jn[0]-c0[0])/L1,(jn[1]-c0[1])/L1],yj=yAt(jn[0],jn[1]);
   const spY=d=>{if(d<=L1)return yj*ssm(0,L1,d);const x=c0[0]+s[0]*d,z=c0[1]+s[1]*d;return yj+(heightRaw(x,z)-yj)*ssm(0,L2,d-L1)};
-  const k=Math.round((L1+L2)/st),sp=[];for(let i=0;i<=k;i++){const d=(L1+L2)*i/k;sp.push([c0[0]+s[0]*d,c0[1]+s[1]*d,spY(d)])}sp.kind='spur';HW.polys.push(sp);
+  // puente: la carretera sube BR m para pasar POR ENCIMA de la autopista (tablero p[3]; el terreno p[2] queda a nivel del suelo bajo el puente y sigue al tablero fuera de él, como terraplén)
+  const ZH=10.5,BH=4,mx=t=>{t=clamp(t,0,1);return .5*t+.5*t*t*(3-2*t)},add=d=>d<=L1-ZH?BH*mx(d/(L1-ZH)):d<=L1+ZH?BH:BH*(1-mx((d-L1-ZH)/(L2-ZH))),spD=d=>spY(d)+add(d);
+  const k=Math.round((L1+L2)/st),sp=[];for(let i=0;i<=k;i++){const d=(L1+L2)*i/k;sp.push([c0[0]+s[0]*d,c0[1]+s[1]*d,spY(d),spD(d)])}sp.kind='spur';HW.polys.push(sp);
   const t=[-s[1],s[0]];
   for(const sg of[-1,1])for(const sl of[1,-1]){const cub=(p0,p1,p2,p3,n,first)=>{const o=[];for(let i=first?0:1;i<=n;i++){const u=i/n,q=1-u,w0=q*q*q,w1=3*q*q*u,w2=3*q*u*u,w3=u*u*u;o.push([w0*p0[0]+w1*p1[0]+w2*p2[0]+w3*p3[0],w0*p0[1]+w1*p1[1]+w2*p2[1]+w3*p3[1]])}return o};
    // (l,q): l = distancia al eje de la autopista hacia la ciudad, q = distancia a lo largo de ella. La rampa va paralela a 10 m hasta salir de la zona del puente y entonces se incorpora
-   const EL=3.6,QE=96,l0=sl>0?19:-19,lq=[...cub([l0,0],[sl*16,0],[sl*15,34],[sl*15,54],15,true),...cub([sl*15,54],[sl*15,72],[sl*EL,76],[sl*EL,QE],12,false)],pt=(l,q)=>[jn[0]-s[0]*l+t[0]*sg*q,jn[1]-s[1]*l+t[1]*sg*q],y0=spY(sl>0?L1-19:L1+19),Mc=pt(0,QE),Mr=ring.reduce((b,p)=>Math.hypot(p[0]-Mc[0],p[1]-Mc[1])<Math.hypot(b[0]-Mc[0],b[1]-Mc[1])?p:b),M=[Mr[0],Mr[1]],y3=Mr[2],E=pt(sl*EL,QE),ux=E[0]-Mc[0],uz=E[1]-Mc[1],ul=Math.hypot(ux,uz)||1,dM=[M[0]+ux/ul*EL-E[0],M[1]+uz/ul*EL-E[1]],P0=pt(l0,0);
+   const EL=3.6,QE=96,l0=sl>0?19:-19,lq=[...cub([l0,0],[sl*16,0],[sl*15,34],[sl*15,54],15,true),...cub([sl*15,54],[sl*15,72],[sl*EL,76],[sl*EL,QE],12,false)],pt=(l,q)=>[jn[0]-s[0]*l+t[0]*sg*q,jn[1]-s[1]*l+t[1]*sg*q],y0=spD(sl>0?L1-19:L1+19),Mc=pt(0,QE),Mr=ring.reduce((b,p)=>Math.hypot(p[0]-Mc[0],p[1]-Mc[1])<Math.hypot(b[0]-Mc[0],b[1]-Mc[1])?p:b),M=[Mr[0],Mr[1]],y3=Mr[2],E=pt(sl*EL,QE),ux=E[0]-Mc[0],uz=E[1]-Mc[1],ul=Math.hypot(ux,uz)||1,dM=[M[0]+ux/ul*EL-E[0],M[1]+uz/ul*EL-E[1]],P0=pt(l0,0);
    const rp=lq.map((v,i)=>{const p=pt(v[0],v[1]),w=ssm(.3,1,i/(lq.length-1));return[p[0]+dM[0]*w,p[1]+dM[1]*w,y0+(y3-y0)*ssm(0,1,i/(lq.length-1))]});
    rp.kind='ramp';HW.polys.push(rp);HW.merge.push(M);HW.mouth.push(P0)}}})();
 // carretera de montaña: sale de la autopista (por el sur de la montaña) y sube en espiral con pendiente constante hasta la cima
@@ -380,7 +382,7 @@ function mtH(x,z,r){const dx=x-MX,dz=z-MZ;if(!HW.mt||dx*dx+dz*dz>(MR+25)*(MR+25)
 function hwNear(x,z,only){let bd=1e9,by=0;for(const po of(only?[only]:HW.polys))for(let i=0;i<po.length-1;i++){const p=po[i],q=po[i+1],dx=q[0]-p[0],dz=q[1]-p[1],t=clamp(((x-p[0])*dx+(z-p[1])*dz)/(dx*dx+dz*dz),0,1),ex=p[0]+dx*t-x,ez=p[1]+dz*t-z,d=ex*ex+ez*ez;if(d<bd){bd=d;by=p[2]+(q[2]-p[2])*t}}return{d:Math.sqrt(bd),y:by}}
 function hwOn(x,z){return hwNear(x,z).d<4.6}
 // altura de la cubierta del puente (null si no hay puente en ese punto)
-function deckY(x,z){const bp=bumpAt(x,z);if(bp<.05)return null;const q=hwNear(x,z,HW.polys[0]);if(q.d>8.6)return null;return q.y+bp}
+function deckY(x,z){let nr=false;for(const j of HW.junc)if(Math.abs(x-j[0])<75&&Math.abs(z-j[1])<75){nr=true;break}if(!nr)return null;let bd=1e9,a=0,b=0;for(const po of HW.polys){if(po.kind!=='spur')continue;for(let i=0;i<po.length-1;i++){const p=po[i],q=po[i+1],dx=q[0]-p[0],dz=q[1]-p[1],t=clamp(((x-p[0])*dx+(z-p[1])*dz)/(dx*dx+dz*dz),0,1),ex=p[0]+dx*t-x,ez=p[1]+dz*t-z,d=ex*ex+ez*ez;if(d<bd){bd=d;a=p[2]+(q[2]-p[2])*t;b=p[3]+(q[3]-p[3])*t}}}if(bd>4.6*4.6||b-a<.05)return null;return b}
 function heightAt0(x,z){const e=Math.max(-14-x,x-N*P,-14-z,z-N*P,0);if(e<=0)return 0;let r=heightRaw(x,z);if(x>=322)r=mtH(x,z,r);const q=hwNear(x,z);if(q.d>30)return r;return r+(q.y-r)*(1-ssm(14,30,q.d))}
 // fábricas de las afueras (al este del barrio): el terreno se aplana debajo y delante de cada una
 const FACS=[{k:'ffood',x:300,z:42,w:34,d:22,roof:0x8a3b2b,ch:[-11,-5,1]},{k:'ffurn',x:300,z:200,w:34,d:22,roof:0x5d4037,ch:[-8,4]},{k:'fcloth',x:300,z:238,w:34,d:22,roof:0x5b3a7a,ch:[-8,4]}];
@@ -1134,17 +1136,18 @@ function buildHighway(){
  const rib=(o,po,o0,o1,dy,skip)=>{for(let i=0;i<po.length-1;i++){if(skip&&skip(i))continue;const a=po[i],b=po[i+1],na=nr(po,i),nb=nr(po,i+1);quad(o,[[a[0]+na[0]*o0,Yd(a)+dy,a[1]+na[1]*o0],[a[0]+na[0]*o1,Yd(a)+dy,a[1]+na[1]*o1],[b[0]+nb[0]*o0,Yd(b)+dy,b[1]+nb[1]*o0],[b[0]+nb[0]*o1,Yd(b)+dy,b[1]+nb[1]*o1]])}};
  const wall=(o,po,off,y0,y1,skip)=>{for(let i=0;i<po.length-1;i++){if(skip&&skip(i))continue;const a=po[i],b=po[i+1],na=nr(po,i),nb=nr(po,i+1),ax=a[0]+na[0]*off,az=a[1]+na[1]*off,bx=b[0]+nb[0]*off,bz=b[1]+nb[1]*off;quad(o,[[ax,Yd(a)+y0,az],[ax,Yd(a)+y1,az],[bx,Yd(b)+y0,bz],[bx,Yd(b)+y1,bz]])}};
  const M=(w,h,d,c,x,y,z,ry)=>{const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),typeof c==='object'?c:mat(c));m.position.set(x,y+h/2,z);m.rotation.y=ry||0;m.userData.st=1;scene.add(m)};
- const bk=(po,i)=>bumpAt(po[i][0],po[i][1]);
+ const bk=()=>0;
  const wcol=(po,off,skip)=>{for(let i=0;i<po.length-1;i++){if(skip&&skip(i))continue;const a=po[i],b=po[i+1],na=nr(po,i),nb=nr(po,i+1),ax=a[0]+na[0]*off,az=a[1]+na[1]*off,bx=b[0]+nb[0]*off,bz=b[1]+nb[1]*off;WALLS.push({ax,az,bx,bz,ya:Yd(a),yb:Yd(b),x0:Math.min(ax,bx),x1:Math.max(ax,bx),z0:Math.min(az,bz),z1:Math.max(az,bz)})}};
  HW.polys.forEach(po=>{const kd=po.kind,ring=kd==='ring',skipL=ring?i=>nearP(po[i],HW.merge)||nearP(po[i+1],HW.merge):kd==='ramp'?i=>i<3||i>po.length-6:i=>i<1||i>po.length-3||nearP(po[i],HW.mouth)||nearP(po[i+1],HW.mouth);
   const skipR=ring?i=>nearP(po[i],HW.merge,28)||nearP(po[i+1],HW.merge,28):skipL,sk=(sd,off,base)=>i=>base(i)||(kd==='ramp'&&[i,i+1].some(j=>{const n=nr(po,j);return hwNear(po[j][0]+n[0]*off*sd,po[j][1]+n[1]*off*sd,HW.polys[0]).d<9.4}));
   const hw=ring?7.8:4.2,ho=hw+.5;rib(A,po,-hw,hw,.08);rib(W,po,-(hw-.2),-(hw-.4),.11,sk(-1,hw-.2,skipL));rib(W,po,hw-.4,hw-.2,.11,sk(1,hw-.2,skipL));
   if(ring){const dsh=i=>i%3!==0||skipL(i);rib(W,po,-4.3,-4.1,.11,dsh);rib(W,po,4.1,4.3,.11,dsh);rib(Y,po,-.75,-.55,.11);rib(Y,po,.55,.75,.11);rib(R,po,-.25,.25,1.05);wall(R,po,-.25,0,1.05);wall(R,po,.25,0,1.05);wcol(po,0,null)}else if(kd!=='ramp')rib(Y,po,-.08,.08,.11,i=>i%3!==0);
-  if(ring){const sb=i=>bk(po,i)<.35&&bk(po,i+1)<.35;rib(C,po,-8.6,8.6,.02,sb);rib(C,po,-8.6,8.6,-.7,sb);wall(C,po,-8.6,-.7,.02,sb);wall(C,po,8.6,-.7,.02,sb);
-   for(let i=0;i<po.length-1;i+=2){const p=po[i],hh=Yd(p)-.7-p[2];if(hh<.5||nearP(p,HW.junc,8))continue;const n=nr(po,i);for(const sd of[-1,1])cols.push([p[0]+n[0]*6.6*sd,p[2],p[1]+n[1]*6.6*sd,hh])}}
+  if(kd==='spur'){const dj=p=>HW.junc.reduce((m,j)=>Math.min(m,Math.hypot(p[0]-j[0],p[1]-j[1])),1e9),brg=i=>Math.min(dj(po[i]),dj(po[i+1]))<9.5,flat=i=>Yd(po[i])-po[i][2]<.08&&Yd(po[i+1])-po[i+1][2]<.08,nb=i=>!brg(i)||flat(i);
+   rib(C,po,-4.9,4.9,.02,flat);rib(C,po,-4.9,4.9,-.5,nb);wall(C,po,-4.9,-.5,.02,nb);wall(C,po,4.9,-.5,.02,nb);
+   for(let i=0;i<po.length-1;i++){if(brg(i)||flat(i))continue;const a=po[i],b=po[i+1],na=nr(po,i),nb2=nr(po,i+1);for(const sd of[-1,1]){const ax=a[0]+na[0]*4.9*sd,az=a[1]+na[1]*4.9*sd,bx=b[0]+nb2[0]*4.9*sd,bz=b[1]+nb2[1]*4.9*sd;quad(C,[[ax,Yd(a)+.02,az],[ax,a[2]-.7,az],[bx,Yd(b)+.02,bz],[bx,b[2]-.7,bz]])}}}
   for(const sd of[-1,1]){const sk2=sk(sd,ho,skipR);wall(R,po,ho*sd,.35,.95,sk2);wcol(po,ho*sd,sk2);for(let i=0;i<po.length-1;i+=2){if(sk2(i))continue;const n=nr(po,i);posts.push([po[i][0]+n[0]*ho*sd,Yd(po[i]),po[i][1]+n[1]*ho*sd])}}
   const step=ring||kd==='byp'?6:kd==='spur'?4:0;
-  if(step)for(let i=ring?3:2;i<po.length-1;i+=step){const p=po[i];if(ring?nearP(p,HW.merge):(nearP(p,HW.junc,16)||nearP(p,HW.mouth)))continue;
+  if(step)for(let i=ring?3:2;i<po.length-1;i+=step){const p=po[i];if(ring?(nearP(p,HW.merge)||nearP(p,HW.junc,14)):(nearP(p,HW.junc,16)||nearP(p,HW.mouth)))continue;
    const n=nr(po,i),sd=(cnt++%2)?1:-1,off=ring?(bk(po,i)>.35?8.9:9.4):5.4,px=p[0]+n[0]*off*sd,pz=p[1]+n[1]*off*sd,dx=-n[0]*sd,dz=-n[1]*sd,y=Yd(p),ry=Math.atan2(dx,dz);
    M(.16,4.3,.16,0x3a3f44,px,y,pz);M(.12,.1,.95,0x3a3f44,px+dx*.45,y+4.2,pz+dz*.45,ry);M(.5,.12,.5,lampMat,px+dx*.9,y+4.1,pz+dz*.9,ry);
    LAMPS.push({x:px+dx*.9,y:y+4.1,z:pz+dz*.9});const pm=new THREE.Mesh(poolGeo,poolMat);pm.rotation.x=-Math.PI/2;pm.position.set(px+dx*.9,y+.15,pz+dz*.9);pm.userData.st=1;scene.add(pm)}});
@@ -3143,18 +3146,18 @@ function setHouseColor(h,c){if(!h.om)h.om=h.door.leaf.material;h.door.leaf.mater
 function releaseHouse(h){if(h.door.open){h.door.open=false;h.door.col.on=true}h.owned=false;h.mode=null;h.mort=null;h.late=0;if(h.om)h.door.leaf.material=h.om}
 function debtTotal(){return(loan?loan.left:0)+HOUSES.reduce((a,h)=>a+(h.mort?h.mort.left:0),0)}
 function houseInfoHtml(){return HOUSES.filter(h=>h.owned&&(h.mode==='rent'||h.mode==='mort')).map(h=>h.mode==='rent'?`<div>${h.apt?'Piso':'Casa'} (${h.x}, ${h.z}): alquiler €${RENT}/día</div>`:`<div>${h.apt?'Piso':'Casa'} (${h.x}, ${h.z}): hipoteca, debes €${h.mort.left} · ${h.mort.n} cuotas de €${h.mort.cuota}</div>`).join('')}
-function estateHtml(){let h='<p>Compra al contado, alquila o financia con hipoteca (los pagos se cobran cada medianoche; con '+HOUSE_LATE_MAX+' impagos seguidos pierdes la vivienda).</p>';
+function estateHtml(){let h='<p>Compra al contado, alquila o financia con hipoteca (los pagos se cobran cada medianoche; con '+HOUSE_LATE_MAX+' impagos seguidos pierdes la vivienda).</p><div><button onclick="estateMap(\'all\')">🗺️ Ver en mapa</button></div>';
  const card=(x,ic,lb)=>{const e=Math.round(x.price*MORT_DOWN),tot=Math.round((x.price-e)*(1+MORT_RATE)),c=Math.ceil(tot/MORT_N);return '<div class="r"><i class="ic">'+ic+'</i><span>'+lb+' en ('+x.x+', '+x.z+')</span><b>€'+x.price+'</b><button onclick="buyHouse('+x.id+')">Comprar</button></div><div><button onclick="rentHouse('+x.id+')">Alquilar: €'+RENT+'/día</button> <button onclick="mortHouse('+x.id+')">Hipoteca: entrada €'+e+' + '+MORT_N+'×€'+c+'</button></div>'},
   near=f=>HOUSES.filter(f).sort((a,b)=>Math.hypot(a.x-pl.x,a.z-pl.z)-Math.hypot(b.x-pl.x,b.z-pl.z));
- h+='<button onclick="estateMap(\'all\')">🗺️ Ver todo en el mapa</button>';h+=terrenosHtml();
- h+='<h3>Casas</h3><button onclick="estateMap(\'casa\')">🗺️ Ver en mapa</button>';near(x=>!x.owned&&!x.local&&!x.apt).slice(0,3).forEach(x=>{h+=card(x,'🏠','Casa')});
- h+='<h3>Pisos</h3><p>Solo puedes entrar en las casas y pisos que son tuyos.</p><button onclick="estateMap(\'piso\')">🗺️ Ver en mapa</button>';near(x=>!x.owned&&x.apt).slice(0,3).forEach(x=>{h+=card(x,'🏢','Piso')});
- h+='<h3>Locales comerciales</h3><p>Para tu propio negocio. Compra al contado (puerta naranja en la calle).</p><button onclick="estateMap(\'local\')">🗺️ Ver en mapa</button>';HOUSES.filter(x=>x.local).sort((a,b)=>Math.hypot(a.x-pl.x,a.z-pl.z)-Math.hypot(b.x-pl.x,b.z-pl.z)).forEach(x=>{h+=x.owned?`<div class="r"><i class="ic">🏪</i><span>Local en (${x.x}, ${x.z})</span><b>Tuyo</b></div>`:x.remote?`<div class="r"><i class="ic">🏪</i><span>Local en (${x.x}, ${x.z})<br><small>${x.remote.occ?'Local de':'Negocio de'} ${pcEsc(x.remote.name)}${x.remote.on?'':' · desconectado'}</small></span><b>Ocupado</b></div>`:`<div class="r"><i class="ic">🏪</i><span>Local en (${x.x}, ${x.z})<br><small>≈ €${bizInc(x,1)}/día de inicio</small></span><b>€${x.price}</b><button onclick="buyLocal(${x.id})">Comprar</button></div>`});
+ h+=terrenosHtml();
+ near(x=>!x.owned&&!x.local&&!x.apt).slice(0,3).forEach(x=>{h+=card(x,'🏠','Casa')});
+ h+='<h3>Pisos</h3><p>Solo puedes entrar en las casas y pisos que son tuyos.</p>';near(x=>!x.owned&&x.apt).slice(0,3).forEach(x=>{h+=card(x,'🏢','Piso')});
+ h+='<h3>Locales comerciales</h3><p>Para tu propio negocio. Compra al contado (puerta naranja en la calle).</p>';HOUSES.filter(x=>x.local).sort((a,b)=>Math.hypot(a.x-pl.x,a.z-pl.z)-Math.hypot(b.x-pl.x,b.z-pl.z)).forEach(x=>{h+=x.owned?`<div class="r"><i class="ic">🏪</i><span>Local en (${x.x}, ${x.z})</span><b>Tuyo</b></div>`:x.remote?`<div class="r"><i class="ic">🏪</i><span>Local en (${x.x}, ${x.z})<br><small>${x.remote.occ?'Local de':'Negocio de'} ${pcEsc(x.remote.name)}${x.remote.on?'':' · desconectado'}</small></span><b>Ocupado</b></div>`:`<div class="r"><i class="ic">🏪</i><span>Local en (${x.x}, ${x.z})<br><small>≈ €${bizInc(x,1)}/día de inicio</small></span><b>€${x.price}</b><button onclick="buyLocal(${x.id})">Comprar</button></div>`});
  const mine=HOUSES.filter(x=>x.owned&&(x.mode==='rent'||x.mode==='mort'));
  if(mine.length){h+='<h3>Tus contratos</h3>';mine.forEach(x=>{h+=x.mode==='rent'?`<div>${x.apt?'Piso':'Casa'} (${x.x}, ${x.z}) · alquiler €${RENT}/día <button onclick="endRent(${x.id})">Dejar el alquiler</button></div>`:`<div>${x.apt?'Piso':'Casa'} (${x.x}, ${x.z}) · debes €${x.mort.left} (${x.mort.n} cuotas de €${x.mort.cuota}) <button onclick="mortPay1(${x.id})">Adelantar cuota</button> <button onclick="mortPayAll(${x.id})">Liquidar (€${x.mort.left})</button></div>`})}
  return h}
 function terrenosHtml(){const dist=t=>Math.hypot(t.x-pl.x,t.z-pl.z),free=TERRENOS.filter(t=>!t.owned&&!t.rem).sort((a,b)=>dist(a)-dist(b)),mine=TERRENOS.filter(t=>t.owned);
- let h='<h3>Terrenos</h3><p>Solo se pagan al contado. Cuando uno sea tuyo, ve a él y pulsa E para construir por módulos. Ordenados del más cercano al más lejano; los verás señalados en el mapa de la isla principal, con su cartel y número.</p><button onclick="estateMap(\'terr\')">🗺️ Ver en mapa</button>';
+ let h='<h3>Terrenos</h3><p>Solo se pagan al contado. Cuando uno sea tuyo, ve a él y pulsa E para construir por módulos. Ordenados del más cercano al más lejano; los verás señalados en el mapa de la isla principal, con su cartel y número.</p>';
  free.forEach(t=>{h+='<div class="r"><i class="ic">🟩</i><span>Terreno nº '+t.id+' · '+t.w+'×'+t.d+' m<br><small>en ('+t.x+', '+t.z+') · '+Math.round(dist(t))+' m de ti</small></span><b>€'+t.price+'</b><button onclick="buyTerreno('+t.id+')">Comprar</button></div>'});
  if(!free.length)h+='<div>No quedan terrenos a la venta.</div>';;
  if(mine.length){h+='<div style="margin-top:6px"><b>Tus terrenos:</b> '+mine.map(t=>'nº '+t.id+' ('+t.w+'×'+t.d+' m)').join(' · ')+'</div>'}
