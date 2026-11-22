@@ -2865,7 +2865,7 @@ function setHouseColor(h,c){if(!h.om)h.om=h.door.leaf.material;h.door.leaf.mater
 function releaseHouse(h){if(h.door.open){h.door.open=false;h.door.col.on=true}h.owned=false;h.mode=null;h.mort=null;h.late=0;if(h.om)h.door.leaf.material=h.om}
 function debtTotal(){return(loan?loan.left:0)+HOUSES.reduce((a,h)=>a+(h.mort?h.mort.left:0),0)}
 function houseInfoHtml(){return HOUSES.filter(h=>h.owned&&(h.mode==='rent'||h.mode==='mort')).map(h=>h.mode==='rent'?`<div>${h.apt?'Piso':'Casa'} (${h.x}, ${h.z}): alquiler €${RENT}/día</div>`:`<div>${h.apt?'Piso':'Casa'} (${h.x}, ${h.z}): hipoteca, debes €${h.mort.left} · ${h.mort.n} cuotas de €${h.mort.cuota}</div>`).join('')}
-function estateHtml(){let h='<p>Compra al contado, alquila o financia con hipoteca (los pagos se cobran cada medianoche; con '+HOUSE_LATE_MAX+' impagos seguidos pierdes la vivienda).</p>';
+function estateHtml(){let h='<p>Compra al contado, alquila o financia con hipoteca (los pagos se cobran cada medianoche; con '+HOUSE_LATE_MAX+' impagos seguidos pierdes la vivienda).</p><div><button onclick="estateMap(\'all\')">🗺️ Ver en mapa</button></div>';
  const card=(x,ic,lb)=>{const e=Math.round(x.price*MORT_DOWN),tot=Math.round((x.price-e)*(1+MORT_RATE)),c=Math.ceil(tot/MORT_N);return '<div class="r"><i class="ic">'+ic+'</i><span>'+lb+' en ('+x.x+', '+x.z+')</span><b>€'+x.price+'</b><button onclick="buyHouse('+x.id+')">Comprar</button></div><div><button onclick="rentHouse('+x.id+')">Alquilar: €'+RENT+'/día</button> <button onclick="mortHouse('+x.id+')">Hipoteca: entrada €'+e+' + '+MORT_N+'×€'+c+'</button></div>'},
   near=f=>HOUSES.filter(f).sort((a,b)=>Math.hypot(a.x-pl.x,a.z-pl.z)-Math.hypot(b.x-pl.x,b.z-pl.z));
  h+=terrenosHtml();
