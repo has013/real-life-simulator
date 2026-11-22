@@ -225,7 +225,7 @@ console.log(gov.election ? '[elecciones] votación en curso restaurada: ' + gov.
 function saveGov() { try { writeJsonAtomic(GOV_FILE, gov); } catch (e) { console.warn('No se pudo guardar gov.json', e.message); } }
 const isMayor = p => !!(gov.mayor && p && p.uid === gov.mayor.uid);
 function pub(p) { // versión pública del jugador: sin uid y con rango 9 si es el Alcalde
-  const o = Object.assign({}, p); delete o.uid;
+  const o = Object.assign({}, p); delete o.uid; delete o.vit; // vit (hambre/energía) solo lo ve el administrador
   if (isMayor(p)) o.profile = Object.assign({}, p.profile, { rk: 9 });
   return o;
 }
@@ -593,6 +593,7 @@ function touchKnown(p, live) {
   if (!k) { if (known.size >= 500) return; k = { uid: p.uid, name: p.name, money: 0, rk: 0, last: 0 }; known.set(p.uid, k); }
   k.name = p.name; k.last = Date.now();
   if (live && p.profile) { k.money = Math.round(Number(p.profile.money) || 0); k.rk = toInt(p.profile.rk, 0, 9); }
+  if (live && p.vit) { k.h = p.vit.h; k.e = p.vit.e; }
   knownDirty = true;
 }
 function adminData() {
@@ -602,7 +603,7 @@ function adminData() {
     (byUid[c.uid] = byUid[c.uid] || []).push({ x: c.x, z: c.z, ty: e ? e.ty : null, lv: e ? e.lv : 0, till: e ? (e.till || 0) : 0, items: e ? e.items.map(i => ({ k: i.k, n: i.n, p: i.p })) : [] });
   }
   const uids = new Set([...known.keys(), ...Object.keys(byUid)]);
-  const list = [...uids].map(uid => { const k = known.get(uid) || {}; return { ref: adminRef(uid), name: k.name || names[uid] || 'Jugador', online: uidOnline(uid), money: k.money || 0, rk: k.rk || 0, biz: byUid[uid] || [] }; });
+  const list = [...uids].map(uid => { const k = known.get(uid) || {}; return { ref: adminRef(uid), name: k.name || names[uid] || 'Jugador', online: uidOnline(uid), money: k.money || 0, rk: k.rk || 0, h: k.h != null ? k.h : null, e: k.e != null ? k.e : null, biz: byUid[uid] || [] }; });
   list.sort((a, b) => (b.online - a.online) || a.name.localeCompare(b.name));
   return { type: 'admin_data', players: list, world: { tod: world.tod, wx: world.wx, freezeTod: world.freezeTod, freezeWx: world.freezeWx } };
 }
@@ -633,6 +634,18 @@ function handleAdmin(ws, p, msg) {
     for (const q of players.values()) if (q.uid === uid && q.profile) q.profile.money = money;
     console.log('[admin]', p.name, 'puso el dinero de', nm, 'a', money);
     send(ws, adminData()); return say('admin_ok', '✅ Dinero de ' + nm + ': €' + money + (uidOnline(uid) ? '' : ' (se aplicará cuando entre)'));
+  }
+  if (msg.type === 'admin_vit') { // hambre y energía (0-100 %) de la partida del jugador
+    const cmd = { t: 'vit' };
+    if (msg.h != null) cmd.h = toInt(msg.h, 0, 100);
+    if (msg.e != null) cmd.e = toInt(msg.e, 0, 100);
+    if (cmd.h == null && cmd.e == null) return say('admin_err', 'Nada que cambiar');
+    adminDeliver(uid, cmd);
+    const k = known.get(uid); if (k) { if (cmd.h != null) k.h = cmd.h; if (cmd.e != null) k.e = cmd.e; knownDirty = true; }
+    for (const q of players.values()) if (q.uid === uid && q.vit) { if (cmd.h != null) q.vit.h = cmd.h; if (cmd.e != null) q.vit.e = cmd.e; }
+    console.log('[admin]', p.name, 'puso a', nm, 'hambre', cmd.h, 'energía', cmd.e);
+    send(ws, adminData());
+    return say('admin_ok', '✅ ' + nm + ': ' + [cmd.h != null ? 'hambre ' + cmd.h + ' %' : '', cmd.e != null ? 'energía ' + cmd.e + ' %' : ''].filter(Boolean).join(' · ') + (uidOnline(uid) ? '' : ' (se aplicará cuando entre)'));
   }
   if (msg.type === 'admin_biz') {
     const x = Math.round(Number(msg.x)), z = Math.round(Number(msg.z)), key = bizKeyOf(x, z), c = claims[key], e = bizReg[key];
@@ -926,6 +939,7 @@ wss.on('connection', ws => {
         career:Array.isArray(pr.career)?pr.career.slice(0,20).map(v=>String(v).slice(0,100)) : []
       };
     }
+    if (msg.vit && typeof msg.vit === 'object') p.vit = { h: toInt(msg.vit.h, 0, 100), e: toInt(msg.vit.e, 0, 100) }; // hambre y energía: solo para el panel de administrador (no se difunde a los demás)
     touchKnown(p, true);
     if (boatChanged) broadcastBoats();
     broadcast({type:'state', player:pub(p)}, ws);

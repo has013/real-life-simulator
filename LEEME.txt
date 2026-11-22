@@ -86,3 +86,18 @@ TRANSFERENCIAS ENTRE JUGADORES (NUEVO)
 - Hay que estar a menos de 15 m del otro jugador cuando envías la oferta.
 - Al enviar un negocio se transfieren tipo, nivel, caja y existencias; el almacén general no se transfiere.
 - La partida de ambos se guarda automáticamente al completarse la transferencia.
+
+GIMNASIO (NUEVO)
+- Hay dos gimnasios en el barrio principal, en dos locales que antes eran inmobiliarias (icono 💪 naranja en el mapa).
+  Abren de 07:00 a 23:00. Los abonos se compran hablando con la monitora de la recepción (E).
+- Se puede comprar un pase de día (15 €, vale hasta medianoche) o un abono semanal (80 €, 7 días).
+- Con abono se puede entrenar para subir la habilidad Condición Física (de +1 a +3 puntos según lo bien que lo hagas;
+  por debajo del 50 % no suma nada. El tablón da +2 con 4-5 aciertos, +1 con 3 y nada con menos):
+  · Cinta de correr: pisa alternando pie izquierdo y derecho al ritmo de la luz (16 pasos; a mitad, la cinta acelera).
+  · Press de banca: mantén pulsado «Empujar» para subir la barra y suéltalo en la zona verde, sin llegar arriba del todo
+    (6 repeticiones, cada una 10 kg más).
+  · Saco de boxeo: pulsa el golpe que canta el entrenador antes de que se acabe el tiempo (10 golpes).
+  · Tablón del monitor: test de 5 preguntas sobre entrenamiento.
+- Entrenar dura 30 min de juego y cansa (energía −10, hambre −2,5). Hace falta al menos 25 % de energía y 20 % de hambre.
+  Cada aparato tiene un rato de espera antes de poder repetirlo.
+- Condición Física la piden trabajos como Montador (muebles), Repartidor y el FP de Logística.

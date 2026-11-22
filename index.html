@@ -173,7 +173,7 @@ canvas{display:block}
 #admPanel button{background:#2b6cb0;color:#fff;border:0;border-radius:7px;padding:5px 10px;cursor:pointer;font:600 12px system-ui;margin-left:4px}
 #admPanel button.danger{background:#b03a2e}
 #admPanel input,#admPanel select{background:#0d1b2a;color:#fff;border:1px solid #ffffff55;border-radius:6px;padding:4px 6px;font:13px system-ui}
-#admPanel input[type=number]{width:96px}#admPanel input.admStock{width:62px}
+#admPanel input[type=number]{width:96px}#admPanel input.admStock,#admPanel input.admVit{width:62px}
 .admP{border:1px solid #ffffff2a;border-radius:10px;padding:9px 11px;margin-bottom:9px;background:rgba(255,255,255,.04)}
 .admR{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .admDot{display:inline-block;width:10px;height:10px;border-radius:50%;background:#777}.admDot.on{background:#2ecc71}
@@ -746,8 +746,9 @@ function hotelUp(px,pz,w,d){const Y=[0,4.57,7.57,10.57,13.57],Y5=16.57,C=0xcfc8b
  addElev(px,pz,5,{e0,e1,z0,z1,ys:Y,H:Y5-.3-G,bx:e0-.5})}
 function shopIn(key,cx,cz,fz,w,d,zf){
  const S=SHOPS[key],L=d/2-.4,F=(x,y,l,sx,sy,sz,c,s)=>box(cx+x,G+.03+y,cz+fz*l,sx,sy,sz,c,s),big=w>20,bar=key==='bar',cl=()=>pick([0xd9473a,0x3a9ad9,0xe0b020,0x4aa35a,0xe8e8e8,0xff8a3a]);
- F(0,0,-L+3.3,bar?9:5,1,.9,0x8b5a2b,true);F(0,1,-L+3.3,bar?9.2:5.2,.06,1.05,0x2f2f2f,false);F(1.5,1.06,-L+3.3,.6,.35,.45,0x222222,false);
- F(0,0,-L+.35,w-3,2.4,.5,0xd7dbde,true);for(let r=0;r<4;r++)for(let x=-(w-4)/2;x<=(w-4)/2;x+=1.2)F(x,.35+r*.55,-L+.85,.9,.4,.3,cl(),false);
+ const gym=key==='gym';F(0,0,-L+3.3,bar?9:5,1,.9,gym?0x2b2f33:0x8b5a2b,true);F(0,1,-L+3.3,bar?9.2:5.2,.06,1.05,gym?0xf39c12:0x2f2f2f,false);if(!gym)F(1.5,1.06,-L+3.3,.6,.35,.45,0x222222,false);
+ if(gym)gymIn(F,L,w,cl); // gimnasio: sin estanterías (gymIn gasta los mismos números aleatorios que una tienda, para no alterar el mapa)
+ else{F(0,0,-L+.35,w-3,2.4,.5,0xd7dbde,true);for(let r=0;r<4;r++)for(let x=-(w-4)/2;x<=(w-4)/2;x+=1.2)F(x,.35+r*.55,-L+.85,.9,.4,.3,cl(),false)}
  const wk=person(0x2255aa),wz=cz+fz*(-L+1.8);wk.position.set(cx,G+.03,wz);wk.rotation.y=fz>0?0:Math.PI;scene.add(wk);
  WORKERS.push({x:cx,z:wz,key,name:S.worker,sp:{x:cx,z:zf+fz*4.8}});
  F(0,1.5,-L+.02,big?10:6,.5,.04,parseInt(S.col.slice(1),16),false);
@@ -767,8 +768,25 @@ function shopIn(key,cx,cz,fz,w,d,zf){
  else if(key==='estate'){[-5,5].forEach(x=>{F(x,0,1.5,2.4,.8,1.2,0x9c7a55,true);F(x,.8,1.5,.8,.5,.06,0x111111,false);F(x,0,3,.5,.5,.5,0x333333,false)});F(-6.5,1.2,L-.1,2.5,1.6,.05,0xdfe6ee,false);F(-6.5,1.2,L-.12,2,1.2,.05,0x4a8a5a,false)}
  else if(key==='shop'){[-5,5].forEach(x=>{F(x,1.5,1,2.4,.05,.05,0x888888,false);F(x-.9,0,1,.05,1.5,.05,0x888888,false);F(x+.9,0,1,.05,1.5,.05,0x888888,false);for(let i=-2;i<=2;i++)F(x+i*.4,.8,1,.25,.7,.1,cl(),false)});
   [-2.5,2.5].forEach(x=>{const m=person(0xdddddd);m.position.set(cx+x,G+.03,cz+fz*4);scene.add(m)})}
- else (big?[-14,-10,-6,6,10,14]:[-6,-3.6,3.6,6]).forEach(x=>{F(x,0,.8,1,.1,6,0x999999,false);for(let r=0;r<3;r++)for(let q=0;q<2;q++){const m=F(x,.1+r*.6,-.7+q*3.1,.95,.4,2.8,cl(),true);if(r===1)IA(m,'shelf',key)}});
+ else if(!gym)(big?[-14,-10,-6,6,10,14]:[-6,-3.6,3.6,6]).forEach(x=>{F(x,0,.8,1,.1,6,0x999999,false);for(let r=0;r<3;r++)for(let q=0;q<2;q++){const m=F(x,.1+r*.6,-.7+q*3.1,.95,.4,2.8,cl(),true);if(r===1)IA(m,'shelf',key)}});
 }
+// Interior del gimnasio (local de 16x16 que antes era una inmobiliaria). Coordenadas como en shopIn: x a lo ancho, l hacia la puerta (l=-L es la pared del fondo).
+// Mostrador de recepción y monitora: los pone shopIn. Aquí: cintas (oeste), bancos de pesas (centro), sacos (este), tablón del monitor y espejo.
+// Las actividades están en «Gimnasio, parte 2». OJO: no usar rnd()/pick(). Al principio se gastan en vacío los mismos cl() que una tienda normal
+// (estantería del fondo + pasillos de estanterías) para que lo que se construye después no cambie de sitio.
+function gymIn(F,L,w,cl){const mt=0x2b2f33,ch=0xb0b6bb,ac=0xf39c12,
+ cyl=(r,h,x,y,l,c,rz)=>{const m=F(x,y,l,.01,.01,.01,c,false);m.geometry.dispose();m.geometry=new THREE.CylinderGeometry(r,r,h,16);m.position.y=G+.03+y;if(rz)m.rotation.z=rz;return m};
+ for(let r=0;r<4;r++)for(let x=-(w-4)/2;x<=(w-4)/2;x+=1.2)cl();for(let i=0;i<(w>20?6:4)*3*2;i++)cl();
+ F(0,0,0,w-.8,.02,2*L,0x3a3f45,false);
+ for(const l of[-3.6,-1.2,1.2]){F(-6.4,0,l,2,.22,.85,mt,false);F(-6.4,.22,l,1.7,.02,.55,0x111111,false);
+  for(const s of[-1,1])F(-7.35,.22,l+s*.38,.06,1.05,.06,ch,false);IA(F(-7.35,1.27,l,.12,.28,.8,0x1e88e5,false),'gymrun')}
+ for(const x of[-2.6,2.2]){const l=3.6;F(x,.38,l,.45,.08,1.4,0x1b1b1b,false);F(x,0,l-.4,.08,.38,.08,ch,false);F(x,0,l+.4,.08,.38,.08,ch,false);
+  for(const s of[-1,1])F(x+s*.6,0,l-.65,.07,1.15,.07,ch,false);IA(cyl(.03,2,x,1.12,l-.65,ch,Math.PI/2),'gymlift');for(const s of[-1,1])cyl(.24,.1,x+s*.82,1.12,l-.65,0x111111,Math.PI/2)}
+ F(5.6,0,-1.2,3.6,.03,5.6,0xc0392b,false);
+ for(const l of[-3,.6]){const x=5.8;F(x,2.05,l,.04,2.1,.04,0x888888,false);const b=IA(cyl(.26,1.2,x,1.45,l,0x8e1b1b),'gymbox');
+  colliders.push({x0:b.position.x-.26,x1:b.position.x+.26,z0:b.position.z-.26,z1:b.position.z+.26,y0:G+.9,y1:G+2.1,on:true})}
+ F(7.55,1.1,3,.05,1.2,1.8,0xffffff,false);F(7.52,1.65,3,.03,.12,1.4,ac,false);IA(F(7.25,.8,3,.3,.3,.5,ac,false),'gymtips');
+ F(-7.55,.4,4,.04,2,3,0xcfe8f5,false)}
 // Interior de tienda para los locales comerciales: quita los muebles de casa y monta una tienda
 const LTYPES={super:{n:'SUPERMERCADO',i:'🛒',c:'#27ae60',m:1.15,fl:0xe9e9e4,d:'Pasillos con productos, neveras y caja.'},
  bar:{n:'BAR',i:'🍺',c:'#a0522d',m:1.1,fl:0x8a6a48,d:'Barra con taburetes, botellas, mesas y gramola.'},
@@ -889,6 +907,7 @@ furn:{n:'MUEBLES',c:'#7a4a2a',wall:0xe3d3c0,floor:0xb89a78,L:'M',col:'#9b6a3a',w
 shop:{n:'MODA',c:'#8a2be2',wall:0xe8dff0,floor:0xcfc8d8,L:'T',col:'#a84be8',worker:'Dependienta',job:['Dependiente',140],items:[['Camiseta',25],['Camisa',45],['Chaqueta',95],['Vaqueros',60],['Pantalón corto',30],['Zapatillas',80],['Gorra',15],['Sombrero',30],['Gafas de sol',20],['Bufanda',18],['Mochila',40],['Reloj',35]]},
 bar:{n:'BAR',c:'#b8860b',wall:0xe8c9a0,floor:0x8a6a4a,L:'B',col:'#e0b020',worker:'Camarero',job:['Camarero',120],items:[['Café',2],['Cerveza',3],['Tapa',5]]},
 estate:{n:'INMOBILIARIA',c:'#1f5fa8',wall:0xdfe6ee,floor:0xc2c8d0,L:'I',col:'#2f7fe0',worker:'Agente',job:null},
+gym:{n:'GIMNASIO',c:'#d35400',wall:0xe9ecef,floor:0x3a3f45,L:'💪',col:'#f39c12',worker:'Monitora',job:null,items:[]},
 hotel:{n:'HOTEL',c:'#6a2c91',wall:0xe8d8c0,floor:0xb08a5a,L:'H',col:'#8e44ad',worker:'Recepcionista',job:['Botones',160],items:[]},
 garage:{n:'TALLER',c:'#37474f',wall:0xe3e6e8,floor:0x9a9fa4,L:'R',col:'#546e7a',worker:'Mecánico'},
 gas:{n:'GASOLINERA',c:'#c62828',wall:0xf4e9d8,floor:0xcfd3d6,L:'G',col:'#e53935',worker:'Gasolinero',job:['Mozo de gasolinera',140],items:[['Bocadillo',4],['Refresco',2],['Chocolate',2],['Café',2],['Bidón de gasolina',18]]},
@@ -1067,7 +1086,10 @@ function makeGas(x0,z0){const X=a=>x0+a,Z=a=>z0+a,S=SHOPS.gas,cb=(x,z,w,d,h,foot
  sign('GAS · '+PRICE+' €/L',X(36.5),G+7,Z(37),4.4,1,'#c62828');sign('GAS · '+PRICE+' €/L',X(36.5),G+7,Z(37),4.4,-1,'#c62828')}
 let petPlaced=false;const petT=t=>(t==='shop:shop'&&!petPlaced)?(petPlaced=true,'shop:pet'):t;
 const SEQ=['house','apt','house','shop:food','house','apt','shop:furn','house','tower','shop:bar','house','shop:bank','shop:shop','house','shop:estate'];let si=0;
-function place(t,px,pz,fz){if(t==='house')house(px,pz,fz);else if(t==='apt')apt(px,pz,fz,false);else if(t==='tower')apt(px,pz,fz,true);else shop(t.split(':')[1],px,pz,fz,16)}
+// Gimnasios: la 3.ª y la 5.ª inmobiliaria del barrio principal (nº 2 y 4 contando desde 0; en x≈65,z≈244 y x≈173,z≈190) son gimnasios. Quedan 4 inmobiliarias.
+let estN=0;const GYM_AT=[2,4];
+function place(t,px,pz,fz){if(t==='house')house(px,pz,fz);else if(t==='apt')apt(px,pz,fz,false);else if(t==='tower')apt(px,pz,fz,true);
+ else{let k=t.split(':')[1];if(k==='estate'&&GYM_AT.includes(estN++))k='gym';shop(k,px,pz,fz,16)}}
 for(let i=0;i<N;i++)for(let j=0;j<N;j++){const x0=i*P,z0=j*P;
  if(i==PKI&&j==PKJ){makeParking(x0,z0);continue}
  if(GAS.some(g=>g[0]==i&&g[1]==j)){si+=4;makeGas(x0,z0);continue}
@@ -2534,7 +2556,7 @@ const ICON={'Comida para mascotas':'🦴','Manzanas':'🍎','Pan':'🍞','Agua':
 const row=(n,p,f,ic)=>`<div class="r">${ic?`<i class="ic">${ic}</i>`:''}<span>${n}</span><b>€${p}</b><button onclick="${f}">Comprar</button></div>`;
 function openDlg(){dlgOpen=true;dlg.classList.remove('wide');dlg.style.display='block';document.exitPointerLock&&document.exitPointerLock();for(const k in K)K[k]=false}
 function closeDlg(){if(SLP)return;dlgOpen=false;dlg.style.display='none';try{ren.domElement.requestPointerLock()}catch(e){}}
-function talk(w){if(!isOpen(w.key)){toast('Cerrado: abre a las '+hrsTxt(w.key));return}openDlg();const S=SHOPS[w.key];let h=`<h2>${S.n}</h2><p>${w.name}: «¡Bienvenido! ¿En qué puedo ayudarte?»</p>`;
+function talk(w){if(!isOpen(w.key)){toast('Cerrado: abre a las '+hrsTxt(w.key));return}if(w.key==='gym'){gymDesk();return}openDlg();const S=SHOPS[w.key];let h=`<h2>${S.n}</h2><p>${w.name}: «¡Bienvenido! ¿En qué puedo ayudarte?»</p>`;
  if(w.key==='dealer')S.cars.forEach((c,i)=>h+=row(SPEC[c[0]].name,c[1],`buyCar(${i})`,CARIC[c[0]]||'🚗'));
  else if(w.key==='estate'){estW=w;h+=estateHtml()}
  else if(w.key==='shop'){dlg.classList.add('wide');h+='<div id="sb"></div>'}
@@ -2623,15 +2645,16 @@ function bizKey(){let b=null,bd=8;HOUSES.forEach(h=>{if(!h.local||!h.owned)retur
 
 // =================================================================================================
 // 14. PANEL DE ADMINISTRADOR
-//     Panel del administrador: jugadores, dinero, negocios, y hora y clima del mundo.
+//     Panel del administrador: jugadores, dinero, hambre y energía, negocios, y hora y clima del mundo.
 // =================================================================================================
 // Se abre con el comando secreto del chat. El comando y la autorización viven SOLO en el servidor: aquí no hay ninguna contraseña.
 // Si no eres administrador, el servidor ignora estos mensajes. ADM_SILENT=true oculta al jugador el aviso de que se le ha editado algo.
 const ADM_SILENT=false,ADM={el:null,data:[]};
 const admToast=t=>{if(!ADM_SILENT)toast(t)};
-// Aplica un cambio enviado por el administrador a mi partida (dinero o negocio) y lo guarda
+// Aplica un cambio enviado por el administrador a mi partida (dinero, hambre/energía o negocio) y lo guarda
 function admApply(c){if(!c||typeof c!=='object')return;
  if(c.t==='money'){money=Math.max(0,Math.floor(Number(c.money)||0));sfx.cash();admToast('💼 Un administrador ha ajustado tu dinero: €'+Math.round(money))}
+ else if(c.t==='vit'){if(c.h!=null)hunger=Math.max(0,Math.min(100,Number(c.h)||0));if(c.e!=null)energy=Math.max(0,Math.min(100,Number(c.e)||0));admToast('💼 Un administrador ha ajustado tu hambre y energía')}
  else if(c.t==='biz'){const h=xfFind(c.x,c.z,true);if(!h||!h.owned)return;
   if(c.remove){if(dlgOpen)closeDlg();releaseHouse(h);h.ty='';h.lv=0;h.till=0;h.stock={};try{localIn(h,'')}catch(_){}admToast('💼 Un administrador te ha retirado un local')}
   else{if(c.lv){h.lv=Math.max(1,Math.min(5,c.lv|0));if(h.ty){try{localIn(h,h.ty)}catch(_){}}}
@@ -2657,12 +2680,15 @@ function admRender(){if(!ADM.el)return;const b=ADM.el.querySelector('#admBody'),
    const lv='<select class="admLv">'+[1,2,3,4,5].map(n=>'<option value="'+n+'"'+(n===(q.lv||1)?' selected':'')+'>'+n+(BIZN&&BIZN[n]?' · '+pcEsc(BIZN[n]):'')+'</option>').join('')+'</select>';
    const stk=(q.items||[]).map(i=>'<label>'+pcEsc(i.k)+' <input class="admStock" type="number" min="0" data-k="'+pcEsc(i.k)+'" value="'+(i.n|0)+'"></label>').join('');
    return '<div class="admB" data-x="'+q.x+'" data-z="'+q.z+'">'+head+' · Nivel '+lv+' · Caja € <input class="admTill" type="number" min="0" value="'+(q.till|0)+'"><div class="admS"><small>Stock:</small>'+stk+'</div><button data-a="biz">Guardar negocio</button><button class="danger" data-a="del">Quitar local</button></div>'}).join('');
-  return '<div class="admP" data-ref="'+pcEsc(p.ref)+'" data-name="'+pcEsc(p.name)+'"><div class="admR"><span class="admDot'+(p.online?' on':'')+'" title="'+(p.online?'Conectado':'Desconectado')+'"></span><b>'+pcEsc(p.name)+'</b><small>'+(p.online?'conectado':'desconectado')+' · '+pcEsc(rankName(p.rk))+' · '+admMoney(p.money)+'</small><span style="flex:1"></span>€ <input class="admMoney" type="number" min="0" value="'+Math.round(p.money||0)+'"><button data-a="money">Guardar dinero</button></div>'+(biz?'<div>'+biz+'</div>':'<small style="color:#aab4c0;margin-left:14px">Sin locales ni negocios</small>')+'</div>'}).join('');
+  return '<div class="admP" data-ref="'+pcEsc(p.ref)+'" data-name="'+pcEsc(p.name)+'"><div class="admR"><span class="admDot'+(p.online?' on':'')+'" title="'+(p.online?'Conectado':'Desconectado')+'"></span><b>'+pcEsc(p.name)+'</b><small>'+(p.online?'conectado':'desconectado')+' · '+pcEsc(rankName(p.rk))+' · '+admMoney(p.money)+'</small><span style="flex:1"></span>€ <input class="admMoney" type="number" min="0" value="'+Math.round(p.money||0)+'"><button data-a="money">Guardar dinero</button></div>'+
+   '<div class="admR" style="margin-left:14px"><small>🍔 Hambre %</small><input class="admVit admH" type="number" min="0" max="100" value="'+(p.h!=null?p.h:'')+'" placeholder="?"><small>⚡ Energía %</small><input class="admVit admE" type="number" min="0" max="100" value="'+(p.e!=null?p.e:'')+'" placeholder="?"><button data-a="vit">Guardar hambre y energía</button><button data-a="vitfull">Llenar al 100 %</button></div>'+(biz?'<div>'+biz+'</div>':'<small style="color:#aab4c0;margin-left:14px">Sin locales ni negocios</small>')+'</div>'}).join('');
  b.scrollTop=sc}
 function admClick(e){const t=e.target.closest('button[data-a]');if(!t)return;const a=t.dataset.a;
  if(a==='close')return admClose();if(a==='refresh')return void govSend({type:'admin_list'});if(a.startsWith('w-'))return admWorldClick(a);
  const P=t.closest('.admP');if(!P)return;const ref=P.dataset.ref;
  if(a==='money')return void govSend({type:'admin_money',ref,money:Number(P.querySelector('.admMoney').value)});
+ if(a==='vitfull')return void govSend({type:'admin_vit',ref,h:100,e:100});
+ if(a==='vit'){const hv=P.querySelector('.admH').value,ev=P.querySelector('.admE').value,o={type:'admin_vit',ref};if(hv!=='')o.h=Number(hv);if(ev!=='')o.e=Number(ev);if(o.h==null&&o.e==null){toast('Escribe el hambre o la energía (0-100)');return}return void govSend(o)}
  const B=t.closest('.admB');if(!B)return;const x=+B.dataset.x,z=+B.dataset.z;
  if(a==='del'){if(confirm('¿Quitar este local a '+P.dataset.name+'? No se le devuelve el dinero.'))govSend({type:'admin_biz',ref,x,z,remove:true});return}
  if(a==='biz'){const stock={};B.querySelectorAll('.admStock').forEach(i=>{stock[i.dataset.k]=Number(i.value)});
@@ -2735,7 +2761,7 @@ function jobReqLine(k,id){const r=jobReq(k,id),a=SKILLS.filter(q=>(r[q.k]||0)>0)
 function jobCanDo(k,id){const m=jobMissing(k,id);if(!m.length)return true;const r=jobReq(k,id);toast('🔒 Te faltan puntos: '+m.map(q=>q.n+' ('+(skills[q.k]||0)+'/'+r[q.k]+')').join(', '));return false}
 let skillsOpen=false;
 function skillsHtml(){return '<details'+(skillsOpen?' open':'')+' ontoggle="skillsOpen=this.open"><summary style="cursor:pointer;font-weight:700;font-size:1.17em;margin:12px 0 6px">🧠 Habilidades</summary>'+SKILLS.map(q=>'<div class="r"><span>'+q.e+' '+q.n+'</span><b>'+skills[q.k]+' pts</b></div>').join('')+'</details>'}let hunger=100,thirst=100,energy=100,eff=0;let seat=null;
-const HRS={super:[8,22],dealer:[9,20],food:[8,22],furn:[10,20],shop:[10,21],bar:[12,24],estate:[9,19],hotel:[0,24],town:[9,18],bank:[9,18],pet:[10,21],gas:[0,24],garage:[8,20],ffood:[7,20],ffurn:[7,20],fcloth:[7,20]};
+const HRS={gym:[7,23],super:[8,22],dealer:[9,20],food:[8,22],furn:[10,20],shop:[10,21],bar:[12,24],estate:[9,19],hotel:[0,24],town:[9,18],bank:[9,18],pet:[10,21],gas:[0,24],garage:[8,20],ffood:[7,20],ffurn:[7,20],fcloth:[7,20]};
 const pad2=n=>(n<10?'0':'')+n;
 function isOpen(k){const h=HRS[k];return !h||(tod>=h[0]&&tod<h[1])}
 function hrsTxt(k){return pad2(HRS[k][0])+':00'}
@@ -2803,7 +2829,7 @@ function loanPayAll(){if(!loan)return;if(!pay(loan.left))return;loan=null;toast(
 function loanDay(){if(!loan)return;const c=loan.n<=1?loan.left:Math.min(loan.cuota,loan.left);
  if(money>=c){money-=c;loan.left-=c;loan.n--;sfx.cash();const q=loan.n;toast('🏦 Cuota cobrada: -€'+c+(q>0?' · quedan '+q:''));loanCheck()}
  else{const r=Math.max(1,Math.round(c*.1));loan.left+=r;loan.late=(loan.late||0)+1;toast('🏦 Cuota impagada: recargo +€'+r)}}
-function bankTick(){if(tod<prevTod-6){loanDay();houseDay()}prevTod=tod}
+function bankTick(){if(tod<prevTod-6){loanDay();houseDay();gymDay()}prevTod=tod}
 
 // ---------- 16.2 Casas: alquiler e hipoteca ----------
 const RENT=60,MORT_N=40,MORT_RATE=.20,MORT_DOWN=.20,HOUSE_LATE_MAX=3; // alquiler/día · cuotas · interés total · entrada · impagos seguidos antes de perder la casa
@@ -2926,8 +2952,8 @@ function qzRender(){const s=QZ.s,q=s.q[s.i],d=LIBACT[s.k];openDlg();
  dlg.innerHTML='<h2>'+d.e+' '+QT[s.k]+'</h2><p>Pregunta '+(s.i+1)+'/5</p>'+(s.msg?'<p><small>'+s.msg+'</small></p>':'')+'<p><b>'+q.t+'</b></p>'+
   q.o.map((o,j)=>'<div class="r"><button style="flex:1;text-align:left" onclick="qzAns('+j+')">'+o+'</button></div>').join('')+'<button onclick="closeDlg()" style="background:#a33">Salir</button>'}
 function qzAns(j){const s=QZ.s,q=s.q[s.i];if(j===q.c){s.ok++;s.msg='✅ ¡Correcto!'}else s.msg='❌ Lo mejor era: '+q.o[q.c];s.i++;if(s.i<s.q.length){qzRender();return}
- const k=s.k,d=LIBACT[k],pts=Math.max(2,s.ok),sk=SKILLS.find(x=>x.k===k);tod=(tod+.25)%24;hunger=Math.max(0,hunger-.8);thirst=100;energy=Math.max(0,energy-2);addSkill(k,pts);d.cd=tm+90;
- dlg.innerHTML='<h2>'+d.e+' Estudio terminado</h2><p>'+s.msg+'</p><p>Aciertos: <b>'+s.ok+'/5</b></p><p>'+sk.e+' <b>+'+pts+' '+sk.n+'</b> ('+skills[k]+')</p><button onclick="closeDlg()">Cerrar</button>'}
+ const k=s.k,d=LIBACT[k],pts=k==='fisica'?(s.ok>=4?2:s.ok>=3?1:0):Math.max(2,s.ok),sk=SKILLS.find(x=>x.k===k);tod=(tod+.25)%24;hunger=Math.max(0,hunger-.8);thirst=100;energy=Math.max(0,energy-2);addSkill(k,pts);d.cd=tm+90;
+ dlg.innerHTML='<h2>'+d.e+' Estudio terminado</h2><p>'+s.msg+'</p><p>Aciertos: <b>'+s.ok+'/5</b></p><p>'+(pts?sk.e+' <b>+'+pts+' '+sk.n+'</b> ('+skills[k]+')':'❌ Menos de 3 aciertos: no sumas puntos de '+sk.n)+'</p><button onclick="closeDlg()">Cerrar</button>'}
 // Biblioteca, ampliación: regateo con un proveedor (Negociación). 4 rondas; cuanto más cerca de su mínimo oculto cierres, más puntos (+2 a +5)
 const NG={s:null},ngRound=v=>Math.round(v/10)*10;
 function ngStart(){const d=LIBACT.negoc;if(tm<d.cd){toast('Ya has estudiado esto hace poco: descansa un rato');return}
@@ -2943,6 +2969,79 @@ function ngOffer(f){const s=NG.s,o=ngRound(s.ask*f);let paid=-1;
  const r=paid>0?clamp((s.ask0-paid)/(s.ask0-s.floor),0,1):0,pts=paid>0?(r>=.85?5:r>=.6?4:r>=.35?3:2):2,sk=SKILLS.find(q=>q.k==='negoc'),d=LIBACT.negoc;
  tod=(tod+.25)%24;hunger=Math.max(0,hunger-.8);thirst=100;energy=Math.max(0,energy-2);addSkill('negoc',pts);d.cd=tm+90;
  dlg.innerHTML='<h2>💼 Negociación terminada</h2><p>'+s.msg+'</p><p>'+(paid>0?'Pagas €'+paid+' (pedían €'+s.ask0+'; su mínimo era €'+s.floor+').':'No hay acuerdo (pedían €'+s.ask0+'; su mínimo era €'+s.floor+').')+'</p><p>'+sk.e+' <b>+'+pts+' '+sk.n+'</b> ('+skills.negoc+')</p><button onclick="closeDlg()">Cerrar</button>'}
+// Gimnasio, parte 2 (los locales son dos antiguas inmobiliarias: busca GYM_AT y gymIn): abonos hablando con la monitora de la recepción y entrenamientos de Condición Física.
+// Cada entrenamiento (cinta, pesas, saco) dura 30 min de juego, cansa (energía −10, hambre −2,5) y da de +1 a +3 puntos (0 por debajo del 50 %)
+// según la nota del minijuego; 90 s de enfriamiento por aparato. El tablón del monitor es un test de 5 preguntas (15 min; +2 con 4-5 aciertos, +1 con 3, 0 con menos).
+// Abono: flags.gym = días que le quedan (se guarda con la partida; bankTick → gymDay descuenta uno cada medianoche).
+const GYM={day:15,week:80},GYMACT={run:{n:'Cinta de correr',e:'🏃',cd:0},lift:{n:'Press de banca',e:'🏋️',cd:0},box:{n:'Saco de boxeo',e:'🥊',cd:0}};
+LIBACT.fisica={n:'Consejos del monitor',e:'💪',cd:0};QT.fisica='Consejos del monitor';
+function gymDay(){if(flags.gym>0){flags.gym--;if(!flags.gym)setTimeout(()=>toast('🏋️ Tu abono del gimnasio ha caducado'),5200)}}
+function gymDesk(){openDlg();const d=flags.gym||0,sk=SKILLS.find(q=>q.k==='fisica');
+ dlg.innerHTML='<h2>🏋️ Gimnasio · Recepción</h2><p>Monitora: «¡Hola! Con un abono puedes usar las cintas de correr, los bancos de pesas, los sacos de boxeo y el tablón del monitor. Abrimos de 07:00 a 23:00.»</p>'+
+  '<p><small>'+(d?'✅ Tienes abono: '+(d===1?'válido hasta esta medianoche':'quedan '+d+' días'):'❌ No tienes abono')+' · '+sk.e+' '+sk.n+': <b>'+skills.fisica+' pts</b> · energía '+Math.round(energy)+'%</small></p>'+
+  '<div class="r"><button onclick="gymBuy(1)">Pase de día: €'+GYM.day+'</button> <button onclick="gymBuy(7)">Abono semanal (7 días): €'+GYM.week+'</button></div><button onclick="closeDlg()" style="background:#666">Cerrar</button>'}
+function gymBuy(n){if(!isOpen('gym')){toast('El gimnasio está cerrado: abre a las 07:00');return}if(!pay(n===7?GYM.week:GYM.day))return;
+ flags.gym=(flags.gym||0)+n;toast('🏋️ '+(n===7?'Abono semanal':'Pase de día')+' comprado');saveGame();gymDesk()}
+function gymOk(a){if(!isOpen('gym')){toast('El gimnasio está cerrado: abre a las 07:00');return false}
+ if(!(flags.gym>0)){toast('Necesitas un abono: pásate por la recepción');return false}
+ if(tm<a.cd){toast('Ya has entrenado aquí hace poco: prueba otro aparato o descansa un rato');return false}
+ if(energy<25){toast('Estás demasiado cansado para entrenar');return false}if(hunger<20){toast('Con hambre no tienes fuerzas para entrenar');return false}return true}
+function gymEnd(k,r,txt){const a=GYMACT[k],pts=r>=.85?3:r>=.65?2:r>=.5?1:0,sk=SKILLS.find(q=>q.k==='fisica');
+ tod=(tod+.5)%24;hunger=Math.max(0,hunger-2.5);thirst=100;energy=Math.max(0,energy-10);addSkill('fisica',pts);a.cd=tm+90;openDlg();
+ dlg.innerHTML='<h2>'+a.e+' Entrenamiento terminado</h2><p>'+txt+'</p><p>Nota: <b>'+Math.round(r*100)+'%</b></p><p>'+(pts?sk.e+' <b>+'+pts+' '+sk.n+'</b> ('+skills.fisica+')':'❌ Por debajo del 50 %: no sumas puntos de '+sk.n)+'</p><p><small>30 min · energía −10 · hambre −2,5</small></p><button onclick="closeDlg()">Cerrar</button>'}
+// Cinta de correr: hay que pisar alternando pie izquierdo y derecho al ritmo de la cinta (la luz que parpadea). 16 pasos; a mitad, la cinta acelera.
+const TR={s:null};
+function trStart(){if(!gymOk(GYMACT.run))return;TR.s={i:0,n:16,sc:0,ft:-1,t0:0,beat:.6,msg:''};const a=GYMACT.run;openDlg();
+ dlg.innerHTML='<h2>'+a.e+' '+a.n+'</h2><p><small>Corre al ritmo de la cinta: pisa alternando 🦶 izquierdo y derecho, un paso cada vez que se enciende la luz. Si repites pie, tropiezas. A mitad, la cinta acelera.</small></p>'+
+  '<style>@keyframes trBeat{0%,30%{background:#2a9d4a;transform:scale(1.2)}31%,100%{background:#444;transform:scale(1)}}</style>'+
+  '<div style="display:flex;align-items:center;gap:10px;margin:8px 0"><div id="trDot" style="width:22px;height:22px;border-radius:50%;flex:none;animation:trBeat .6s linear infinite"></div><span id="trInfo">Paso 1/16 · empieza cuando quieras</span></div>'+
+  '<div style="height:10px;border-radius:5px;background:rgba(255,255,255,.12);margin:6px 0 12px;overflow:hidden"><div id="trBar" style="height:100%;width:0;background:#1e88e5;transition:width .2s"></div></div>'+
+  '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><button style="font-size:20px;padding:14px 0" onclick="trStep(0)">🦶 Izquierdo</button><button style="font-size:20px;padding:14px 0" onclick="trStep(1)">Derecho 🦶</button></div><p></p><button onclick="closeDlg()" style="background:#a33">Salir</button>'}
+function trStep(f){const s=TR.s;if(!s||!$('trInfo'))return;const now=performance.now()/1000;let g;
+ if(f===s.ft){g=0;s.msg='¡Tropiezas! Has repetido pie'}
+ else if(!s.t0){g=1;s.msg='¡Arrancas!'}
+ else{const dt=now-s.t0,e=Math.abs(dt-s.beat);g=e<.1?1:e<.22?.6:0;s.msg=g===1?'Buen ritmo':g?'Casi':(dt<s.beat?'Vas demasiado rápido':'Te quedas atrás')}
+ s.sc+=g;s.ft=f;s.t0=now;s.i++;
+ if(s.i>=s.n){TR.s=null;gymEnd('run',s.sc/s.n,'Has dado '+s.n+' zancadas en la cinta. Última: '+s.msg);return}
+ if(s.i===s.n/2){s.beat=.45;$('trDot').style.animationDuration='.45s';s.msg+=' · ¡La cinta acelera!'}
+ $('trInfo').textContent='Paso '+(s.i+1)+'/'+s.n+' · '+s.msg;$('trBar').style.width=(s.i/s.n*100)+'%'}
+// Press de banca: mantén pulsado «Empujar» para subir la barra y suéltalo en la zona verde (brazos estirados). Si llegas arriba del todo, bloqueas
+// los codos y fallas. La barra tiembla al subir; 6 repeticiones y cada una pesa 10 kg más (sube más rápido y la zona se estrecha).
+const BP={s:null,raf:0};
+function bpStart(){if(!gymOk(GYMACT.lift))return;BP.s={i:0,n:6,sc:0,p:0,hold:false,sp:.55,zc:.78,zw:.16,kg:40,msg:'',lt:0};bpRender()}
+function bpRender(){const s=BP.s,a=GYMACT.lift;openDlg();
+ dlg.innerHTML='<h2>'+a.e+' '+a.n+'</h2><p><small>Mantén pulsado «Empujar» para subir la barra y suéltalo cuando esté en la zona verde (brazos estirados). Si llegas a la franja roja, bloqueas los codos y fallas.</small></p><p>Repetición '+(s.i+1)+'/'+s.n+' · <b>'+s.kg+' kg</b>'+(s.msg?' · '+s.msg:'')+'</p>'+
+  '<div style="display:flex;gap:16px;align-items:center"><div style="position:relative;width:46px;height:170px;border-radius:10px;background:rgba(255,255,255,.12);overflow:hidden;flex:none">'+
+  '<div style="position:absolute;left:0;right:0;background:#2a9d4a;bottom:'+((s.zc-s.zw/2)*100)+'%;height:'+(s.zw*100)+'%"></div><div style="position:absolute;left:0;right:0;top:0;height:4%;background:#c0392b"></div>'+
+  '<div id="bpm" style="position:absolute;left:0;right:0;height:8px;margin-bottom:-4px;background:#ddd;border-radius:4px;bottom:0"></div></div>'+
+  '<button id="bpBtn" style="flex:1;font-size:20px;padding:26px 0;touch-action:none;user-select:none;-webkit-user-select:none">🏋️ Empujar</button></div><p></p><button onclick="closeDlg()" style="background:#a33">Salir</button>';
+ const b=$('bpBtn');
+ b.onpointerdown=e=>{e.preventDefault();if(BP.s!==s)return;s.hold=true;try{b.setPointerCapture(e.pointerId)}catch(_){}};
+ b.onpointerup=b.onpointercancel=()=>{if(BP.s!==s||!s.hold)return;s.hold=false;if(s.p>=.1)bpRelease()}; // un toque sin subir la barra no cuenta como repetición
+ b.oncontextmenu=e=>e.preventDefault();
+ s.p=0;s.lt=performance.now();cancelAnimationFrame(BP.raf);BP.raf=requestAnimationFrame(bpTick)}
+function bpTick(now){const s=BP.s,m=$('bpm');if(!s||!m||!dlgOpen)return;const dt=Math.min(.05,Math.max(0,now-s.lt)/1000);s.lt=now;
+ if(s.hold){s.p+=s.sp*dt*(1+.4*Math.sin(now/90));if(s.p>=.96){s.p=.96;s.hold=false;bpRelease();return}}else s.p=Math.max(0,s.p-.6*dt);
+ m.style.bottom=(s.p*100)+'%';BP.raf=requestAnimationFrame(bpTick)}
+function bpRelease(){const s=BP.s;if(!s)return;cancelAnimationFrame(BP.raf);const d=Math.abs(s.p-s.zc),h=s.zw/2;
+ if(s.p>=.96)s.msg='¡Bloqueas los codos!';else if(d<=h*.4){s.sc+=1;s.msg='¡Repetición perfecta!'}else if(d<=h){s.sc+=.7;s.msg='Buena repetición'}else s.msg=s.p<s.zc?'Te quedas corto':'Demasiado arriba';
+ s.i++;if(s.i>=s.n){BP.s=null;gymEnd('lift',s.sc/s.n,'Has hecho '+s.n+' repeticiones, hasta '+s.kg+' kg. Última: '+s.msg);return}
+ s.kg+=10;s.sp+=.12;s.zw=Math.max(.08,s.zw-.015);s.zc=.62+Math.random()*.22;bpRender()}
+// Saco de boxeo: el entrenador canta un golpe y hay que pulsarlo antes de que se acabe el tiempo (cada golpe, menos tiempo). 10 golpes.
+const BX={s:null,to:0},BXP=[['⬅️','Crochet izquierdo'],['⬆️','Directo'],['⬇️','Gancho'],['➡️','Crochet derecho']];
+function bxStart(){if(!gymOk(GYMACT.box))return;BX.s={i:0,n:10,sc:0,t:0,win:1.8,msg:''};bxNext()}
+function bxNext(){const s=BX.s;s.t=Math.random()*4|0;s.t0=performance.now();const o=qzShuf([0,1,2,3]),a=GYMACT.box;openDlg();
+ dlg.innerHTML='<h2>'+a.e+' '+a.n+'</h2><p><small>El entrenador canta un golpe: pulsa el botón correcto antes de que se acabe la barra. Cada vez hay menos tiempo.</small></p><p>Golpe '+(s.i+1)+'/'+s.n+(s.msg?' · '+s.msg:'')+'</p>'+
+  '<p style="font-size:24px;text-align:center;margin:8px 0">¡<b>'+BXP[s.t][1]+'</b>!</p><div style="height:6px;border-radius:3px;background:rgba(255,255,255,.12);margin:6px 0 10px"><div id="bxt" style="height:100%;width:100%;border-radius:3px;background:#c0392b;transition:width '+s.win+'s linear"></div></div>'+
+  '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px">'+o.map(j=>'<button style="padding:10px 4px" onclick="bxHit('+j+')">'+BXP[j][0]+' '+BXP[j][1]+'</button>').join('')+'</div><p></p><button onclick="closeDlg()" style="background:#a33">Salir</button>';
+ requestAnimationFrame(()=>requestAnimationFrame(()=>{const t=$('bxt');if(t)t.style.width='0%'}));
+ clearTimeout(BX.to);BX.to=setTimeout(()=>{if(BX.s===s&&dlgOpen&&$('bxt'))bxHit(-1)},s.win*1000)}
+function bxHit(j){const s=BX.s;if(!s)return;clearTimeout(BX.to);const el=(performance.now()-s.t0)/1000;
+ if(j===s.t){const g=el<s.win*.5?1:.7;s.sc+=g;s.msg=g===1?'¡Golpe limpio!':'Bien'}else s.msg=j<0?'Demasiado lento':'Golpe equivocado';
+ s.i++;if(s.i>=s.n){BX.s=null;gymEnd('box',s.sc/s.n,'Has terminado el asalto de '+s.n+' golpes. Último: '+s.msg);return}
+ s.win=Math.max(.8,s.win-.1);bxNext()}
+// Tablón del monitor: test de 5 preguntas de Condición Física (las mismas del examen de la universidad, en EXB.fisica)
+function gymTips(){if(!gymOk(LIBACT.fisica))return;QBANK.fisica=EXB.fisica;qzStart('fisica')}
 // Universidad, parte 2: secretaría (matrícula). Estado en flags.uni (se guarda con la partida): {enr: título en curso, done: títulos obtenidos, prog: 0 hasta que empiecen las clases}
 const UNI={fplog:{n:'FP en Logística y Transporte',p:500,r:{orient:7,fisica:5}},fpcom:{n:'FP en Comercio y Atención al Cliente',p:500,r:{social:7,comm:5}},fpadm:{n:'FP en Administración de Comercio',p:750,r:{calc:8,gest:6}},
  geco:{n:'Grado en Economía y Finanzas',p:2500,req:'fpadm',r:{calc:12,gest:8}},gder:{n:'Grado en Derecho y Ciencias Políticas',p:3000,r:{comm:10,negoc:7,lider:5}},gade:{n:'Grado en Dirección de Empresas (ADE)',p:3500,req:'geco',r:{gest:10,lider:8,negoc:7}}},
@@ -2990,6 +3089,10 @@ const IDEF={
  libatlas:{txt:()=>'E: estudiar el atlas y los mapas (15 min)',act:()=>atStart()},
  mayordesk:{txt:()=>'E: despacho del Alcalde',act:()=>mayorOffice()},
  libpc:{txt:()=>'E: usar el ordenador (simulación de negocios, 15 min)',act:()=>bzStart()},
+ gymrun:{txt:()=>'E: correr en la cinta (30 min)',act:()=>trStart()},
+ gymlift:{txt:()=>'E: press de banca (30 min)',act:()=>bpStart()},
+ gymbox:{txt:()=>'E: golpear el saco de boxeo (30 min)',act:()=>bxStart()},
+ gymtips:{txt:()=>'E: tablón del monitor: consejos de entrenamiento (15 min)',act:()=>gymTips()},
  hosdesk:{txt:()=>'E: recepción del hospital (atención médica €'+HOSPITAL_FEE+')',act:()=>hospitalDesk()},
  hosbed:{txt:()=>'E: descansar en la cama del hospital',act:()=>{if(energy>90)toast('No necesitas descansar ahora mismo');else fade('Descansas en la cama...',()=>sleepFor(2,10,'Has descansado en el hospital',true,true))}},
  souv:{txt:()=>'E: comprar souvenir (€12)',act:()=>{if(!pay(12))return;flags.souv=(flags.souv||0)+1;toast('Has comprado un souvenir de la montaña ('+flags.souv+')')}},
@@ -4158,7 +4261,7 @@ function keyDrop(i){const k=KEYS.mine[i];if(!k||!keyNet())return;if(!confirm('¿
 //     cada fotograma. También los microsueños al volante y la barra de energía.
 // =================================================================================================
 function mpTick(dt){if(MP.connected&&MP.ws&&MP.ws.readyState===1&&started&&ov.style.display==='none'){
- const now=performance.now();if(now-MP.lastSend>(riding&&riding.boat?100:180)){MP.lastSend=now;try{const px=inCar?inCar.x:(riding?riding.x:pl.x),pz=inCar?inCar.z:(riding?riding.z:pl.z),pyy=inCar?(inCar.y||0):(riding?(riding.alt||0):py),ph=inCar?inCar.h:(riding?riding.h:yaw),vt=inCar?inCar.t:(riding?(riding.boat?'boat':riding.avion?'avion':riding.heli?'heli':riding.plane?'plane':'bus'):null),vc=inCar?(inCar.col||inCar.m?.userData?.col||0x4477aa):(riding&&riding.hex!=null?riding.hex:0x4477aa),vp=riding&&!inCar?(riding.boat?(riding.str||0):(riding.pt||0)):0,vk=riding&&!inCar?(riding.boat?riding.v/riding.spec.max:(riding.bk||0)):0,vth=riding&&!inCar?(riding.boat?(riding.net?1:0):riding.avion?(riding.thr||0):riding.heli?clamp(riding.rs/HELIFLY,0,1.2):0):0;MP.ws.send(JSON.stringify({type:'state',x:px,y:pyy,z:pz,yaw:ph,vehicle:!!(inCar||riding),vType:vt,vCol:vc,vPt:vp,vBk:vk,vThr:vth,vId:(riding&&!inCar&&riding.boat)?riding.name:null,outfit:worn,profile:mpProfileSnapshot(),pets:pets.slice(0,3).map(q=>({t:q.t,name:q.name,col:q.col,x:q.x,y:q.y,z:q.z,wear:q.wear||{}}))}))}catch(e){}}
+ const now=performance.now();if(now-MP.lastSend>(riding&&riding.boat?100:180)){MP.lastSend=now;try{const px=inCar?inCar.x:(riding?riding.x:pl.x),pz=inCar?inCar.z:(riding?riding.z:pl.z),pyy=inCar?(inCar.y||0):(riding?(riding.alt||0):py),ph=inCar?inCar.h:(riding?riding.h:yaw),vt=inCar?inCar.t:(riding?(riding.boat?'boat':riding.avion?'avion':riding.heli?'heli':riding.plane?'plane':'bus'):null),vc=inCar?(inCar.col||inCar.m?.userData?.col||0x4477aa):(riding&&riding.hex!=null?riding.hex:0x4477aa),vp=riding&&!inCar?(riding.boat?(riding.str||0):(riding.pt||0)):0,vk=riding&&!inCar?(riding.boat?riding.v/riding.spec.max:(riding.bk||0)):0,vth=riding&&!inCar?(riding.boat?(riding.net?1:0):riding.avion?(riding.thr||0):riding.heli?clamp(riding.rs/HELIFLY,0,1.2):0):0;MP.ws.send(JSON.stringify({type:'state',x:px,y:pyy,z:pz,yaw:ph,vehicle:!!(inCar||riding),vType:vt,vCol:vc,vPt:vp,vBk:vk,vThr:vth,vId:(riding&&!inCar&&riding.boat)?riding.name:null,outfit:worn,profile:mpProfileSnapshot(),vit:{h:Math.round(hunger),e:Math.round(energy)},pets:pets.slice(0,3).map(q=>({t:q.t,name:q.name,col:q.col,x:q.x,y:q.y,z:q.z,wear:q.wear||{}}))}))}catch(e){}}
  }
  const now=performance.now();for(const [id,p] of MP.players){const ox=p.mesh.position.x,oz=p.mesh.position.z;p.mesh.position.lerp(p.target,Math.min(1,dt*12));{const v=dt>0?Math.hypot(p.mesh.position.x-ox,p.mesh.position.z-oz)/dt:0;p.spd=(p.spd||0)+(Math.min(v,14)-(p.spd||0))*Math.min(1,dt*6);const mv=!p.vehicleType&&p.spd>.5,sp=p.spd;if(mv)p.walk=(p.walk||0)+dt*(sp>6?12:sp<3?6:9);animPerson(p.mesh,p.walk||0,mv?(sp>6?1.35:sp<3?.6:1):0,dt)}let df=Math.atan2(Math.sin(p.yaw-p.mesh.rotation.y),Math.cos(p.yaw-p.mesh.rotation.y));p.mesh.rotation.y+=df*Math.min(1,dt*10);if(p.vehicleMesh&&(p.vehicleType==='avion'||p.vehicleType==='plane'||p.vehicleType==='heli')){const vm=p.vehicleMesh,k=Math.min(1,dt*8);vm.position.x+=(p.target.x-vm.position.x)*k;vm.position.y+=(p.target.y+G-vm.position.y)*k;vm.position.z+=(p.target.z-vm.position.z)*k;const dy=Math.atan2(Math.sin(p.yaw-vm.rotation.y),Math.cos(p.yaw-vm.rotation.y));vm.rotation.y+=dy*k;vm.rotation.x+=(-(p.vPt||0)-vm.rotation.x)*k;vm.rotation.z+=((p.vBk||0)-vm.rotation.z)*k;if(p.vehicleType==='avion'){if(vm.userData.prop)vm.userData.prop.rotation.z+=dt*(8+(p.vThr||0)*55)}else if(p.vehicleType==='heli'){const hu=vm.userData,hr=HELIFLY*(p.vThr||0);if(hu.rot){hu.rot.rotation.y+=hr*dt;hu.tail.rotation.x+=hr*5*dt}}else if(vm.userData.gear)vm.userData.gear.visible=p.target.y<10}if(now-p.last>15000)mpRemove(id)}
 }
