@@ -21,7 +21,10 @@ Configura el puerto mediante la variable PORT si el proveedor lo requiere. Compa
 IMPORTANTE
 - No abras index.html directamente como archivo file://. Debes entrar por http://localhost:3000 o por la URL pública del servidor.
 - El límite de 20 jugadores lo aplica el servidor, no el navegador.
-- Esta primera versión sincroniza nombre, posición, altura y orientación de los jugadores. El resto de la simulación (economía, inventario, vehículos NPC, casas y progreso) sigue siendo local a cada jugador; no es todavía un mundo persistente con objetos compartidos.
+- Se comparte entre todos: los jugadores (posición, vehículo, ropa, mascotas), el chat, la hora y el clima, los barcos,
+  las casas construidas en terrenos, los negocios, las llaves, las elecciones y las transferencias.
+  La partida de cada cuenta (dinero, inventario, propiedades...) se guarda en el servidor.
+  Sigue siendo local de cada jugador: los vehículos NPC y los muebles de las casas y pisos de la ciudad.
 - No introduzcas datos personales en el nombre de usuario: es el nombre público que ven los demás.
 - Al actualizar el juego en el servidor, NO sustituyas accounts.json ni la carpeta saves/ (ni keys.json, gov.json, biz.json,
   houses.json y players.json): contienen las cuentas y las partidas de los jugadores. Si los sobrescribes, se pierden.

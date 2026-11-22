@@ -192,14 +192,16 @@ function dropTransfersOf(ws) {
 
 // =================================================================================================
 // 5. GUARDADO EN DISCO Y COPIA REMOTA
-//     Cómo se guardan gov.json, biz.json, houses.json y players.json sin que se estropeen.
+//     Cómo se guardan los datos (accounts.json, saves/, keys.json, gov.json, biz.json, houses.json y players.json) sin que se estropeen.
 // =================================================================================================
 // ---------- 5.1 Guardado seguro ----------
 // Escritura atómica (archivo temporal + renombrar) y copia .bak: si el proceso se corta a mitad de guardar, el archivo nunca queda roto.
-// Lectura con respaldo: si el archivo principal no se puede leer, se usa la copia .bak. Nunca se arranca "en blanco" en silencio.
+// Lectura con respaldo: si el archivo principal no se puede leer, se usa la copia .bak (y se avisa en la consola).
+// Si no existe ni el archivo ni el .bak (p. ej. un hosting recién desplegado), se arranca con los datos vacíos sin avisar.
 // ---------- 5.2 Copia remota (opcional) ----------
-// Si el hosting borra el disco al reiniciar, el estado (votaciones, alcalde, negocios) se guarda también en un almacén externo
-// compatible con la API REST de Upstash Redis. Se activa con REMOTE_STORE_URL y REMOTE_STORE_TOKEN; start.js lo restaura al arrancar.
+// Si el hosting borra el disco al reiniciar, todo lo que se guarda con writeJsonAtomic se envía también a un almacén externo
+// compatible con la API REST de Upstash Redis. Se activa con REMOTE_STORE_URL y REMOTE_STORE_TOKEN; sin ellas no hace nada.
+// OJO: solo se ENVÍA. Todavía no hay nada que lo lea al arrancar, así que de momento no recupera los datos tras un deploy.
 const REMOTE_URL = String(process.env.REMOTE_STORE_URL || '').replace(/\/+$/, ''), REMOTE_TOKEN = process.env.REMOTE_STORE_TOKEN || '';
 const remoteChain = new Map(), remoteLast = new Map();
 function remotePush(file, json) {
@@ -232,7 +234,7 @@ function readJsonSafe(file, label) {
 // =================================================================================================
 // 6. GOBIERNO MUNICIPAL (elecciones, alcalde, impuestos, bans)
 // =================================================================================================
-// Todo vive en el servidor. La identidad de voto es el uid persistente que cada navegador genera y guarda (nunca se reenvía a otros jugadores).
+// Todo vive en el servidor. La identidad de voto es el uid de la cuenta del jugador (sección 11; nunca se reenvía a otros jugadores).
 const DAY_MS = Number(process.env.GOV_DAY_MS || 12 * 60 * 1000);         // «día de alcaldía» = 1 día de juego (12 min reales)
 const ELECTION_DAYS = Number(process.env.ELECTION_DAYS || 10);
 const ELECTION_MS = Number(process.env.ELECTION_MS || ELECTION_DAYS * DAY_MS); // la votación dura 10 días de juego (10 × 12 min = 2 h reales)
@@ -939,7 +941,7 @@ wss.on('connection', ws => {
       const pr=msg.profile;
       p.profile={
         money:Number.isFinite(Number(pr.money))?Math.max(0,Math.min(1e12,Number(pr.money))):0,
-        rk:toInt(pr.rk,0,8), // rango social 0-8; el 9 (Alcalde) lo asignará el servidor en las elecciones
+        rk:toInt(pr.rk,0,8), // rango social 0-8; el 9 (Alcalde) lo pone el servidor al ganar las elecciones (pub, sección 6)
         properties:Array.isArray(pr.properties)?pr.properties.slice(0,30).map(v=>String(v).slice(0,70)) : [],
         businesses:Array.isArray(pr.businesses)?pr.businesses.slice(0,20).map(v=>String(v).slice(0,70)) : [],
         pets:Array.isArray(pr.pets)?pr.pets.slice(0,3).map(v=>String(v).slice(0,40)) : [],
@@ -985,4 +987,3 @@ process.on('SIGINT', shutdown); process.on('SIGTERM', shutdown); // los hostings
 // Un error en un mensaje suelto no debe tumbar el servidor (y con él a todos los jugadores): se registra y se sigue.
 process.on('uncaughtException', e => console.error('[error no controlado]', e && e.stack || e));
 process.on('unhandledRejection', e => console.error('[promesa rechazada]', e && e.stack || e));
-// holasssss

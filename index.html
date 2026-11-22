@@ -34,8 +34,8 @@
          5.1 Señales de tráfico (fase 1: sistema base; todavía sin reglas)
          5.2 Semáforos (fase 3)
    6.   EDIFICIOS DE LAS AFUERAS
-         6.1 Biblioteca (oeste, tras la autopista; solo el edificio, sin mecánicas)
-         6.2 Universidad (al sur de la biblioteca; solo el edificio, sin mecánicas)
+         6.1 Biblioteca (oeste, tras la autopista): el edificio. Sus actividades: busca «Biblioteca, parte 2»
+         6.2 Universidad (al sur de la biblioteca): el edificio. Matrícula y clases: busca «Universidad, parte 2»
          6.3 Aeropuerto (afueras, al sur del barrio): terminal con torre de control, plataforma y pista
    7.   PUERTO, BARCOS Y PESCA
          7.1 Puerto (zona E del mapa: bahía al sur de la autopista, junto a la costa del aeropuerto)
@@ -1200,7 +1200,7 @@ buildSigns();
 // Cada cruce de TLX tiene un mástil con brazo por acceso (a la derecha del sentido de la marcha) y una cabeza de 3 luces colgada sobre el carril.
 // Ciclo de 30 s por cruce: eje X → verde 10 s · ámbar 3 s · rojo; el eje Z va desfasado medio ciclo, así hay 2 s con todo en rojo entre un eje y otro.
 // El reloj es Date.now() (igual para todos los jugadores) y cada cruce tiene su propio desfase.
-// tlState(tl,axis) → 0 verde · 1 ámbar · 2 rojo (axis 0 = circula por X, 1 = por Z, igual que los coches IA). Lo usará la fase 5.
+// tlState(tl,axis) → 0 verde · 1 ámbar · 2 rojo (axis 0 = circula por X, 1 = por Z, igual que los coches IA). Lo usan los coches IA y los autobuses para pararse en rojo.
 const TLS=[],TL_CYC=30,tlPh=t=>t<10?0:t<13?1:2;
 function tlState(tl,axis){const t=(Date.now()/1000+tl.off)%TL_CYC;return tlPh(axis?(t+15)%TL_CYC:t)}
 let TLU=null; // actualiza luces y brillo nocturno; lo llama updEnv con el factor de noche (0 día · 1 noche)
@@ -1236,7 +1236,7 @@ let TLU=null; // actualiza luces y brillo nocturno; lo llama updEnv con el facto
 //     Biblioteca, universidad y aeropuerto (solo los edificios; los aviones están en la sección 10).
 // =================================================================================================
 
-// ---------- 6.1 Biblioteca (oeste, tras la autopista; solo el edificio, sin mecánicas) ----------
+// ---------- 6.1 Biblioteca (oeste, tras la autopista): aquí solo el edificio; sus actividades, en «Biblioteca, parte 2» ----------
 // Cuerpo 8x32 m (sala central + dos alas) + pórtico + escalinata, de cara al oeste (la ciudad), junto a las fábricas del este (x≈277..290, z≈60..92). Al sur (z>92) queda libre el solar para ampliarla con la universidad.
 (function(){
 const s0=scene.children.length,c0=colliders.length,f0=FLOORS.length,i0=INTERACTS.length,h0=HB.length; // se construye en coordenadas locales y al final se gira 180° hasta su sitio (junto a las fábricas, mirando a la ciudad)
@@ -1296,7 +1296,7 @@ const fx=o=>{const a=PA-o.x1,b=PA-o.x0,c=PB-o.z1,d=PB-o.z0;o.x0=a;o.x1=b;o.z0=c;
 BLD.push([PA-XS,PB-Z1,XS-X0,Z1-Z0,'#d9cfb8']);
 })();
 
-// ---------- 6.2 Universidad (al sur de la biblioteca; solo el edificio, sin mecánicas) ----------
+// ---------- 6.2 Universidad (al sur de la biblioteca): aquí solo el edificio; matrícula y clases, en «Universidad, parte 2» ----------
 // Cuerpo 11x36 m: vestíbulo central con secretaría y dos alas de aulas (norte: FP; sur: Grados) + pórtico, escalinata y torre central. De cara al oeste (la ciudad).
 (function(){
 const s0=scene.children.length,c0=colliders.length,f0=FLOORS.length,i0=INTERACTS.length,h0=HB.length; // se construye en coordenadas locales y al final se gira 180° hasta su sitio
@@ -2249,8 +2249,8 @@ function avionStep(dt){for(const a of AVIO){
 
 
 // ---------- 11.2 Terrenos (parcelas) de la isla principal ----------
-// Fase 1: solo existen en el mundo (suelo, vallado, cartel con número) y en el minimapa. Todavía no se pueden comprar.
-// Fase 2 (pendiente): comprar/vender. Cada parcela ya lleva sus campos: owned, owner, price.
+// Cada parcela tiene suelo, vallado, cartel con número y sale en el minimapa. Se compra (campos owned, owner, price), se construye
+// en ella por módulos (sección 20) y el servidor la registra y la comparte con todos (sección 28.2).
 // Medidas variadas (24×24 pequeñas · 30×30 medianas · 34–36 grandes · algunas rectangulares). [id, x, z, ancho, fondo]
 // Coordenadas sacadas del mapa terrenos_isla_principal.png (1 px = 1 m; x = px-120,5 · z = px-110,5). x,z = centro de la parcela.
 const TERRENO_M2=20; // precio del terreno: € por m²
@@ -2555,7 +2555,7 @@ function buyCar(i){const c=SHOPS.dealer.cars[i],w=WORKERS.find(x=>x.key==='deale
 // ---------- 13.4 Negocios propios (locales): productos, almacén, obrador de pan, caja y mejoras ----------
 const BIZN=['','Kiosco','Tienda','Tienda grande','Comercio','Gran comercio'],BIZINC=[0,600,1300,2400,4000,6500],BIZUP=[0,3000,7000,14000,26000];
 const bizInc=(h,lv)=>Math.round(BIZINC[lv||h.lv||1]*(h.mul||1)*(h.ty&&LTYPES[h.ty]?LTYPES[h.ty].m:1));
-// Productos [nombre, coste unidad, precio venta, icono]. La panadería aún no usa stock.
+// Productos [nombre, coste unidad, precio venta, icono]. La panadería no compra el producto hecho: lo hornea en el obrador con ingredientes (ING y REC).
 const PRODS={super:[['Agua',.4,1,'💧'],['Leche',.8,1.6,'🥛'],['Pan',.7,1.5,'🍞'],['Fruta',1,2.2,'🍎'],['Carne',3,6,'🥩'],['Snacks',.9,2,'🍫'],['Limpieza',1.5,3,'🧴']],
  bar:[['Cerveza',.8,2.5,'🍺'],['Refresco',.6,2,'🥤'],['Vino',1.5,4,'🍷'],['Copa',2,6,'🍸'],['Tapas',1.2,4,'🍢'],['Café',.3,1.5,'☕']],
  ropa:[['Camiseta',6,18,'👕'],['Vaqueros',14,40,'👖'],['Chaqueta',25,70,'🧥'],['Zapatillas',20,55,'👟'],['Gorra',3,10,'🧢'],['Vestido',15,45,'👗']],
