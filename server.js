@@ -7,7 +7,9 @@
 //   2.   SERVIDOR HTTP Y WEBSOCKET
 //   3.   DORMIR
 //   4.   TRANSFERENCIAS ENTRE JUGADORES (dinero, objetos, casas y negocios)
-//   5.   GUARDADO EN DISCO
+//   5.   GUARDADO EN DISCO Y COPIA REMOTA
+//          5.1 Guardado seguro
+//          5.2 Copia remota (opcional)
 //   6.   GOBIERNO MUNICIPAL (elecciones, alcalde, impuestos, bans)
 //   7.   NEGOCIOS DE JUGADORES (registro público y ventas a otros jugadores)
 //   8.   CASAS EN TERRENOS (la construcción por módulos la ven todos los jugadores)
@@ -189,16 +191,36 @@ function dropTransfersOf(ws) {
 }
 
 // =================================================================================================
-// 5. GUARDADO EN DISCO
+// 5. GUARDADO EN DISCO Y COPIA REMOTA
 //     Cómo se guardan los datos (accounts.json, saves/, keys.json, gov.json, biz.json, houses.json y players.json) sin que se estropeen.
 // =================================================================================================
+// ---------- 5.1 Guardado seguro ----------
 // Escritura atómica (archivo temporal + renombrar) y copia .bak: si el proceso se corta a mitad de guardar, el archivo nunca queda roto.
 // Lectura con respaldo: si el archivo principal no se puede leer, se usa la copia .bak (y se avisa en la consola).
 // Si no existe ni el archivo ni el .bak (p. ej. un hosting recién desplegado), se arranca con los datos vacíos sin avisar.
+// ---------- 5.2 Copia remota (opcional) ----------
+// Si el hosting borra el disco al reiniciar, todo lo que se guarda con writeJsonAtomic se envía también a un almacén externo
+// compatible con la API REST de Upstash Redis. Se activa con REMOTE_STORE_URL y REMOTE_STORE_TOKEN; sin ellas no hace nada.
+// OJO: solo se ENVÍA. Todavía no hay nada que lo lea al arrancar, así que de momento no recupera los datos tras un deploy.
+const REMOTE_URL = String(process.env.REMOTE_STORE_URL || '').replace(/\/+$/, ''), REMOTE_TOKEN = process.env.REMOTE_STORE_TOKEN || '';
+const remoteChain = new Map(), remoteLast = new Map();
+function remotePush(file, json) {
+  if (!REMOTE_URL) return;
+  const key = path.basename(file);
+  if (remoteLast.get(key) === json) return; // sin cambios: no se gasta una petición
+  remoteLast.set(key, json);
+  const prev = remoteChain.get(key) || Promise.resolve();
+  const next = prev.then(() => fetch(REMOTE_URL + '/set/' + encodeURIComponent(key), { method: 'POST', headers: { Authorization: 'Bearer ' + REMOTE_TOKEN }, body: json })
+    .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); }))
+    .catch(e => { remoteLast.delete(key); console.warn('[remoto] no se pudo guardar ' + key + ': ' + e.message); });
+  remoteChain.set(key, next);
+}
+const remoteFlush = () => Promise.allSettled([...remoteChain.values()]);
 function writeJsonAtomic(file, data) {
   const json = JSON.stringify(data), tmp = file + '.tmp';
   try { fs.writeFileSync(tmp, json); if (fs.existsSync(file)) { try { fs.copyFileSync(file, file + '.bak'); } catch {} } fs.renameSync(tmp, file); }
-  catch (e) { fs.writeFileSync(file, json); } // si renombrar falla, se escribe directamente
+  catch (e) { try { fs.writeFileSync(file, json); } catch (e2) { if (!REMOTE_URL) throw e2; } }
+  remotePush(file, json);
 }
 function readJsonSafe(file, label) {
   for (const f of [file, file + '.bak']) {
@@ -360,7 +382,9 @@ function cleanBizEntry(q) {
   const x = Number(q.x), z = Number(q.z);
   if (!Number.isFinite(x) || !Number.isFinite(z) || !BIZ_TYPES.includes(q.ty)) return null;
   const items = Array.isArray(q.items) ? q.items.slice(0, 8).map(i => i && typeof i === 'object' ? { k: cleanStr(i.k, 30), p: toInt(i.p, 1, 100000), n: toInt(i.n, 0, 9999), e: cleanStr(i.e, 8) } : null).filter(i => i && i.k) : [];
-  return { x: Math.max(-1000, Math.min(2000, x)), z: Math.max(-1000, Math.min(2000, z)), ty: q.ty, lv: toInt(q.lv, 1, 5), till: toInt(q.till, 0, 1e9), items };
+  const r = { x: Math.max(-1000, Math.min(2000, x)), z: Math.max(-1000, Math.min(2000, z)), ty: q.ty, lv: toInt(q.lv, 1, 5), till: toInt(q.till, 0, 1e9), items };
+  const tid = q.tid == null ? null : plotIdOf(q.tid); if (tid !== null) r.tid = tid; // negocio montado en un terreno (id 0-63); x,z son el centro del terreno
+  return r;
 }
 function bizTransfer(offer, fromUid, toP) { // al traspasar un negocio por transferencia, el registro cambia de dueño
   let ch = false;
@@ -385,8 +409,9 @@ function handleBiz(ws, p, msg) {
   }
   if (msg.type === 'biz_sync') {
     const now = Date.now(); if (now - (p.lastBiz || 0) < 1500) return; p.lastBiz = now;
-    const list = Array.isArray(msg.list) ? msg.list.slice(0, 8).map(cleanBizEntry).filter(Boolean) : [];
-    const ownedIn = Array.isArray(msg.owned) ? msg.owned.slice(0, 20).map(q => q && typeof q === 'object' ? { x: Math.round(Number(q.x)), z: Math.round(Number(q.z)) } : null).filter(q => q && Number.isFinite(q.x) && Number.isFinite(q.z)) : null;
+    // hasta 20 negocios (locales de la ciudad y de terrenos). Un negocio de terreno solo vale si ese terreno no está registrado a nombre de OTRO jugador.
+    const list = Array.isArray(msg.list) ? msg.list.slice(0, 20).map(cleanBizEntry).filter(q => q && (q.tid === undefined || !plots[q.tid] || plots[q.tid].uid === p.uid)) : [];
+    const ownedIn = Array.isArray(msg.owned) ? msg.owned.slice(0, 40).map(q => q && typeof q === 'object' ? { x: Math.round(Number(q.x)), z: Math.round(Number(q.z)) } : null).filter(q => q && Number.isFinite(q.x) && Number.isFinite(q.z)) : null;
     const ownedKeys = new Set((ownedIn || []).map(q => bizKeyOf(q.x, q.z)));
     for (const q of list) ownedKeys.add(bizKeyOf(q.x, q.z));
     const mineC = () => JSON.stringify(Object.values(claims).filter(c => c.uid === p.uid)), beforeC = mineC();
@@ -855,7 +880,7 @@ wss.on('connection', ws => {
       for (const [w, q] of players) if (q.uid === ws.account.uid) { send(w, { type: 'kicked', reason: 'Has entrado con esta cuenta desde otro dispositivo o pestaña.' }); w.kicked = true; w.close(4001, 'Sesión abierta en otro sitio'); }
       const player = { id, uid: ws.account.uid, name: ws.account.name, x:24, y:0, z:1.5, yaw:0, vehicle:false, vType:null, vPt:0, vBk:0, vThr:0, vCol:0x4477aa, outfit:{}, pets:[], profile:{money:0,rk:0,properties:[],businesses:[],pets:[],career:[]} };
       players.set(ws, player); touchKnown(player);
-      send(ws, {type:'welcome', id, players:[...players.values()].map(pub), chat:chatHistory, world:{tod:world.tod,wx:world.wx}, features:{boats:1,biz:1,houses:1}});
+      send(ws, {type:'welcome', id, players:[...players.values()].map(pub), chat:chatHistory, world:{tod:world.tod,wx:world.wx}, features:{boats:1,biz:1,admin:1,dm:1,houses:1}});
       broadcast({type:'joined', player:pub(player)}, ws); send(ws, govMsg(ws)); send(ws, bizMsg(ws)); send(ws, boatsMsg()); send(ws, { type: 'admin_pending', cmds: (adminPending[player.uid] || []).slice(0, 50) }); send(ws, { type: 'biz_pending', sales: (bizPending[player.uid] || []).slice(0, 100) }); if (ownsBiz(player.uid)) broadcastBiz(); sendHouses(ws, player); send(ws, keysMsg(player.uid)); sleepCheck();
       return;
     }
@@ -960,7 +985,7 @@ const worldTick = setInterval(() => {
 // =================================================================================================
 const heartbeat = setInterval(() => { for (const ws of wss.clients) { if (!ws.isAlive) { ws.terminate(); continue; } ws.isAlive=false; ws.ping(); } }, 30000);
 server.listen(PORT, '0.0.0.0', () => { console.log(`Real Life Simulator multiplayer: http://localhost:${PORT} (max ${MAX_PLAYERS})`); console.log('Funciones activas: sincronización de barcos, reserva de locales, casas en terrenos, panel de administrador'); });
-const shutdown = () => { saveGov(); saveBiz(); saveHouses(); savePlayers(); saveAccounts(); flushSaves(); saveKeys(); clearInterval(accountsTimer); clearInterval(savesTimer); clearInterval(keysTimer); clearInterval(playersTimer); clearInterval(bizTimer); clearInterval(housesTimer); clearInterval(govTimer); clearInterval(heartbeat); clearInterval(worldTick); server.close(); process.exit(0); };
+const shutdown = () => { saveGov(); saveBiz(); saveHouses(); savePlayers(); saveAccounts(); flushSaves(); saveKeys(); clearInterval(accountsTimer); clearInterval(savesTimer); clearInterval(keysTimer); clearInterval(playersTimer); clearInterval(bizTimer); clearInterval(housesTimer); clearInterval(govTimer); clearInterval(heartbeat); clearInterval(worldTick); server.close(); remoteFlush().then(() => process.exit(0)); setTimeout(() => process.exit(0), 4000).unref(); };
 process.on('SIGINT', shutdown); process.on('SIGTERM', shutdown); // los hostings apagan con SIGTERM: se guarda todo antes de salir
 // Un error en un mensaje suelto no debe tumbar el servidor (y con él a todos los jugadores): se registra y se sigue.
 process.on('uncaughtException', e => console.error('[error no controlado]', e && e.stack || e));

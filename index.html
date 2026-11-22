@@ -2637,7 +2637,7 @@ function whHtml(fk){const ks=FACT[fk]||[],mine=new Set(HOUSES.filter(x=>x.owned&
 function whBuyI(i){const q=ING[i];if(!pay(Math.round(q[1]*10)))return;wh['i:'+q[0]]=(wh['i:'+q[0]]||0)+10;toast('Comprado: '+q[0]+' ×10 (en tu almacén)');if(facW)talk(facW)}
 function bakeHtml(h){h.stock=h.stock||{};let t='<h3>🥖 Obrador</h3><p>Compra ingredientes en la fábrica de comida (afueras, al este del barrio). Al reponer se hornea el pan (hornadas de 10 uds). Máx. '+stCap(h)+' por producto.</p><p><small>Ingredientes en almacén: '+ING.map(q=>q[2]+' '+q[0]+' '+(wh['i:'+q[0]]||0)).join(' · ')+'</small></p>';
  PRODS.pan.forEach((q,i)=>{t+=`<div class="r"><i class="ic">${q[3]}</i><span>${q[0]}<br><small>En tienda: <b>${h.stock[q[0]]||0}</b>/${stCap(h)} · venta €${q[2]}<br>Hornada ×10: ${Object.keys(REC[q[0]]).map(k=>REC[q[0]][k]+' '+k.toLowerCase()).join(', ')}</small></span><button onclick="bizPut(${h.id},${i},10)">Hornear +10</button><button onclick="bizPut(${h.id},${i},9999)">Todo</button></div>`});return t}
-function bake(id,i,a){const h=HOUSES[id],q=PRODS.pan[i],r=REC[q[0]];h.stock=h.stock||{};let made=0,why='';
+function bake(id,i,a){const h=BO(id),q=PRODS.pan[i],r=REC[q[0]];h.stock=h.stock||{};let made=0,why='';
  for(let b=0;b<(a>10?99:1);b++){const free=stCap(h)-(h.stock[q[0]]||0);if(free<=0){why='Estantería llena';break}const u=Math.min(10,free),need={};
   Object.keys(r).forEach(k=>need[k]=Math.ceil(r[k]*u/10));const miss=Object.keys(need).find(k=>(wh['i:'+k]||0)<need[k]);if(miss){why='Te falta '+miss.toLowerCase()+' (cómpralo en la fábrica de comida)';break}
   Object.keys(need).forEach(k=>wh['i:'+k]-=need[k]);h.stock[q[0]]=(h.stock[q[0]]||0)+u;made+=u}
@@ -2646,7 +2646,7 @@ function whBuy(k,i){const q=PRODS[k][i];if(!pay(Math.round(q[1]*10)))return;wh[q
 function bizStock(h){if(h.ty==='pan')return bakeHtml(h);const P=PRODS[h.ty];if(!P)return'';h.stock=h.stock||{};
  let t='<h3>Mercancía</h3><p>Sin producto no vendes. Compra en la fábrica correspondiente (afueras, al este del barrio) y repón aquí (máx. '+stCap(h)+' por producto).</p>';
  P.forEach((q,i)=>{t+=`<div class="r"><i class="ic">${q[3]}</i><span>${q[0]}<br><small>En tienda: <b>${h.stock[q[0]]||0}</b>/${stCap(h)} · Almacén: ${wh[q[0]]||0} · venta €${q[2]}</small></span><button onclick="bizPut(${h.id},${i},10)">+10</button><button onclick="bizPut(${h.id},${i},9999)">Todo</button></div>`});return t}
-function bizPut(id,i,a){if(HOUSES[id].ty==='pan')return bake(id,i,a);const h=HOUSES[id],q=PRODS[h.ty][i];h.stock=h.stock||{};const n=Math.min(a,wh[q[0]]||0,stCap(h)-(h.stock[q[0]]||0));if(n<=0){toast((wh[q[0]]||0)<=0?'No tienes '+q[0]+' en el almacén (cómpralo en la fábrica correspondiente, al este del barrio)':'Estantería llena');return}
+function bizPut(id,i,a){if(BO(id).ty==='pan')return bake(id,i,a);const h=BO(id),q=PRODS[h.ty][i];h.stock=h.stock||{};const n=Math.min(a,wh[q[0]]||0,stCap(h)-(h.stock[q[0]]||0));if(n<=0){toast((wh[q[0]]||0)<=0?'No tienes '+q[0]+' en el almacén (cómpralo en la fábrica correspondiente, al este del barrio)':'Estantería llena');return}
  h.stock[q[0]]=(h.stock[q[0]]||0)+n;wh[q[0]]-=n;toast('Repuesto: '+q[0]+' ×'+n);bizOpen(id)}
 function bizDay(h,msg){if(!h.ty){msg.push('tu local está vacío: elige qué negocio montar (L)');return}const lv=h.lv||1,P=PRODS[h.ty];let g;
  if(P){h.stock=h.stock||{};const avg=P.reduce((a,q)=>a+q[2],0)/P.length,D=bizInc(h,lv)/avg/P.length,out=[];g=0;
@@ -2661,11 +2661,32 @@ function bizHtml(h){if(!h.ty)return bizPick(h);const T=LTYPES[h.ty],lv=h.lv||1,t
  let t=`<h2>${T.i} ${T.n[0]+T.n.slice(1).toLowerCase()}: ${BIZN[lv]} (nivel ${lv}/5)</h2><p>Ingresos: unos €${bizInc(h,lv)} al día. La caja se llena cada medianoche y guarda como máximo 3 días de ingresos.</p><div class="r"><span>Caja</span><b>€${till} / €${cap}</b><button onclick="bizCollect(${h.id})">Recoger</button></div>`;
  t+=lv<5?`<div class="r"><span>Mejorar a ${BIZN[lv+1]} (€${bizInc(h,lv+1)}/día)</span><b>€${BIZUP[lv]}</b><button onclick="bizUp(${h.id})">Mejorar</button></div>`:'<p>Nivel máximo alcanzado.</p>';
  return t+bizStock(h)+`<div><button onclick="closeDlg()" style="background:#666">Salir</button></div>`}
-function bizOpen(id){const h=HOUSES[id];openDlg();dlg.innerHTML=bizHtml(h)}
-function bizCollect(id){const h=HOUSES[id],c=Math.round(h.till||0);if(c<=0){toast('La caja está vacía');return}h.till=0;money+=taxNet(c);sfx.cash();toast('Has recogido €'+c+' de la caja');bizOpen(id)}
-function bizUp(id){const h=HOUSES[id],lv=h.lv||1;if(lv>=5||!pay(BIZUP[lv]))return;h.lv=lv+1;if(h.ty)localIn(h,h.ty);toast('¡Local mejorado a '+BIZN[lv+1]+'!');bizOpen(id)}
-function bizKey(){let b=null,bd=8;HOUSES.forEach(h=>{if(!h.local||!h.owned)return;const d=Math.hypot(h.door.x-pl.x,h.door.z-pl.z);if(d<bd){bd=d;b=h}});if(b)bizOpen(b.id);else{let r=null,rd=99;HOUSES.forEach(h=>{if(!h.local||!h.remote||h.owned)return;const d=Math.min(Math.hypot(h.door.x-pl.x,h.door.z-pl.z)*1.5,Math.hypot(h.x-pl.x,h.z-pl.z));if(d<12&&d<rd){rd=d;r=h}});if(r)bsOpen(r.id);else toast('Acércate a la puerta de tu local o de un negocio (L)')}}
+function bizOpen(id){const h=BO(id);if(!h)return;openDlg();dlg.innerHTML=bizHtml(h)}
+function bizCollect(id){const h=BO(id),c=Math.round(h.till||0);if(c<=0){toast('La caja está vacía');return}h.till=0;money+=taxNet(c);sfx.cash();toast('Has recogido €'+c+' de la caja');bizOpen(id)}
+function bizUp(id){const h=BO(id),lv=h.lv||1;if(lv>=5||!pay(BIZUP[lv]))return;h.lv=lv+1;if(h.ty)localIn(h,h.ty);toast('¡Local mejorado a '+BIZN[lv+1]+'!');bizOpen(id)}
+function bizKey(){let b=null,bd=8;HOUSES.forEach(h=>{if(!h.local||!h.owned)return;const d=Math.hypot(h.door.x-pl.x,h.door.z-pl.z);if(d<bd){bd=d;b=h}});if(b)bizOpen(b.id);else if(terrBizNear())terrBizOpen(terrBizNear());else{let r=null,rd=99;HOUSES.forEach(h=>{if(!h.local||!h.remote||h.owned)return;const d=Math.min(Math.hypot(h.door.x-pl.x,h.door.z-pl.z)*1.5,Math.hypot(h.x-pl.x,h.z-pl.z));if(d<12&&d<rd){rd=d;r=h}});if(r)bsOpen(r.id);else{const rt=TERRENOS.find(t=>t.bremote&&!t.owned&&Math.hypot(pl.x-t.x,pl.z-t.z)<Math.hypot(t.w,t.d)/2+6);if(rt)bsOpen(100000+rt.id);else toast('Acércate a la puerta de tu local o de un negocio (L)')}}}
 
+
+// ---------- 13.5 Convertir tu construcción de un terreno en negocio (fase 1) ----------
+// Un terreno tuyo puede tener un negocio: t.biz = {id, ty, lv, till, stock}. Usa EL MISMO sistema que los locales de la ciudad (13.4).
+// El id del negocio de un terreno es 100000 + el nº del terreno, y BO(id) devuelve el negocio sea de un local o de un terreno.
+// Fase 1: solo en tu partida (los otros jugadores todavía no lo ven ni le compran) y sin interior propio.
+const TBIZ_FEE=3000,TBIZ_MIN={f:6,r:6,w:8,d:1}; // licencia y requisitos mínimos del edificio (planta baja)
+const terrAt=(x,z)=>TERRENOS.find(t=>Math.abs(t.x-x)<1&&Math.abs(t.z-z)<1)||null; // el negocio de un terreno se identifica por el centro del terreno
+function BO(id){return id>=100000?((TERRENOS.find(q=>q.id===id-100000)||{}).biz||null):HOUSES[id]}
+function terrBizCheck(t){const b=t.b,c={f:0,r:0,w:0,d:0};if(b){c.f=b.f.size;c.r=b.r.size;for(const v of b.e.values()){if(v===1||v===2||v===3)c.w++;if(v===2||v===5)c.d++}}
+ c.ok=c.f>=TBIZ_MIN.f&&c.r>=TBIZ_MIN.r&&c.w>=TBIZ_MIN.w&&c.d>=TBIZ_MIN.d;return c}
+function terrBizNear(){return TERRENOS.find(t=>t.owned&&Math.abs(pl.x-t.x)<=t.w/2+6&&Math.abs(pl.z-t.z)<=t.d/2+6)||null}
+function terrBizHtml(t){const c=terrBizCheck(t),li=(n,v,m)=>'<div>'+(v>=m?'✅':'❌')+' '+n+' <small>('+v+' / '+m+')</small></div>';
+ let h='<h2>🏪 Convertir en negocio · Terreno nº '+t.id+'</h2><p>Convierte tu construcción en un negocio. Licencia: <b>€'+TBIZ_FEE+'</b>. El tipo de negocio no se puede cambiar después.</p><p><b>Requisitos del edificio (planta baja):</b></p>'+li('Casillas de suelo',c.f,TBIZ_MIN.f)+li('Casillas con techo',c.r,TBIZ_MIN.r)+li('Paredes, puertas y ventanas',c.w,TBIZ_MIN.w)+li('Puerta de entrada',c.d,TBIZ_MIN.d);
+ if(!c.ok)return h+'<p><small>Termina tu edificio en el modo construcción (E) y vuelve a pulsar L.</small></p><div><button onclick="closeDlg()" style="background:#666">Salir</button></div>';
+ h+='<p>Elige qué negocio montar:</p>';
+ Object.keys(LTYPES).forEach(k=>{const T=LTYPES[k];h+='<div class="r"><i class="ic">'+T.i+'</i><span>'+T.n[0]+T.n.slice(1).toLowerCase()+'<br><small>'+T.d+' ≈ €'+Math.round(BIZINC[1]*T.m)+'/día de inicio</small></span><button onclick="terrBizChoose('+t.id+',\''+k+'\')">Montar</button></div>'});
+ return h+'<div><button onclick="closeDlg()" style="background:#666">Salir</button></div>'}
+function terrBizOpen(t){if(!t||!t.owned)return;if(t.biz&&t.biz.ty){bizOpen(t.biz.id);return}openDlg();dlg.innerHTML=terrBizHtml(t)}
+function terrBizChoose(tid,k){const t=TERRENOS.find(q=>q.id===tid);if(!t||!t.owned||t.biz||!LTYPES[k])return;if(!terrBizCheck(t).ok){toast('Tu edificio ya no cumple los requisitos');return}
+ if(!confirm('¿Montar '+LTYPES[k].n.toLowerCase()+' por €'+TBIZ_FEE+'? No se podrá cambiar.'))return;if(!pay(TBIZ_FEE))return;
+ t.biz={id:100000+tid,ty:k,lv:1,till:0,stock:{}};toast('¡'+LTYPES[k].n+' montado en tu terreno!');saveGame();bizOpen(t.biz.id)}
 
 // =================================================================================================
 // 14. PANEL DE ADMINISTRADOR
@@ -2678,8 +2699,8 @@ const admToast=t=>{if(!ADM_SILENT)toast(t)};
 // Aplica un cambio enviado por el administrador a mi partida (dinero o negocio) y lo guarda
 function admApply(c){if(!c||typeof c!=='object')return;
  if(c.t==='money'){money=Math.max(0,Math.floor(Number(c.money)||0));sfx.cash();admToast('💼 Un administrador ha ajustado tu dinero: €'+Math.round(money))}
- else if(c.t==='biz'){const h=xfFind(c.x,c.z,true);if(!h||!h.owned)return;
-  if(c.remove){if(dlgOpen)closeDlg();releaseHouse(h);h.ty='';h.lv=0;h.till=0;h.stock={};try{localIn(h,'')}catch(_){}admToast('💼 Un administrador te ha retirado un local')}
+ else if(c.t==='biz'){let h=xfFind(c.x,c.z,true),tt=null;if(!h){tt=terrAt(c.x,c.z);h=tt&&tt.owned&&tt.biz?tt.biz:null}if(!h||(!tt&&!h.owned))return;
+  if(c.remove){if(dlgOpen)closeDlg();if(tt)tt.biz=null;else{releaseHouse(h);h.ty='';h.lv=0;h.till=0;h.stock={};try{localIn(h,'')}catch(_){}}admToast('💼 Un administrador te ha retirado un local')}
   else{if(c.lv){h.lv=Math.max(1,Math.min(5,c.lv|0));if(h.ty){try{localIn(h,h.ty)}catch(_){}}}
    if(c.till!=null)h.till=Math.max(0,Number(c.till)||0);
    if(c.stock&&typeof c.stock==='object'){h.stock=h.stock||{};for(const k in c.stock)h.stock[k]=Math.max(0,Math.floor(Number(c.stock[k])||0))}
@@ -2890,6 +2911,7 @@ function houseDay(){const msg=[];HOUSES.forEach(h=>{if(!h.owned)return;if(h.loca
  else if(h.mode==='mort'&&h.mort){const c=h.mort.n<=1?h.mort.left:Math.min(h.mort.cuota,h.mort.left);
   if(money>=c){money-=c;h.mort.left-=c;h.mort.n--;h.late=0;msg.push('hipoteca -€'+c);mortDone(h)}
   else{const r=Math.max(1,Math.round(c*.1));h.mort.left+=r;h.late=(h.late||0)+1;if(h.late>=HOUSE_LATE_MAX){releaseHouse(h);msg.push('⚠️ EMBARGO: el banco se queda tu casa')}else msg.push('hipoteca impagada ('+h.late+'/'+HOUSE_LATE_MAX+'), recargo +€'+r)}}});
+ TERRENOS.forEach(t=>{if(t.owned&&t.biz&&t.biz.ty)bizDay(t.biz,msg)});
  if(msg.length){sfx.cash();const t='🏠 '+msg.join(' · ');setTimeout(()=>toast(t),loan?2700:0)}}
 function hotelSleep(){if(money<100){toast('No tienes 100 €');return}closeDlg();sleepNight('Pasas la noche en el hotel...',15,'Has descansado en una cama de hotel',{cost:100})}
 function sitAt(o){seat={x:o.x,z:o.z};pl.x=o.x;pl.z=o.z;setSit(body,true);toast('Te sientas (E o moverte para levantarte)')}
@@ -3466,9 +3488,9 @@ function bmRoofVis(){const on=!!BM.on,l=BM.lvl,sv=(m,tr,o)=>{if(m.transparent!==
 setInterval(bmRoofVis,250);
 // ---- interfaz ----
 document.head.appendChild(Object.assign(document.createElement('style'),{textContent:'#bmUI{position:fixed;left:50%;bottom:calc(10px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:70;display:none;background:rgba(15,20,30,.9);color:#fff;border-radius:14px;padding:10px 12px;width:min(640px,calc(100vw - 16px));box-sizing:border-box;font:14px system-ui,sans-serif;text-align:center;user-select:none}#bmUI .bmi{font-weight:700;margin-bottom:4px}#bmUI small{display:block;color:#b8c4d4;margin:2px 0 6px}#bmUI .bmt{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}#bmUI button{border:0;border-radius:9px;background:#3a4357;color:#fff;padding:7px 10px;font-size:14px;cursor:pointer;min-width:62px}#bmUI button.on{background:#a84be8}#bmUI button.bmx{background:#2f9e5a}#bmUI .bmr{margin-top:8px;display:flex;flex-wrap:wrap;gap:8px;justify-content:center}body.bm #tc{display:none!important}body.bm canvas{touch-action:none}'}));
-const bmUI=document.createElement('div');bmUI.id='bmUI';bmUI.innerHTML='<div class="bmi" id="bmInfo"></div><small id="bmHelp"></small><div class="bmt" id="bmTools"></div><div class="bmt" id="bmFurn" style="margin-top:6px;display:none"></div><div class="bmr"><button id="bmLv"></button><button id="bmRot">↻ Girar</button><button id="bmZm">🔍−</button><button id="bmZp">🔍+</button><button class="bmx" id="bmEx">✅ Terminar</button></div>';document.body.appendChild(bmUI);
+const bmUI=document.createElement('div');bmUI.id='bmUI';bmUI.innerHTML='<div class="bmi" id="bmInfo"></div><small id="bmHelp"></small><div class="bmt" id="bmTools"></div><div class="bmt" id="bmFurn" style="margin-top:6px;display:none"></div><div class="bmr"><button id="bmLv"></button><button id="bmRot">↻ Girar</button><button id="bmZm">🔍−</button><button id="bmZp">🔍+</button><button id="bmBz">🏪 Negocio</button><button class="bmx" id="bmEx">✅ Terminar</button></div>';document.body.appendChild(bmUI);
 bmUI.addEventListener('pointerdown',e=>e.stopPropagation());
-$('bmEx').addEventListener('click',()=>bmExit());$('bmZm').addEventListener('click',()=>{BM.zoom=clamp(BM.zoom*1.15,.6,1.8)});$('bmZp').addEventListener('click',()=>{BM.zoom=clamp(BM.zoom/1.15,.6,1.8)});
+$('bmEx').addEventListener('click',()=>bmExit());$('bmBz').addEventListener('click',()=>{const t=BM.t;if(!t)return;bmExit();terrBizOpen(t)});$('bmZm').addEventListener('click',()=>{BM.zoom=clamp(BM.zoom*1.15,.6,1.8)});$('bmZp').addEventListener('click',()=>{BM.zoom=clamp(BM.zoom/1.15,.6,1.8)});
 $('bmLv').addEventListener('click',()=>bmLevel(BM.lvl===1?2:1));$('bmRot').addEventListener('click',()=>bmRot2());function bmRot2(){if(BM.tool==='yard'){BM.yv=(BM.yv+1)%3;bmToolsUpd()}else BM.sd=(BM.sd+1)%4;bmGhostUpd()}
 function bmFurnUpd(){const e=$('bmFurn');if(!e)return;if(!BM.on||BM.tool!=='furn'){e.style.display='none';return}
  const ks=Object.keys(FURN).filter(k=>inv[k]&&inv[k].cat==='Muebles'&&inv[k].n>0);if(!ks.includes(BM.fi))BM.fi=ks[0]||null;e.style.display='';
@@ -3579,7 +3601,7 @@ function bmExit(){if(!BM.on)return;BM.on=false;scene.remove(BM.grid);BM.grid.geo
 addEventListener('keydown',e=>{if(!BM.on)return;const a=document.activeElement;if(a&&(a.tagName==='INPUT'||a.tagName==='TEXTAREA'))return;
  if(e.code==='Escape'){e.preventDefault();bmExit();return}if(e.code==='Tab'){e.preventDefault();bmLevel(BM.lvl===1?2:1);return}if(e.code==='KeyR'&&(BM.tool==='stair'||BM.tool==='yard'||BM.tool==='furn')){e.preventDefault();bmRot2();return}if(e.code==='KeyB'){e.preventDefault();BM.tool='furn';BM.hv=null;bmToolsUpd();bmGhostUpd();return}const k=bmTL()[(e.key==='0'?10:(+e.key||0))-1];if(k){BM.tool=k;BM.hv=null;bmToolsUpd();bmGhostUpd()}});
 // aviso de interacción: cerca de un terreno propio → E para construir
-function bmNear(tt){for(const q of TERRENOS)if(q.owned)tt(q,q.x,q.z,Math.max(q.w,q.d)/2,'bterr','E: construir en tu terreno nº '+q.id+' ('+q.w+'×'+q.d+' m) · vista desde arriba')}
+function bmNear(tt){for(const q of TERRENOS)if(q.owned)tt(q,q.x,q.z,Math.max(q.w,q.d)/2,'bterr','E: construir en tu terreno nº '+q.id+' ('+q.w+'×'+q.d+' m) · vista desde arriba'+(q.biz&&q.biz.ty?' · L: tu negocio':' · L: montar negocio'));for(const q of TERRENOS)if(!q.owned&&q.bremote)tt(q,q.x,q.z,Math.hypot(q.w,q.d)/2+3,'tshop','E: comprar en '+((LTYPES[q.bremote.ty]||{}).n||'NEGOCIO').toLowerCase()+' de '+bizWho(q.bremote))}
 
 
 // =================================================================================================
@@ -3606,7 +3628,7 @@ function nearest(){if(seat)return{kind:'stand',txt:'E: levantarte'};if(inCar)ret
 function enterCar(c){inCar=c;c.mode='player';c.v=0;body.visible=false;if(c.m.userData.rider)c.m.userData.rider.visible=true;pl.x=c.x;pl.z=c.z}
 function interact(){if(seat){seat=null;setSit(body,false);return}const n=nearest();if(!n)return;
  if(n.kind==='door'){if(lockedFor(n.o)){toast(n.o.shop?'Cerrado':'🔒 Está cerrada con llave: necesitas la llave (el dueño te puede dar una copia)');return}n.o.open=!n.o.open;n.o.col.on=!n.o.open;if(n.o.col2)n.o.col2.on=n.o.col.on;sfx.door(n.o.open)}
- else if(n.kind==='talk')talk(n.o);else if(n.kind==='obj')IDEF[n.o.type].act(n.o);else if(n.kind==='bterr')bmEnter(n.o);else if(n.kind==='car')enterCar(n.o);
+ else if(n.kind==='talk')talk(n.o);else if(n.kind==='obj')IDEF[n.o.type].act(n.o);else if(n.kind==='bterr')bmEnter(n.o);else if(n.kind==='tshop')bsOpen(100000+n.o.id);else if(n.kind==='car')enterCar(n.o);
  else if(n.kind==='boat')boardBoat(n.o);else if(n.kind==='boatoff'){if(riding&&riding.net){toast('Recoge la red antes de bajar (G)');return}leaveBoat()}else if(n.kind==='avion')boardAvion(n.o);else if(n.kind==='avioff')leaveAvion();else if(n.kind==='heli')boardHeli(n.o);else if(n.kind==='helioff')leaveHeli();else if(n.kind==='plane')boardPlane(n.o);else if(n.kind==='planeoff')leavePlane();else if(n.kind==='planein'){toast('Abróchate el cinturón: solo puedes bajar en la terminal')}
  else if(n.kind==='bus')boardBus(n.o);else if(n.kind==='busoff')leaveBus();else if(n.kind==='busin'){if(riding)toast('El bus solo para en las paradas')}
  else{const c=inCar,sd=[[Math.cos(c.h)*2.6,-Math.sin(c.h)*2.6],[-Math.cos(c.h)*2.6,Math.sin(c.h)*2.6],[-Math.sin(c.h)*3.5,-Math.cos(c.h)*3.5]];
@@ -4045,7 +4067,7 @@ function openSendForm(){
  h+='<h3>🏠 Casas y pisos</h3>'+(hs.length?hs.map(x=>'<div class="xfRow"><label><input type="checkbox" class="xfHouse" data-i="'+x.id+'"> '+(x.apt?'Piso':'Casa')+' ('+x.x+', '+x.z+')</label></div>').join(''):'<div class="xfNote">No tienes casas propias para enviar</div>')+(locked?'<div class="xfNote">Las casas alquiladas o con hipoteca no se pueden enviar.</div>':'');
  h+='<h3>🏪 Negocios</h3>'+(bs.length?bs.map(x=>'<div class="xfRow"><label><input type="checkbox" class="xfHouse" data-i="'+x.id+'"> '+pcEsc(xfBizName(x.ty))+' · nivel '+(x.lv||1)+' ('+x.x+', '+x.z+')</label></div>').join(''):'<div class="xfNote">No tienes negocios para enviar</div>');
  const ts=TERRENOS.filter(t=>t.owned);
- h+='<h3>🟩 Terrenos</h3>'+(ts.length?ts.map(t=>'<div class="xfRow"><label><input type="checkbox" class="xfPlot" data-t="'+t.id+'"> Terreno nº '+t.id+' · '+t.w+'×'+t.d+' m'+(t.b&&bmN(t.b)?' (con construcción)':'')+'</label></div>').join('')+'<div class="xfNote">La construcción pasa con el terreno; los muebles colocados vuelven a tu inventario.</div>':'<div class="xfNote">No tienes terrenos para enviar</div>');
+ h+='<h3>🟩 Terrenos</h3>'+(ts.length?ts.map(t=>'<div class="xfRow"><label><input type="checkbox" class="xfPlot" data-t="'+t.id+'"'+(t.biz&&t.biz.ty?' disabled':'')+'> Terreno nº '+t.id+' · '+t.w+'×'+t.d+' m'+(t.b&&bmN(t.b)?' (con construcción)':'')+(t.biz&&t.biz.ty?' · tiene negocio: aún no se puede enviar':'')+'</label></div>').join('')+'<div class="xfNote">La construcción pasa con el terreno; los muebles colocados vuelven a tu inventario.</div>':'<div class="xfNote">No tienes terrenos para enviar</div>');
  h+='<button class="xfBtn" onclick="xfSubmit()">Enviar oferta</button>';
  playerCard.innerHTML=h}
 function xfSubmit(){
@@ -4075,7 +4097,7 @@ function xfTake(o){
  (o.houses||[]).forEach(q=>{const h=xfFind(q.x,q.z,false);if(h)releaseHouse(h)});
  (o.biz||[]).forEach(q=>{const h=xfFind(q.x,q.z,true);if(!h)return;releaseHouse(h);if(h.ty){h.ty='';try{localIn(h,'')}catch(e){}}h.lv=0;h.till=0;h.stock={}});
  const bs={};
- (o.plots||[]).forEach(q=>{const t=TERRENOS.find(x=>x.id===q.id);if(!t)return;if(BM.on&&BM.t===t)bmExit();bmFReturn(t);bs[q.id]=bmSer(t);t.setOwned(false);t.b=null;t.rem=null;t._rsig='';bmRebuild(t);houseSent[t.id]=undefined});
+ (o.plots||[]).forEach(q=>{const t=TERRENOS.find(x=>x.id===q.id);if(!t)return;if(BM.on&&BM.t===t)bmExit();bmFReturn(t);bs[q.id]=bmSer(t);t.setOwned(false);t.b=null;t.biz=null;t.rem=null;t._rsig='';bmRebuild(t);houseSent[t.id]=undefined});
  estateRefresh();if(invOpen)renderInv();return bs}
 function xfApply(o){
  money+=(o.money||0);
@@ -4437,31 +4459,38 @@ function moBan(){const t=document.getElementById('moBan');if(t&&t.value.trim()){
 var bizSynced=false,bizSig='';
 const BIZ_CAT={super:'Comida',bar:'Comida',pan:'Comida',ropa:'Ropa',muebles:'Muebles'};
 function bizSyncSend(force){if(!bizSynced||!MP.connected)return;
- const list=HOUSES.filter(h=>h.owned&&h.local&&h.ty&&PRODS[h.ty]).map(h=>({x:h.x,z:h.z,ty:h.ty,lv:h.lv||1,till:Math.round(h.till||0),items:PRODS[h.ty].map(q=>({k:q[0],p:Math.max(1,Math.round(q[2])),n:Math.max(0,Math.floor((h.stock||{})[q[0]]||0)),e:q[3]}))})),owned=HOUSES.filter(h=>h.owned&&h.local).map(h=>({x:h.x,z:h.z})),sig=JSON.stringify([list.map(e=>Object.assign({},e,{till:Math.floor(e.till/25)})),owned]);
+ const ent=(h,x,z,tid)=>{const e={x,z,ty:h.ty,lv:h.lv||1,till:Math.round(h.till||0),items:PRODS[h.ty].map(q=>({k:q[0],p:Math.max(1,Math.round(q[2])),n:Math.max(0,Math.floor((h.stock||{})[q[0]]||0)),e:q[3]}))};if(tid!=null)e.tid=tid;return e},
+  tb=TERRENOS.filter(t=>t.owned&&t.biz&&t.biz.ty&&PRODS[t.biz.ty]), // negocios montados en tus terrenos (13.5)
+  list=HOUSES.filter(h=>h.owned&&h.local&&h.ty&&PRODS[h.ty]).map(h=>ent(h,h.x,h.z)).concat(tb.map(t=>ent(t.biz,t.x,t.z,t.id))),
+  owned=HOUSES.filter(h=>h.owned&&h.local).map(h=>({x:h.x,z:h.z})).concat(tb.map(t=>({x:t.x,z:t.z}))),
+  sig=JSON.stringify([list.map(e=>Object.assign({},e,{till:Math.floor(e.till/25)})),owned]);
  if(!force&&sig===bizSig)return;bizSig=sig;govSend({type:'biz_sync',list,owned})}
 setInterval(()=>bizSyncSend(false),3000);
-function bizSaleApply(s){const h=xfFind(s.x,s.z,true);if(!h||!h.owned)return 0;h.stock=h.stock||{};h.stock[s.k]=Math.max(0,(h.stock[s.k]||0)-s.n);h.till=(h.till||0)+s.total;return s.total}
+function bizSaleApply(s){let h=xfFind(s.x,s.z,true);if(h&&!h.owned)h=null;if(!h){const t=terrAt(s.x,s.z);h=t&&t.owned&&t.biz&&t.biz.ty?t.biz:null}if(!h)return 0;h.stock=h.stock||{};h.stock[s.k]=Math.max(0,(h.stock[s.k]||0)-s.n);h.till=(h.till||0)+s.total;return s.total}
 function bizOnPending(m){const sales=Array.isArray(m.sales)?m.sales:[];let tot=0;sales.forEach(s=>{tot+=bizSaleApply(s)});
  if(sales.length){saveGame();setTimeout(()=>toast('💰 Mientras no estabas vendiste €'+tot+' en tus negocios (están en la caja)'),1500)}
  govSend({type:'biz_ack',n:sales.length});bizSynced=true;bizSig='';bizSyncSend(true)}
 function bizOnSold(m){const t=bizSaleApply(m);if(t){toast('💰 '+m.buyer+' ha comprado '+m.n+'× '+m.k+' en tu local (+€'+t+' en caja)');sfx.cash()}}
 function bizOnBought(m){const cat=BIZ_CAT[m.ty]||'Comida';money=Math.max(0,money-m.total);const o=inv[m.k]||(inv[m.k]={n:0,cat,act:xfAct(cat)});o.n+=m.n;sfx.cash();toast('Comprado: '+m.k+' ×'+m.n+' (−€'+m.total+')');if(invOpen)renderInv();saveGame()}
 function bizApply(m){const seen=new Set();
- (m.list||[]).forEach(e=>{const h=xfFind(e.x,e.z,true);if(!h)return;if(e.own||h.owned){h.remote=null;return}
+ const tseen=new Set();
+ (m.list||[]).forEach(e=>{const h=xfFind(e.x,e.z,true);if(!h){const t=terrAt(e.x,e.z);if(t){if(e.own||t.owned)t.bremote=null;else if(e.ty){tseen.add(t.id);t.bremote={name:e.owner,ty:e.ty,lv:e.lv||0,items:e.items||[],on:!!e.on}}}return}if(e.own||h.owned){h.remote=null;return}
   seen.add(h.id);h.remote={name:e.owner,ty:e.ty||'',lv:e.lv||0,items:e.items||[],occ:!!e.occ,on:!!e.on};const sig=(e.ty||'')+':'+(e.lv||0);
   if(h.rsig!==sig){h.rsig=sig;h.ty=e.ty||'';h.lv=e.lv||0;try{localIn(h,e.ty||'')}catch(_){}}
   const rc=e.occ?2:1;if(h.rcol!==rc){h.rcol=rc;setHouseColor(h,e.occ?0x95a5a6:0x16a085)}});
  HOUSES.forEach(h=>{if(h.local&&h.remote&&!seen.has(h.id)){h.remote=null;h.rsig='';h.rcol=0;if(!h.owned){h.ty='';h.lv=0;try{localIn(h,'')}catch(_){}if(h.om)h.door.leaf.material=h.om}}});
- const r=document.getElementById('bsRoot');if(r&&dlgOpen){const h=HOUSES[+r.dataset.k];if(h)bsRender(h)}}
+ TERRENOS.forEach(t=>{if(t.bremote&&!tseen.has(t.id))t.bremote=null});
+ const r=document.getElementById('bsRoot');if(r&&dlgOpen){const h=BSH(+r.dataset.k);if(h)bsRender(h)}}
 
 // comprar en la tienda de otro jugador
-function bsOpen(id){openDlg();bsRender(HOUSES[id])}
-function bsRender(h){const e=h.remote;if(!e){dlg.innerHTML='<h2>🏪 Local</h2><p>Este negocio ya no está disponible.</p><div><button onclick="closeDlg()">Cerrar</button></div>';return}
+function BSH(id){if(id>=100000){const t=TERRENOS.find(q=>q.id===id-100000);return t?{id,x:t.x,z:t.z,remote:t.bremote||null}:null}return HOUSES[id]}
+function bsOpen(id){openDlg();bsRender(BSH(id))}
+function bsRender(h){const e=h&&h.remote;if(!e){dlg.innerHTML='<h2>🏪 Local</h2><p>Este negocio ya no está disponible.</p><div><button onclick="closeDlg()">Cerrar</button></div>';return}
  if(e.occ){dlg.innerHTML='<h2>🏪 Local ocupado</h2><p>Este local es de <b>'+pcEsc(e.name)+'</b>'+(e.on?'':' (ahora desconectado)')+' y todavía no tiene ningún negocio abierto.</p><div><button onclick="closeDlg()">Cerrar</button></div>';return}
  const T=LTYPES[e.ty]||{i:'🏪',n:'NEGOCIO'};let t='<div id="bsRoot" data-k="'+h.id+'"><h2>'+T.i+' '+pcEsc(T.n[0]+T.n.slice(1).toLowerCase())+'</h2><p style="margin:2px 0">Negocio de <b>'+pcEsc(e.name)+'</b> · '+BIZN[e.lv||1]+'</p><p style="margin:2px 0 8px">Tu dinero: <b>€'+Math.round(money)+'</b></p>';
  (e.items||[]).forEach((q,i)=>{t+='<div class="r"><i class="ic">'+pcEsc(q.e||'🛒')+'</i><span>'+pcEsc(q.k)+'<br><small>En tienda: '+q.n+' · €'+q.p+'</small></span>'+(q.n>0?'<button onclick="bsBuy('+h.id+','+i+',1)">Comprar 1</button><button onclick="bsBuy('+h.id+','+i+',5)">×5</button>':'<b>Agotado</b>')+'</div>'});
  dlg.innerHTML=t+'<div><button onclick="closeDlg()" style="background:#666">Salir</button></div></div>'}
-function bsBuy(id,i,n){const h=HOUSES[id],q=h&&h.remote&&h.remote.items[i];if(!q)return;n=Math.min(n,q.n);if(n<1){toast('Agotado');return}if(money<q.p*n){toast('No tienes suficiente dinero');return}if(!govSend({type:'biz_buy',x:h.x,z:h.z,k:q.k,n}))toast('Sin conexión con el servidor')}
+function bsBuy(id,i,n){const h=BSH(id),q=h&&h.remote&&h.remote.items[i];if(!q)return;n=Math.min(n,q.n);if(n<1){toast('Agotado');return}if(money<q.p*n){toast('No tienes suficiente dinero');return}if(!govSend({type:'biz_buy',x:h.x,z:h.z,k:q.k,n}))toast('Sin conexión con el servidor')}
 
 // ---------- 28.2 Casas en terrenos: se sincronizan con el servidor y las ven todos los jugadores ----------
 // El dueño publica su construcción (house_set, cada vez que cambia) y el servidor la reparte. Los terrenos de otros se dibujan con el mismo código que los tuyos (t.rem = su dueño, sin editarlos).
@@ -4493,8 +4522,8 @@ function houseOnClaimDeny(m){housePend=null;toast('🟥 OCUPADO · el terreno n�
 function bmValue(t){const b=t.b;if(!b)return 0;let v=b.f.size*BCOST.floor+b.r.size*BCOST.roof+b.s.size*BCOST.stair+b.o.size*BCOST.yard;
  for(const[k,ty]of b.e)v+=ty<=4?BCOST[ETOOL[ty]]:ty===5?BCOST.garage:0;for(const[k,ty]of b.e2)v+=BCOST[ETOOL[ty]];for(const k of b.r2)v+=bmRC(b,k);return v}
 function houseOnConflict(m){const t=TERRENOS.find(q=>q.id===m.id);if(!t||!t.owned)return;
- const back=Math.round(t.price+bmValue(t));if(BM.on&&BM.t===t)bmExit();if(dlgOpen)closeDlg();
- bmFReturn(t);t.setOwned(false);t.b=null;bmRebuild(t);houseSent[t.id]=undefined;money+=back;sfx.cash();estateRefresh();saveGame();
+ const back=Math.round(t.price+bmValue(t)+(t.biz&&t.biz.ty?TBIZ_FEE+(t.biz.till||0):0));if(BM.on&&BM.t===t)bmExit();if(dlgOpen)closeDlg();
+ bmFReturn(t);t.setOwned(false);t.b=null;t.biz=null;bmRebuild(t);houseSent[t.id]=undefined;money+=back;sfx.cash();estateRefresh();saveGame();
  toast('⚠️ El terreno nº '+t.id+' ya estaba registrado a nombre de '+String(m.owner||'otro jugador').slice(0,18)+'. Se te devuelven €'+back)}
 
 // =================================================================================================
@@ -4507,7 +4536,7 @@ function gatherState(){
  return {v:SAVE_VER,isv:1,pets:pets.map(p=>({t:p.t,n:p.name,c:p.col,h:Math.round(p.hunger),p:Math.round(p.hap),w:Object.assign({},p.wear)})),money,loan,hunger,thirst,energy,tod,wx,pl:lastPos,
   inv:JSON.parse(JSON.stringify(inv)),worn:Object.assign({},worn),placed:Object.assign({},placed),wh:Object.assign({},wh),flags:Object.assign({},flags),jx:Object.assign({},jx),sk:Object.assign({},skills),fh:JSON.parse(JSON.stringify(HOLD)),fd:fishDay,
   houses:HOUSES.filter(h=>h.owned).map(h=>({x:h.x,z:h.z,m:h.mode||'own',late:h.late||0,mt:h.mort||null,lv:h.lv||0,tl:h.till||0,ty:h.ty||'',sk:Object.assign({},h.stock||{})})),
-  terrenos:TERRENOS.filter(t=>t.owned).map(t=>({id:t.id,b:bmSer(t)})),
+  terrenos:TERRENOS.filter(t=>t.owned).map(t=>({id:t.id,b:bmSer(t),bz:t.biz&&t.biz.ty?{ty:t.biz.ty,lv:t.biz.lv||1,tl:Math.round(t.biz.till||0),sk:Object.assign({},t.biz.stock||{})}:null})),
   cars:cars.filter(c=>c.owned).map(c=>({t:c.t,col:c.col,lm:c.lm||0,lt:c.lt||0,x:c.x,z:c.z,y:c.y||0,h:c.h,fuel:c.fuel}))}}
 function saveGame(){if(noSave||!started)return;
  try{const st=gatherState();st.at=Date.now();const js=JSON.stringify(st);
@@ -4531,7 +4560,7 @@ function loadGame(src){ // src: partida ya leída (del servidor o de este dispos
   Object.assign(inv,s.inv||{});Object.assign(worn,s.worn||{});Object.assign(placed,s.placed||{});{let nb=0;for(const k of Object.keys(placed)){const n=placed[k]|0;if(n>0&&Object.prototype.hasOwnProperty.call(FURN,k)){const o=inv[k]||(inv[k]={n:0,cat:'Muebles',act:'Colocar en casa'});o.n+=n;nb+=n}delete placed[k]}if(nb)setTimeout(()=>toast('🛋️ Tus '+nb+' muebles antiguos vuelven al inventario: ahora puedes colocarlos de verdad en tu terreno'),1500)}Object.assign(wh,s.wh||{});Object.assign(flags,s.flags||{});Object.assign(jx,s.jx||{});
   if(s.sk&&typeof s.sk==='object')SKILLS.forEach(q=>{const v=Number(s.sk[q.k]);if(Number.isFinite(v)&&v>0)skills[q.k]=Math.floor(v)});
   (s.houses||[]).forEach(o=>{let best=null,bd=3;HOUSES.forEach(h=>{const d=Math.hypot(h.x-o.x,h.z-o.z);if(d<bd){bd=d;best=h}});if(best){best.owned=true;best.mode=o.m||'own';best.late=o.late||0;best.lv=o.lv||1;best.till=o.tl||0;best.stock=Object.assign({},o.sk||{});best.ty=(best.local&&LTYPES[o.ty])?o.ty:'';if(best.ty)localIn(best,best.ty);best.mort=(o.mt&&typeof o.mt.left==='number')?o.mt:null;if(best.mode==='mort'&&!best.mort)best.mode='own';setHouseColor(best,best.local?0xf1c40f:best.mode==='rent'?0x2f7fe0:0x22aa44)}});
-  (s.terrenos||[]).forEach(o=>{const id=(o&&typeof o==='object')?o.id:o,t=TERRENOS.find(q=>q.id===id);if(t){t.setOwned(true);if(o&&o.b)bmDes(t,o.b)}});
+  (s.terrenos||[]).forEach(o=>{const id=(o&&typeof o==='object')?o.id:o,t=TERRENOS.find(q=>q.id===id);if(t){t.setOwned(true);if(o&&o.b)bmDes(t,o.b);t.biz=null;const z=o&&o.bz;if(z&&LTYPES[z.ty])t.biz={id:100000+t.id,ty:z.ty,lv:Math.max(1,Math.min(5,Math.floor(Number(z.lv))||1)),till:Math.max(0,Number(z.tl)||0),stock:Object.assign({},z.sk||{})}}});
   (s.cars||[]).forEach(o=>{if(!SPEC[o.t])return;spawnCar(o.t,o.col,o.x,o.z,o.h||0,'parked',{owned:true,col:o.col,fuel:o.fuel,y:o.y||0,lm:o.lm||0,lt:o.lt||0})});
   if(s.pl){pl.x=s.pl.x;pl.z=s.pl.z;py=s.pl.py||0;vy=0;body.position.set(pl.x,py,pl.z);lastPos=s.pl}
   (s.pets||[]).slice(0,PET_MAX).forEach(o=>{if(o&&PET_T[o.t]){const pp=addPet(o.t,petClean(o.n)||'Mascota',typeof o.c==='number'?o.c:PET_T[o.t].col[0],typeof o.h==='number'?o.h:80,typeof o.p==='number'?o.p:70);if(pp&&o.w&&typeof o.w==='object'){Object.keys(o.w).forEach(sl=>{const nm=o.w[sl];if(PET_CLOTH[nm]&&PET_CLOTH[nm].slot===sl)pp.wear[sl]=nm});petDress(pp)}}});
