@@ -3885,9 +3885,7 @@ function mpRemove(id){const p=MP.players.get(id);if(!p)return;MP.remoteRoot.remo
 function mpCount(){const e=document.getElementById('mpCount');if(e)e.textContent=(MP.players.size+1)+' / 20 jugadores'}
 function mpConnect(){mpHud();if(location.protocol==='file:'){mpStatus('Abre el juego desde el servidor online',false);return}
  // el nombre ya no se pregunta: es el de la cuenta (24.4). Tu propio nombre no se dibuja sobre tu cabeza (los demás jugadores sí ven el tuyo)
- const proto=location.protocol==='https:'?'wss://':'ws://';// Live Server (puerto 55xx) solo sirve archivos: el mundo está en el servidor Node (puerto 3000). ?server=host:puerto lo cambia
- const qs=/[?&]server=([^&]+)/.exec(location.search),host=qs?decodeURIComponent(qs[1]):/^55\d\d$/.test(location.port)?location.hostname+':3000':location.host;
- let ws;try{ws=new WebSocket(proto+host)}catch(e){mpStatus('No se pudo conectar',false);return}MP.ws=ws;
+ const proto=location.protocol==='https:'?'wss://':'ws://';let ws;try{ws=new WebSocket(proto+location.host)}catch(e){mpStatus('No se pudo conectar',false);return}MP.ws=ws;
  ws.onopen=()=>{MP.connected=true;MP.retry=0;mpStatus('Conectado',true);accOnOpen()}; // primero se inicia sesión (24.4); cuando el servidor la acepta se envía 'join'
  ws.onmessage=e=>{let m;try{m=JSON.parse(e.data)}catch(_){return}if(accOnMsg(m)||keysOnMsg(m))return;
   if(m.type==='welcome'){MP.id=m.id;MP.feat=m.features||{};if(m.world){tod=m.world.tod;wx=m.world.wx} (m.players||[]).forEach(d=>{if(d.id!==MP.id)mpUpsert(d)});(m.chat||[]).forEach(chatAdd);mpCount()}
@@ -4220,7 +4218,7 @@ mpConnect();
 const clock=new THREE.Clock();let tm=0,objT=1;
 let fpsCap=0,fpsLast=0;try{const v=+localStorage.getItem('rls_fps');if(v===30||v===45||v===60)fpsCap=v}catch(e){}
 function loop(){requestAnimationFrame(loop);if(fpsCap){const now=performance.now(),iv=1000/fpsCap;if(now-fpsLast<iv-3)return;fpsLast=now}const dt=Math.min(clock.getDelta(),.05);mpTick(dt);
- if(started&&ov.style.display==='none'){tm+=dt;SEA.position.y=-.4+Math.sin(tm*.8)*.04;seaTex.offset.set(tm*.004,tm*.002);WINDT.value=tm;smokeUpd(tm);portUpd(tm);if(SEA.material.uniforms)SEA.material.uniforms.tm.value=tm;if(!dlgOpen||invOpen)hunger=Math.max(0,hunger-dt*.2);if(!dlgOpen||invOpen){const wk=(working||task)?.12:0;thirst=100;energy=seat?Math.min(100,energy+dt*.5):Math.max(0,energy-dt*(.1+.5*eff+wk))}
+ if(started&&ov.style.display==='none'){tm+=dt;SEA.position.y=-.4+Math.sin(tm*.8)*.04;seaTex.offset.set(tm*.004,tm*.002);WINDT.value=tm;smokeUpd(tm);portUpd(tm);if(SEA.material.uniforms)SEA.material.uniforms.tm.value=tm;if(!dlgOpen||invOpen)hunger=Math.max(0,hunger-dt*.2*(energy<=0?5:1));if(!dlgOpen||invOpen){const wk=(working||task)?.12:0;thirst=100;energy=seat?Math.min(100,energy+dt*.5):Math.max(0,energy-dt*(.1+.5*eff+wk)*(hunger<=0?5:1))}
   if(hunger<=0&&energy<=0&&!collapsing&&!inCar&&!riding&&!working&&!task&&!dlgOpen)collapse();if(hunger<=0&&(tm%25)<dt)toast('¡Tienes mucha hambre! Come algo (F)');if(energy<=0&&((tm+16)%25)<dt)toast('Estás agotado: siéntate a descansar o toma un café');
   for(const d of DOORS){if(d.gar){d.ang+=((d.open?1:0)-d.ang)*Math.min(1,5*dt);d.leaf.scale.y=Math.max(.03,1-d.ang*.97);continue}const tg=d.open?-d.fz*1.9:0;d.ang+=(tg-d.ang)*Math.min(1,8*dt);d.pv.rotation.y=d.ang}
   if(!dlgOpen){if(inCar)driveCar(inCar,dt);else if(!riding)stepFoot(dt)}
