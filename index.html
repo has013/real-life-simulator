@@ -34,8 +34,8 @@
          5.1 Señales de tráfico (fase 1: sistema base; todavía sin reglas)
          5.2 Semáforos (fase 3)
    6.   EDIFICIOS DE LAS AFUERAS
-         6.1 Biblioteca (oeste, tras la autopista): el edificio. Sus actividades: busca «Biblioteca, parte 2»
-         6.2 Universidad (al sur de la biblioteca): el edificio. Matrícula y clases: busca «Universidad, parte 2»
+         6.1 Biblioteca (oeste, tras la autopista; solo el edificio, sin mecánicas)
+         6.2 Universidad (al sur de la biblioteca; solo el edificio, sin mecánicas)
          6.3 Aeropuerto (afueras, al sur del barrio): terminal con torre de control, plataforma y pista
          6.4 Hospital (afueras, cerca de la ciudad): recepción, sala de espera y 3 habitaciones; aquí se define el punto de aparición tras un desmayo
    7.   PUERTO, BARCOS Y PESCA
@@ -685,6 +685,12 @@ function carMesh(t,col){const s=SPEC[t],w=s.w,l=s.l,h=s.h,y0=.32,sp=t==='sport',
   const gh=new THREE.Mesh(glowGeo,glowH);gh.position.set(q*w*.34,y0+h*.42,l/2+.04);g.add(gh);
   const gt=new THREE.Mesh(glowGeo,glowT);gt.rotation.y=Math.PI;gt.position.set(q*w*.32,y0+h*.46,-l/2-.05);g.add(gt)});
  g.add(bm);g.userData.beams=bm;return g}
+function carMeshOld(t,col){const s=SPEC[t],g=new THREE.Group();
+ part(new THREE.BoxGeometry(s.w,s.h,s.l),col,0,.35+s.h/2,0,g);
+ if(t==='van')part(new THREE.BoxGeometry(s.w+.02,.6,1.2),0x223344,0,.35+s.h-.5,s.l*.3,g);
+ else part(new THREE.BoxGeometry(s.w*.9,s.cab,s.l*.5),0x223344,0,.35+s.h+s.cab/2,-s.l*.05,g);
+ [-1,1].forEach(k=>part(new THREE.BoxGeometry(.2,.55,s.l*.7),0x111111,k*s.w/2,.3,0,g));
+ return g}
 function spawnCar(t,col,x,z,h,mode,extra){const m=carMesh(t,col);m.userData.col=col;scene.add(m);
  const c=Object.assign({m,t,spec:SPEC[t],x,z,h,v:0,mode,fuel:SPEC[t].tank*(.3+Math.random()*.7)},extra||{});if(c.lm||c.lt)applyUp(c);m.position.set(x,c.y||0,z);m.rotation.y=h;cars.push(c);return c}
 
@@ -807,7 +813,7 @@ function localIn(h,t){const q=h.inner;if(!q)return;
  if(T){let wx=0,wl=-L+1.9;
   if(t==='super'){F(0,0,-L+.35,w-3,2.4,.5,0xcfe6f2,true);backRows(0,4,cl);F(0,2.55,-L+.02,6,.4,.04,0x27ae60,false);
    F(0,0,-L+3.3,5,1,.9,0x8b5a2b,true);F(0,1,-L+3.3,5.2,.06,1.05,0x2f2f2f,false);till(1.5,-L+3.3);
-   [-6,-3.6,3.6,6].forEach(x=>{F(x,0,.8,1,.1,6,0x999999,false);for(let r=0;r<3;r++)for(let k=0;k<2;k++){F(x,.1+r*.6,-.7+k*3.1,.95,.4,2.8,cl(),true)}});
+   [-6,-3.6,3.6,6].forEach(x=>{F(x,0,.8,1,.1,6,0x999999,false);for(let r=0;r<3;r++)for(let k=0;k<2;k++){const m=F(x,.1+r*.6,-.7+k*3.1,.95,.4,2.8,cl(),true)}});
    [-2.2,-1.4].forEach(x=>F(x,0,L-.8,.7,.4,.5,0xd9473a,false));F(2.2,0,L-.8,.9,.8,.6,0x999999,false)}
   else if(t==='bar'){wl=-L+1.8;F(0,0,-L+.35,w-3,2.4,.5,0x3a2a1a,true);backRows(0,3,()=>pick([0x2e8b57,0xc0392b,0xe0b020,0x8e44ad,0xdcdcdc]));
    F(0,2.55,-L+.02,7,.2,.04,0xff4d6d,false);F(-5.5,1.6,-L+.05,1.6,.9,.05,0x111111,false);F(5.5,1.6,-L+.05,1.6,.9,.05,0x111111,false);
@@ -843,7 +849,10 @@ function house(px,pz,fz){
  const garden=rnd()<.4,w=15.6,d=garden?10:15.6,cz=garden?pz-fz*(15.6-10)/2:pz,wc=pick([0xe8dcc4,0xd9b99b,0xc8d4c0,0xe3c9c9,0xcfd8e3]);
  const dr=hollow(px,cz,w,d,3.2,fz,wc,2.4,0xb89a78);dr.leaf.material=mat(pick([0x6b4a2b,0x2a5a8a,0x7a2a2a]));
  dr.house=true;const L=d/2-.4,F=(x,y,l,sx,sy,sz,c,s)=>box(px+x,G+.03+y,cz+fz*l,sx,sy,sz,c,s);
- const R0={s:scene.children.length,c:colliders.length,i:INTERACTS.length};houseIn(F,L);const RIN={meshes:scene.children.slice(R0.s),cols:colliders.slice(R0.c),cx:px,cz,fz,w,d};let top=G+3.45;
+ const R0={s:scene.children.length,c:colliders.length,i:INTERACTS.length};houseIn(F,L);const RIN={meshes:scene.children.slice(R0.s),cols:colliders.slice(R0.c),cx:px,cz,fz,w,d};if(0){F(-3.4,0,-L+4.2,8,2.8,.2,0xf2efe8,true);F(-4.8,0,-L+1.8,2,.6,3.2,0x3b6ea5,true);F(-4.8,.6,-L+.6,1.2,.15,.6,0xffffff,false);F(-1.5,0,-L+.8,2.4,2.2,1,0x7a5a3a,true);
+ F(6.6,0,-L+3,1,.95,5,0x9aa0a6,true);F(4.6,0,-L+.7,1,2,.9,0xf4f4f4,true);F(3.5,0,-L+3.8,2.4,.8,1.4,0x8b5a2b,true);F(1.7,0,-L+3.8,.7,.5,.7,0x6b4a2b,false);F(3.5,0,-L+5.2,.7,.5,.7,0x6b4a2b,false);
+ F(-5.5,0,L-2.2,3,.8,1.2,0xa53b3b,true);F(5.6,0,L-1.1,2.4,.6,1.1,0xffffff,true);F(3.9,0,L-.7,.5,.5,.6,0xffffff,false);
+ }let top=G+3.45;
  if(rnd()<.5){facade(px,cz,w,d,top,1,false);top+=3.3}
  pyramid(px,cz,w,top,pick([0x8a3b2b,0x6a4a3a,0x555a60]));
  if(garden){const ez=pz+fz*8.2,zf=cz+fz*5,len=Math.abs(ez-zf),mz=(ez+zf)/2;
@@ -894,16 +903,29 @@ function apt(px,pz,fz,tall){
    FLOORS.push(...elPieces(px,pz,sx0).map(r=>Object.assign(r,{y})),{x0:sx0,x1:sx1,z0:pz-7.6,z1:pz-5,y},{x0:sx0,x1:sx1,z0:pz+5,z1:pz+7.6,y})}
   else box((sx0+sx1)/2,y-.3,pz,2.4,.3,15.2,0xcfc8bc,false)}
  for(let m=0;m<fl;m++)aptLevel(px,pz,m);addElev(px,pz,fl)}
+function aptOld(px,pz,fz,tall){const fl=tall?8+(rnd()*5|0):3+(rnd()*3|0);facade(px,pz,16,16,G,fl,true);
+ box(px,G,pz+fz*8.05,1.6,2.3,.15,0x333333,false);BLD.push([px-8,pz-8,16,16,'#7b8590'])}
 function shop(key,px,pz,fz,w,dd){const S=SHOPS[key],d=dd||16,big=w>20,dw=big?6:3.2;
  const dr=hollow(px,pz,w,d,4.2,fz,S.wall,dw,S.floor,key==='hotel'?[px+13.75,px+16.35,pz-5.6,pz-3.25]:0),zf=pz+fz*d/2;dr.shop=key;
  sign(S.n,px,G+3.35,zf,big?10:6,fz,S.c);if(key==='hotel'||key==='town'||key==='bank')civicIn(key,px,pz,fz,w,d,zf);else shopIn(key,px,pz,fz,w,d,zf);
  PLACES.push({x:px,z:zf+fz*3,key,l:S.L,c:S.col});
  if(!big)facade(px,pz,w,d,G+4.45,1+(rnd()*2|0),false);if(key==='hotel')hotelUp(px,pz,w,d);if(key==='town'){facade(px,pz,w,d,G+4.45,1,false);facade(px,pz,6,6,G+7.75,3,false);pyramid(px,pz,6,G+17.05,0x555a60)}}
+function shopInOld(key,cx,cz,fz,w,d,zf){
+ const S=SHOPS[key],L=d/2-.4,F=(x,y,l,sx,sy,sz,c,s)=>box(cx+x,G+.03+y,cz+fz*l,sx,sy,sz,c,s),big=w>20;
+ F(0,0,-L+3.3,5,1,.9,0x8b5a2b,true);F(0,1,-L+3.3,1,.3,.5,0x333333,false);
+ const wk=person(0x2255aa),wz=cz+fz*(-L+1.8);wk.position.set(cx,G+.03,wz);wk.rotation.y=fz>0?0:Math.PI;scene.add(wk);
+ WORKERS.push({x:cx,z:wz,key,name:S.worker,sp:{x:cx,z:zf+fz*4.8}});
+ if(key==='dealer'){[-12,-5,5,12].forEach((x,i)=>{const c=carMesh(['hatch','sport','van','sport'][i],[0x3a7bd5,0xd11f1f,0xeeeeee,0xffcc00][i]),zc=cz+fz*1.5;
+  c.position.set(cx+x,G+.03,zc);c.rotation.y=fz>0?0:Math.PI;scene.add(c);colliders.push({x0:cx+x-1.3,x1:cx+x+1.3,z0:zc-2.6,z1:zc+2.6,y1:2,on:true})})}
+ else if(key==='bar')[-5,0,5].forEach(x=>{F(x,0,.5,1.4,.9,1.4,0x6b4a2b,true);F(x-1.2,0,.5,.5,.5,.5,0xaa3333,false);F(x+1.2,0,.5,.5,.5,.5,0xaa3333,false)});
+ else if(key==='furn')[[-5,0x3b6ea5],[5,0xa53b3b]].forEach(a=>{F(a[0],0,1,3,.8,1.2,a[1],true);F(a[0],0,3.5,2,.6,3.2,0xdddddd,true)});
+ else if(key==='estate')[-5,5].forEach(x=>F(x,0,.5,2.4,.8,1.2,0x9c7a55,true));
+ else (big?[-14,-10,-6,6,10,14]:[-6,-3.6,3.6,6]).forEach(x=>{F(x,0,.8,1,2,6,0xcfd4d8,true);F(x,2,.8,.8,.3,5.5,pick([0xd9473a,0x3a9ad9,0xe0b020,0x4aa35a]),false)})}
 const SHOPS={
 super:{n:'SUPERMERCADO',c:'#16803c',wall:0xe9e4d4,floor:0xd8d8d0,L:'S',col:'#1c9c4c',worker:'Cajera',job:['Reponedor',150],items:[['Manzanas',3],['Pan',2],['Agua',1],['Pizza',9],['Leche',2],['Comida para mascotas',6]]},
 dealer:{n:'CONCESIONARIO',c:'#b3261e',wall:0xdde3e8,floor:0xbfc5cc,L:'C',col:'#e03a30',worker:'Vendedor',job:['Ayudante de ventas',400],cars:[['hatch',2800,0x3a7bd5],['van',5200,0xeeeeee],['sport',9500,0xd11f1f],['moto',1800,0xe67e22],['bici',250,0x2ecc71],['patinete',120,0xe74c3c]]},
 food:{n:'ALIMENTACIÓN',c:'#d97a1a',wall:0xf0d9a8,floor:0xd8c9a8,L:'A',col:'#e8891e',worker:'Tendero',job:['Dependiente',130],items:[['Bocadillo',4],['Fruta',3],['Refresco',2],['Chocolate',2]]},
-furn:{n:'MUEBLES',c:'#7a4a2a',wall:0xe3d3c0,floor:0xb89a78,L:'M',col:'#9b6a3a',worker:'Vendedora',job:['Montador',250],items:[['Sofá',450],['Cama',380],['Mesa',220],['Lámpara',60],['Armario',300],['Sillón',200],['Mesa de centro',90],['Estantería',160],['Mueble de TV',350],['Alfombra',70],['Planta grande',40],['Nevera',420],['Cocina',380],['Encimera',260],['Taburete',45]]},
+furn:{n:'MUEBLES',c:'#7a4a2a',wall:0xe3d3c0,floor:0xb89a78,L:'M',col:'#9b6a3a',worker:'Vendedora',job:['Montador',250],items:[['Sofá',450],['Cama',380],['Mesa',220],['Lámpara',60],['Armario',300],['Sillón',200],['Mesa de centro',90],['Estantería',160],['Mueble de TV',350],['Alfombra',70],['Planta grande',40],['Nevera',420],['Cocina',380],['Encimera',260],['Taburete',45],['Mostrador',350],['Caja registradora',280],['Estantería de tienda',220],['Góndola',300],['Vitrina',400],['Nevera expositora',550],['Barra de bar',480],['Perchero',120],['Cartel luminoso',150]]},
 shop:{n:'MODA',c:'#8a2be2',wall:0xe8dff0,floor:0xcfc8d8,L:'T',col:'#a84be8',worker:'Dependienta',job:['Dependiente',140],items:[['Camiseta',25],['Camisa',45],['Chaqueta',95],['Vaqueros',60],['Pantalón corto',30],['Zapatillas',80],['Gorra',15],['Sombrero',30],['Gafas de sol',20],['Bufanda',18],['Mochila',40],['Reloj',35]]},
 bar:{n:'BAR',c:'#b8860b',wall:0xe8c9a0,floor:0x8a6a4a,L:'B',col:'#e0b020',worker:'Camarero',job:['Camarero',120],items:[['Café',2],['Cerveza',3],['Tapa',5]]},
 estate:{n:'INMOBILIARIA',c:'#1f5fa8',wall:0xdfe6ee,floor:0xc2c8d0,L:'I',col:'#2f7fe0',worker:'Agente',job:null},
@@ -984,11 +1006,12 @@ function shopTab(t){SHOPTAB=t;const el=$('sb');if(!el)return;const g=TABS[t][0],
 // 5. CIUDAD
 //     Calles, manzanas, mar, aparcamientos y edificios del barrio principal, con sus señales y semáforos.
 // =================================================================================================
+const ext=N*P-P+54; // extensión
 const PKI=1,PKJ=3,PX=PKI*P,PZ=PKJ*P;const mkHole=()=>{const hp=new THREE.Path();hp.moveTo(PX+3,-(PZ+3));[[8,3],[8,0],[14,0],[14,3],[37,3],[37,37],[3,37]].forEach(a=>hp.lineTo(PX+a[0],-(PZ+a[1])));hp.closePath();return hp};
 const mkPlane=(x0,x1,z0,z1,c,y)=>{const sh=new THREE.Shape();sh.moveTo(x0,-z0);sh.lineTo(x1,-z0);sh.lineTo(x1,-z1);sh.lineTo(x0,-z1);sh.lineTo(x0,-z0);sh.holes.push(mkHole());const m=new THREE.Mesh(new THREE.ShapeGeometry(sh),mat(c));m.rotation.x=-Math.PI/2;m.position.y=y;scene.add(m);return m};
 mkPlane(-14,270,-14,270,0x3d3d40,0);
 (function(){const T0=LAND0-22,T1=LAND1+22,S=4,n=(T1-T0)/S,vs=n+1,pos=new Float32Array(vs*vs*3),col=new Float32Array(vs*vs*3),idx=[],gr=[.353,.49,.29],sa=[.847,.776,.565],inC=(x,z)=>x>=-14&&x+S<=N*P&&z>=-14&&z+S<=N*P;
-for(let j=0;j<vs;j++)for(let i=0;i<vs;i++){const x=T0+i*S,z=T0+j*S,h=heightAt(x,z),k=(j*vs+i)*3,w=clamp((10-isl(x,z))/6,0,1),rk=clamp((h-48)/30,0,1),sn=clamp((h-104)/10,0,1),sh=.95+clamp(h/5,0,1)*.18;
+for(let j=0;j<vs;j++)for(let i=0;i<vs;i++){const x=T0+i*S,z=T0+j*S,h=heightAt(x,z),k=(j*vs+i)*3,e=Math.max(-14-x,x-N*P,-14-z,z-N*P,0),w=clamp((10-isl(x,z))/6,0,1),rk=clamp((h-48)/30,0,1),sn=clamp((h-104)/10,0,1),sh=.95+clamp(h/5,0,1)*.18;
  pos[k]=x;pos[k+1]=h;pos[k+2]=z;for(let c=0;c<3;c++)col[k+c]=((((gr[c]*(1-w)+sa[c]*w)*sh)*(1-rk)+.48*rk)*(1-sn)+.95*sn)}
 for(let j=0;j<n;j++)for(let i=0;i<n;i++){if(inC(T0+i*S,T0+j*S))continue;const a=j*vs+i,b=a+1,c=a+vs,d=c+1;idx.push(a,c,b,b,c,d)}
 const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(pos,3));g.setAttribute('color',new THREE.BufferAttribute(col,3));g.setIndex(idx);g.computeVertexNormals();scene.add(new THREE.Mesh(g,new THREE.MeshLambertMaterial({vertexColors:true})))})();
@@ -1047,6 +1070,25 @@ function makeParking(bx,bz){
  IA(box(bx+17,G,bz+8,.8,.45,2.4,0x8b5a2b,true),'sit');
  [[5.5,10],[5.5,15],[17,14]].forEach(p=>{const t=new THREE.Mesh(new THREE.CylinderGeometry(.2,.25,2.4,6),mat(0x6b4a2b));t.position.set(bx+p[0],G+1.2,bz+p[1]);scene.add(t);
   const f=new THREE.Mesh(new THREE.SphereGeometry(1.6,8,6),mat(0x2f8a3a));f.position.set(bx+p[0],G+3.4,bz+p[1]);scene.add(f);colliders.push({x0:bx+p[0]-.3,x1:bx+p[0]+.3,z0:bz+p[1]-.3,z1:bz+p[1]+.3,y1:3,on:true})})}
+function makeParkingOld(bx,bz){
+ const colB=(x0,x1,z0,z1,y0,y1,both)=>{colliders.push({x0,x1,z0,z1,y0,y1,on:true,car:true});if(both)colliders.push({x0,x1,z0,z1,y0,y1,on:true})};
+ const slab=(a,b,c,d,y,h,col)=>box(bx+(a+b)/2,y,bz+(c+d)/2,b-a,h,d-c,col,false);
+ const wall=(a,b,c,d)=>{slab(a,b,c,d,-6.7,6.4,0x8d8d8d);colB(bx+a,bx+b,bz+c,bz+d,-6.8,-.3,true)};
+ [[0,3,0,40],[37,40,0,40],[3,8,0,3],[14,37,0,3],[3,37,37,40]].forEach(r=>slab(r[0],r[1],r[2],r[3],0,G,0xb9b6ad));
+ [[3,37,10,37],[3,8,3,10],[14,37,3,10]].forEach(r=>{slab(r[0],r[1],r[2],r[3],-.3,G+.3,0xc4bfb3);const q={x0:bx+r[0],x1:bx+r[1],z0:bz+r[2],z1:bz+r[3]};
+  colliders.push(Object.assign({y0:-.3,y1:9,on:true,car:true},q));colliders.push(Object.assign({y0:-.3,y1:G,on:true},q));FLOORS.push(Object.assign({y:G},q))});
+ wall(2.4,3,2.4,37.6);wall(37,37.6,2.4,37.6);wall(3,37,37,37.6);wall(3,8,2.4,3);wall(14,37,2.4,3);
+ [[3,26,3,37],[32,37,3,37],[26,32,3,10],[26,32,24,37]].forEach(r=>{slab(r[0],r[1],r[2],r[3],-3.5,.3,0x6e6e72);FLOORS.push({x0:bx+r[0],x1:bx+r[1],z0:bz+r[2],z1:bz+r[3],y:-3.2})});
+ slab(3,37,3,37,-6.7,.3,0x5f5f64);FLOORS.push({x0:bx+3,x1:bx+37,z0:bz+3,z1:bz+37,y:-6.4});
+ const a=Math.atan2(3.2,14),rl=Math.hypot(14,3.2);
+ [[11,7,-3.2,8,14,0,14],[29,17,-6.4,26,32,10,24]].forEach(r=>{const m=box(bx+r[0],0,bz+r[1],6,.25,rl,0x55555a,false);m.position.y=r[2]+1.6-.125;m.rotation.x=a;RAMPS.push({x0:bx+r[3],x1:bx+r[4],z0:bz+r[5],z1:bz+r[6],y0:r[2],up:-1,rise:3.2})});
+ [-3.2,-6.4].forEach(lv=>{[[10,20],[18,20],[10,32],[18,32],[34,32]].forEach(p=>{box(bx+p[0],lv,bz+p[1],.8,3,.8,0xa8a8a8,false);colB(bx+p[0]-.4,bx+p[0]+.4,bz+p[1]-.4,bz+p[1]+.4,lv,lv+3,true)});
+  for(let k=0;k<8;k++)slab(6+k*4,6.1+k*4,31.5,36.5,lv+.01,.02,0xffffff)});
+ [-.3,-3.5].forEach((c,li)=>[8,16,li?36:32].forEach(x=>[16,26,34].forEach(z=>{if(li&&x>25&&x<33&&z<25&&z>9)return;slab(x,x+1.2,z,z+.6,c-.15,.1,0xfffbe0)})));
+ [[-3.2,12,'hatch'],[-3.2,24,'sport'],[-3.2,28,'van'],[-6.4,16,'hatch'],[-6.4,32,'sport']].forEach(c=>{const k=spawnCar(c[2],pick([0xc0392b,0x2980b9,0xf1c40f,0x27ae60,0xecf0f1,0x34495e]),bx+c[1],bz+34,Math.PI,'parked',{y:c[0]});k.m.position.y=c[0]});
+ box(bx+7.4,0,bz+1,.4,4.5,.4,0x888888,true);box(bx+14.6,0,bz+1,.4,4.5,.4,0x888888,true);box(bx+11,4.2,bz+1,7.6,.3,.4,0x888888,false);sign('PARKING',bx+11,3.35,bz+1,6,-1,'#2a6fd6');
+ ROOMS.push({x0:bx+3,x1:bx+37,z0:bz+3,z1:bz+37,h:0,ug:true});PITS.push({x0:bx+3,x1:bx+37,z0:bz+3,z1:bz+37},{x0:bx+8,x1:bx+14,z0:bz-.01,z1:bz+3});
+ BLD.push([bx+3,bz+3,34,34,'#55555c']);PLACES.push({x:bx+11,z:bz-3,key:'park',l:'P',c:'#2a6fd6'})}
 let SPR=null,SPRP=null;
 function civicIn(key,cx,cz,fz,w,d,zf){const S=SHOPS[key],L=d/2-.4,hot=key==='hotel',F=(x,y,l,sx,sy,sz,c,s)=>box(cx+x,G+.03+y,cz+fz*l,sx,sy,sz,c,s);
  F(0,0,-L+3.3,7,1,.9,hot?0x5a3b22:0x8b5a2b,true);F(0,1,-L+3.3,7.2,.06,1.05,0x2f2f2f,false);F(2,1.06,-L+3.3,.6,.35,.45,0x222222,false);
@@ -1181,7 +1223,7 @@ buildSigns();
 // Cada cruce de TLX tiene un mástil con brazo por acceso (a la derecha del sentido de la marcha) y una cabeza de 3 luces colgada sobre el carril.
 // Ciclo de 30 s por cruce: eje X → verde 10 s · ámbar 3 s · rojo; el eje Z va desfasado medio ciclo, así hay 2 s con todo en rojo entre un eje y otro.
 // El reloj es Date.now() (igual para todos los jugadores) y cada cruce tiene su propio desfase.
-// tlState(tl,axis) → 0 verde · 1 ámbar · 2 rojo (axis 0 = circula por X, 1 = por Z, igual que los coches IA). Lo usan los coches IA y los autobuses para pararse en rojo.
+// tlState(tl,axis) → 0 verde · 1 ámbar · 2 rojo (axis 0 = circula por X, 1 = por Z, igual que los coches IA). Lo usará la fase 5.
 const TLS=[],TL_CYC=30,tlPh=t=>t<10?0:t<13?1:2;
 function tlState(tl,axis){const t=(Date.now()/1000+tl.off)%TL_CYC;return tlPh(axis?(t+15)%TL_CYC:t)}
 let TLU=null; // actualiza luces y brillo nocturno; lo llama updEnv con el factor de noche (0 día · 1 noche)
@@ -1217,7 +1259,7 @@ let TLU=null; // actualiza luces y brillo nocturno; lo llama updEnv con el facto
 //     Biblioteca, universidad y aeropuerto (solo los edificios; los aviones están en la sección 10).
 // =================================================================================================
 
-// ---------- 6.1 Biblioteca (oeste, tras la autopista): aquí solo el edificio; sus actividades, en «Biblioteca, parte 2» ----------
+// ---------- 6.1 Biblioteca (oeste, tras la autopista; solo el edificio, sin mecánicas) ----------
 // Cuerpo 8x32 m (sala central + dos alas) + pórtico + escalinata, de cara al oeste (la ciudad), junto a las fábricas del este (x≈277..290, z≈60..92). Al sur (z>92) queda libre el solar para ampliarla con la universidad.
 (function(){
 const s0=scene.children.length,c0=colliders.length,f0=FLOORS.length,i0=INTERACTS.length,h0=HB.length; // se construye en coordenadas locales y al final se gira 180° hasta su sitio (junto a las fábricas, mirando a la ciudad)
@@ -1277,7 +1319,7 @@ const fx=o=>{const a=PA-o.x1,b=PA-o.x0,c=PB-o.z1,d=PB-o.z0;o.x0=a;o.x1=b;o.z0=c;
 BLD.push([PA-XS,PB-Z1,XS-X0,Z1-Z0,'#d9cfb8']);
 })();
 
-// ---------- 6.2 Universidad (al sur de la biblioteca): aquí solo el edificio; matrícula y clases, en «Universidad, parte 2» ----------
+// ---------- 6.2 Universidad (al sur de la biblioteca; solo el edificio, sin mecánicas) ----------
 // Cuerpo 11x36 m: vestíbulo central con secretaría y dos alas de aulas (norte: FP; sur: Grados) + pórtico, escalinata y torre central. De cara al oeste (la ciudad).
 (function(){
 const s0=scene.children.length,c0=colliders.length,f0=FLOORS.length,i0=INTERACTS.length,h0=HB.length; // se construye en coordenadas locales y al final se gira 180° hasta su sitio
@@ -1446,6 +1488,8 @@ function portUpd(t){for(const b of PORTBOATS){const g=b.g;g.position.y=b.y+Math.
 const BOATS=[],BOATSPEC={lancha:{L:6.2,B:2.3,max:32,acc:9,turn:1.5,lat:1.1,art:'la lancha'},velero:{L:8.6,B:2.9,max:14,acc:3.2,turn:.95,lat:2.2,art:'el velero'},pesquero:{L:8,B:2.7,max:11,acc:3.4,turn:.85,lat:2,art:'el pesquero'}}; // max = m/s (lancha ~115 km/h, velero ~50, pesquero ~40)
 const BGLASS=new THREE.MeshLambertMaterial({color:0x7fb8d8,transparent:true,opacity:.55}),BLIGHT={r:new THREE.MeshBasicMaterial({color:0xff2a2a}),g:new THREE.MeshBasicMaterial({color:0x22e060}),w:new THREE.MeshBasicMaterial({color:0xfff6d0})},HULLM=new THREE.MeshLambertMaterial({vertexColors:true,side:THREE.DoubleSide});
 let boatSeed=4242;const boatR=()=>(boatSeed=boatSeed*16807%2147483647)/2147483647;
+function boatHullGeo(L,B,y0,h,tp){const sh=new THREE.Shape(),b=B/2;sh.moveTo(-L/2,0);sh.lineTo(-L/2+tp*.35,-b*.5);sh.lineTo(-L/2+tp,-b);sh.lineTo(L/2,-b);sh.lineTo(L/2,b);sh.lineTo(-L/2+tp,b);sh.lineTo(-L/2+tp*.35,b*.5);sh.closePath();
+ const g=new THREE.ExtrudeGeometry(sh,{depth:h,bevelEnabled:false});g.rotateX(-Math.PI/2);g.translate(0,y0,0);return g}
 function boatTxtMesh(t,w,h,bg,fg){const c=document.createElement('canvas');c.width=256;c.height=Math.max(32,Math.round(256*h/w));const g=c.getContext('2d');if(bg){g.fillStyle=bg;g.fillRect(0,0,c.width,c.height)}
  g.fillStyle=fg;let fs=Math.round(c.height*.6);g.font='bold '+fs+'px sans-serif';while(fs>8&&g.measureText(t).width>c.width*.92){fs-=2;g.font='bold '+fs+'px sans-serif'}
  g.textAlign='center';g.textBaseline='middle';g.fillText(t,c.width/2,c.height/2+1);
@@ -1858,7 +1902,7 @@ function fishKeep(i){const b=BOATS[i],h=b&&HOLD[b.name];if(!h)return;const f=FIS
  for(let k=0;k<5000&&(trees.length<650||rocks.length<260);k++){const a=R()*6.283,r=16+Math.sqrt(R())*(MR-18),x=MX+Math.cos(a)*r,z=MZ+Math.sin(a)*r,h=heightAt(x,z);
   if(trees.length<650&&h<85&&r>28&&R()<1-h/95&&rd(x,z)>13&&!inFac(x,z,4))trees.push([x,h,z,.8+R()*.9,R()*6.28]);
   else if(rocks.length<260&&r>20&&R()<.35+h/150&&rd(x,z)>8&&!inFac(x,z,4))rocks.push([x,h,z,1+R()*2.6,R()*6.28,.6+R()*.8])}
- const d=new THREE.Object3D();
+ const d=new THREE.Object3D(),mk=(geo,c,arr,fn)=>{const im=new THREE.InstancedMesh(geo,mat(c),arr.length);arr.forEach((q,i)=>{fn(q);d.updateMatrix();im.setMatrixAt(i,d.matrix)});im.userData.full=arr.length;(globalThis.QINST=globalThis.QINST||[]).push(im);scene.add(im)};
  d.rotation.set(0,0,0);
  const bump=(g,a)=>{const p=g.attributes.position;for(let i=0;i<p.count;i++){const x=p.getX(i),y=p.getY(i),z=p.getZ(i),h=Math.sin(x*12.9+y*78.2+z*37.7)*43758.5,k=1+a*(h-Math.floor(h)-.5);p.setXYZ(i,x*k,y*k,z*k)}g.computeVertexNormals();return g},
   mergeG=parts=>{const P=[],Nn=[],C=[],col=new THREE.Color();for(const[g,c]of parts){const q=g.index?g.toNonIndexed():g,p=q.attributes.position,n=q.attributes.normal;for(let i=0;i<p.count;i++){P.push(p.getX(i),p.getY(i),p.getZ(i));Nn.push(n.getX(i),n.getY(i),n.getZ(i));col.set(typeof c==='function'?c(p.getY(i)):c);C.push(col.r,col.g,col.b)}}const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(P,3));g.setAttribute('normal',new THREE.Float32BufferAttribute(Nn,3));g.setAttribute('color',new THREE.Float32BufferAttribute(C,3));return g},
@@ -1903,6 +1947,7 @@ const haloMat=new THREE.PointsMaterial({map:glowTex([[0,'rgba(255,255,255,1)'],[
 
 // ---------- 8.3 Coches aparcados, locales en venta y pisos ----------
 // coches aparcados
+const PK=[[0,1,0],[1,0,0],[2,1,0]];
 function parkAt(i,j,side,a,t){const x0=i*P,z0=j*P;let x,z,h;
  if(side==0){x=x0+a;z=z0-1.4;h=Math.PI/2}else if(side==1){x=x0+a;z=z0+41.4;h=-Math.PI/2}else if(side==2){x=x0-1.4;z=z0+a;h=Math.PI}else{x=x0+41.4;z=z0+a;h=0}
  spawnCar(t,pick([0xc0392b,0x2980b9,0xf1c40f,0x27ae60,0xecf0f1,0x34495e,0xe67e22]),x,z,h,'parked')}
@@ -1962,7 +2007,7 @@ function buildOK(cx,cz,hw,hd,lg){for(let a=-1;a<=1;a+=.5)for(let b=-1;b<=1;b+=.5
 for(let i=0;i<N;i++)for(let j=0;j<N;j++)for(let s=0;s<4;s++)if(rnd()<.3&&!(i==0&&j==0&&s==0)&&!(i==PKI&&j==PKJ&&s==0))parkAt(i,j,s,rr(6,34),pick(['hatch','hatch','sport','van','moto','moto','bici','bici','patinete','patinete']));
 // tráfico
 for(let n=0;n<26;n++){const ax=rnd()<.5?0:1,line=rnd()*(N+1)|0,dir=rnd()<.5?1:-1,al=rr(-5,CE+4),c=-7+line*P,lat=ax==0?c+2.5*dir:c-2.5*dir;
- spawnCar(pick(['hatch','hatch','sport','van','moto']),pick([0xe74c3c,0x3498db,0xf39c12,0x1abc9c,0xbdc3c7,0x8e44ad]),ax==0?al:lat,ax==0?lat:al,0,'ai',{axis:ax,line,dir,spd:rr(8,13)})}
+ const k=spawnCar(pick(['hatch','hatch','sport','van','moto']),pick([0xe74c3c,0x3498db,0xf39c12,0x1abc9c,0xbdc3c7,0x8e44ad]),ax==0?al:lat,ax==0?lat:al,0,'ai',{axis:ax,line,dir,spd:rr(8,13)})}
 // peatones y animales
 const peds=[];
 for(let n=0;n<80;n++){const dog=n>=72,g=dog?new THREE.Group():person(pick([0xc0392b,0x2980b9,0xf1c40f,0x27ae60,0xecf0f1,0x8e44ad,0xe67e22]),{noIdle:1});
@@ -2207,7 +2252,7 @@ function avionStep(dt){for(const a of AVIO){
   else{
    if(a.v>=AVR&&up&&!onRunway(a.x,a.z)&&tm>a.tw){a.tw=tm+4;toast('Solo se puede despegar desde la pista')}
    a.v+=a.thr*5.2*(1-Math.max(0,a.v)/AVMAX)*dt;
-   const fr=1.4+Math.abs(a.v)*.05;a.v-=Math.sign(a.v)*Math.min(Math.abs(a.v),fr*dt);
+   const fr=1.4+Math.abs(a.v)*.05;if(!(w&&a.v<0)||true)a.v-=Math.sign(a.v)*Math.min(Math.abs(a.v),fr*dt);
    if(s){if(a.v>.2)a.v-=Math.min(a.v,10*dt);else a.v=Math.max(-4,a.v-3*dt)}
    a.h+=str*dt*1.1*Math.min(1,Math.abs(a.v)/6)*Math.sign(a.v)/(1+Math.abs(a.v)/28);
    a.alt+=(gAlt-a.alt)*Math.min(1,10*dt)}}
@@ -2292,8 +2337,8 @@ function avionStep(dt){for(const a of AVIO){
 
 
 // ---------- 11.2 Terrenos (parcelas) de la isla principal ----------
-// Cada parcela tiene suelo, vallado, cartel con número y sale en el minimapa. Se compra (campos owned, owner, price), se construye
-// en ella por módulos (sección 20) y el servidor la registra y la comparte con todos (sección 28.2).
+// Fase 1: solo existen en el mundo (suelo, vallado, cartel con número) y en el minimapa. Todavía no se pueden comprar.
+// Fase 2 (pendiente): comprar/vender. Cada parcela ya lleva sus campos: owned, owner, price.
 // Medidas variadas (24×24 pequeñas · 30×30 medianas · 34–36 grandes · algunas rectangulares). [id, x, z, ancho, fondo]
 // Coordenadas sacadas del mapa terrenos_isla_principal.png (1 px = 1 m; x = px-120,5 · z = px-110,5). x,z = centro de la parcela.
 const TERRENO_M2=20; // precio del terreno: € por m²
@@ -2337,6 +2382,7 @@ const TERRENOS=(function(){
  const gm=lm(0x58b85a,-1.5);
  list.forEach(t=>{t.mark=null;t.setOwned=function(v){t.owned=!!v;if(v&&!t.mark){const o=mk(),x0=t.x-t.w/2,z0=t.z-t.d/2,n=10,sx=t.w/n,sz=t.d/n;for(let i=0;i<n;i++)for(let j=0;j<n;j++)floor(o,x0+i*sx,z0+j*sz,x0+(i+1)*sx,z0+(j+1)*sz,.075);t.mark=build(o,gm,true)}if(t.mark)t.mark.visible=!!v}});
  return list})();
+function terrenoAt(x,z){return TERRENOS.find(t=>Math.abs(x-t.x)<=t.w/2&&Math.abs(z-t.z)<=t.d/2)||null}
 
 
 // =================================================================================================
@@ -2349,7 +2395,7 @@ const TERRENOS=(function(){
 // Cada helicóptero: {x,z,h,m (malla), m.userData.rot / .tail (rotores), col (colisión), price, rent, own, fuel, tank, state:'park', rs (vel. rotor actual), rsT (objetivo)}
 const HELIS=[],HELIDLE=5,HELIFLY=32,HELIMAX=30,HELIBACK=9,HELICEIL=220; // rotor: ralentí / régimen de vuelo (rad/s) · velocidad máx. adelante y atrás (m/s) · techo (m)
 function heliParts(col){
- const WG=0xdfe3e8,GL=0x1b2a38,GR=0x9aa0a6,DK=0x2b2f35,L=[],RT=[],TR=[],
+ const W=0xf2f4f6,WG=0xdfe3e8,GL=0x1b2a38,GR=0x9aa0a6,DK=0x2b2f35,L=[],RT=[],TR=[],
  add=(a,g,c)=>{a.push([g,c])},
  A=(a,sx,sy,sz,x,y,z,c)=>{const g=new THREE.BoxGeometry(sx,sy,sz);g.translate(x,y,z);add(a,g,c)},
  Cz=(a,r1,r2,len,x,y,z,c)=>{const g=new THREE.CylinderGeometry(r1,r2,len,12);g.rotateX(Math.PI/2);g.translate(x,y,z);add(a,g,c)},
@@ -2552,16 +2598,16 @@ const pl={x:24,z:1.5},inv={},flags={},K={},body=person(0xdd3322,outfitOpts());sc
 const ov=$('ov'),dlg=$('dlg'),mm=$('mm'),ctx=mm.getContext('2d');
 const playing=()=>started&&ov.style.display==='none'&&!dlgOpen;
 function toast(t){const e=$('toast');e.textContent=t;clearTimeout(toast.t);toast.t=setTimeout(()=>e.textContent='',2600)}
-const ICON={'Comida para mascotas':'🦴','Manzanas':'🍎','Pan':'🍞','Agua':'💧','Pizza':'🍕','Leche':'🥛','Bocadillo':'🥪','Fruta':'🍓','Refresco':'🥤','Chocolate':'🍫','Sofá':'🛋️','Cama':'🛏️','Mesa':'🍽️','Lámpara':'💡','Armario':'🗄️','Sillón':'🪑','Mesa de centro':'🪵','Estantería':'📚','Mueble de TV':'📺','Alfombra':'🟥','Planta grande':'🪴','Nevera':'🧊','Cocina':'🍳','Encimera':'🚰','Taburete':'🪑','Café':'☕','Cerveza':'🍺','Tapa':'🍢','Bidón de gasolina':'⛽'},CARIC={hatch:'🚗',van:'🚐',sport:'🏎️',moto:'🏍️',bici:'🚲',patinete:'🛴'};
+const ICON={'Comida para mascotas':'🦴','Manzanas':'🍎','Pan':'🍞','Agua':'💧','Pizza':'🍕','Leche':'🥛','Bocadillo':'🥪','Fruta':'🍓','Refresco':'🥤','Chocolate':'🍫','Sofá':'🛋️','Cama':'🛏️','Mesa':'🍽️','Lámpara':'💡','Armario':'🗄️','Sillón':'🪑','Mesa de centro':'🪵','Estantería':'📚','Mueble de TV':'📺','Alfombra':'🟥','Planta grande':'🪴','Nevera':'🧊','Cocina':'🍳','Encimera':'🚰','Taburete':'🪑','Mostrador':'🛍️','Caja registradora':'🧾','Estantería de tienda':'📦','Góndola':'🛒','Vitrina':'🪟','Nevera expositora':'🥶','Barra de bar':'🍸','Perchero':'👗','Cartel luminoso':'🪧','Café':'☕','Cerveza':'🍺','Tapa':'🍢','Bidón de gasolina':'⛽'},CARIC={hatch:'🚗',van:'🚐',sport:'🏎️',moto:'🏍️',bici:'🚲',patinete:'🛴'};
 const row=(n,p,f,ic)=>`<div class="r">${ic?`<i class="ic">${ic}</i>`:''}<span>${n}</span><b>€${p}</b><button onclick="${f}">Comprar</button></div>`;
 function openDlg(){dlgOpen=true;dlg.classList.remove('wide');dlg.style.display='block';document.exitPointerLock&&document.exitPointerLock();for(const k in K)K[k]=false}
 function closeDlg(){if(SLP)return;dlgOpen=false;dlg.style.display='none';try{ren.domElement.requestPointerLock()}catch(e){}}
-function talk(w){if(!isOpen(w.key)){toast('Cerrado: abre a las '+hrsTxt(w.key));return}if(w.key==='gym'){gymDesk();return}openDlg();const S=SHOPS[w.key];let h=`<h2>${S.n}</h2><p>${w.name}: «¡Bienvenido! ¿En qué puedo ayudarte?»</p>`;
+function talk(w){if(w.key==='town')townW=w;if(!isOpen(w.key)){toast('Cerrado: abre a las '+hrsTxt(w.key));return}if(w.key==='gym'){gymDesk();return}openDlg();const S=SHOPS[w.key];let h=`<h2>${S.n}</h2><p>${w.name}: «¡Bienvenido! ¿En qué puedo ayudarte?»</p>`;
  if(w.key==='dealer')S.cars.forEach((c,i)=>h+=row(SPEC[c[0]].name,c[1],`buyCar(${i})`,CARIC[c[0]]||'🚗'));
  else if(w.key==='estate'){estW=w;h+=estateHtml()}
  else if(w.key==='shop'){dlg.classList.add('wide');h+='<div id="sb"></div>'}
  else if(w.key==='pet'){petW=w;h+=petShopHtml()}else if(w.key==='garage')h+=garageHtml();
- else S.items.forEach((it,i)=>h+=row(it[0],it[1],`buy('${w.key}',${i})`,ICON[it[0]]));
+ else S.items.forEach((it,i)=>h+=(w.key==='furn'&&i===0?'<h3>🏠 Hogar</h3>':'')+(w.key==='furn'&&it[0]==='Mostrador'?'<h3>🏪 Mobiliario de negocio</h3>':'')+row(it[0],it[1],`buy('${w.key}',${i})`,ICON[it[0]]));
  h+=jobMenu(w.key);
  if(w.key==='bank'){bankW=w;h+=bankHtml()}if(FACT[w.key]){facW=w;h+=whHtml(w.key)}
  if(w.key==='hotel')h+='<div><button onclick="hotelSleep()">Dormir una noche: €100</button> <button onclick="hotelRent()">Alquilar habitación: €100 (cama arriba)</button></div>';dlg.innerHTML=h+`<div><button onclick="closeDlg()" style="background:#666">Salir</button></div>`;if(w.key==='shop')shopTab(SHOPTAB);if(w.key==='bank'){loanPrev();const la=document.getElementById('loanAmt');if(la)la.addEventListener('keydown',e=>e.stopPropagation())}if(w.key==='pet'){const pn=document.getElementById('petName');if(pn)pn.addEventListener('keydown',e=>e.stopPropagation())}}
@@ -2597,7 +2643,7 @@ function buyCar(i){const c=SHOPS.dealer.cars[i],w=WORKERS.find(x=>x.key==='deale
 // ---------- 13.4 Negocios propios (locales): productos, almacén, obrador de pan, caja y mejoras ----------
 const BIZN=['','Kiosco','Tienda','Tienda grande','Comercio','Gran comercio'],BIZINC=[0,600,1300,2400,4000,6500],BIZUP=[0,3000,7000,14000,26000];
 const bizInc=(h,lv)=>Math.round(BIZINC[lv||h.lv||1]*(h.mul||1)*(h.ty&&LTYPES[h.ty]?LTYPES[h.ty].m:1));
-// Productos [nombre, coste unidad, precio venta, icono]. La panadería no compra el producto hecho: lo hornea en el obrador con ingredientes (ING y REC).
+// Productos [nombre, coste unidad, precio venta, icono]. La panadería aún no usa stock.
 const PRODS={super:[['Agua',.4,1,'💧'],['Leche',.8,1.6,'🥛'],['Pan',.7,1.5,'🍞'],['Fruta',1,2.2,'🍎'],['Carne',3,6,'🥩'],['Snacks',.9,2,'🍫'],['Limpieza',1.5,3,'🧴']],
  bar:[['Cerveza',.8,2.5,'🍺'],['Refresco',.6,2,'🥤'],['Vino',1.5,4,'🍷'],['Copa',2,6,'🍸'],['Tapas',1.2,4,'🍢'],['Café',.3,1.5,'☕']],
  ropa:[['Camiseta',6,18,'👕'],['Vaqueros',14,40,'👖'],['Chaqueta',25,70,'🧥'],['Zapatillas',20,55,'👟'],['Gorra',3,10,'🧢'],['Vestido',15,45,'👗']],
@@ -2606,14 +2652,14 @@ PRODS.pan=[['Barra de pan',0,1.8,'🍞'],['Baguette',0,1.5,'🥖'],['Focaccia',0
 // Ingredientes [nombre, coste unidad, icono]; receta por hornada de 10 uds
 const ING=[['Agua',.5,'💧'],['Harina',1.5,'🌾'],['Aceite',4,'🫒'],['Sal',.6,'🧂']],
  REC={'Barra de pan':{Harina:4,Agua:3,Sal:1},'Baguette':{Harina:3,Agua:2,Sal:1},'Focaccia':{Harina:4,Agua:2,Aceite:2,Sal:1},'Torta de aceite':{Harina:3,Aceite:2,Agua:1}};
-const wh={},stCap=h=>40*(h.lv||1);
+const wh={},stCap=h=>40*(h.lv||1);let townW=null;
 function whHtml(fk){const ks=FACT[fk]||[],mine=new Set(HOUSES.filter(x=>x.owned&&x.local&&x.ty).map(x=>x.ty));
  let t='<h3>📦 Mayorista para negocios</h3><p>Compra por packs de 10 uds. Se guardan en tu almacén y luego los repones en tu local (L).</p>';
  ks.forEach(k=>{t+='<h4>'+LTYPES[k].i+' '+LTYPES[k].n+(mine.has(k)?' <small>(tienes uno)</small>':'')+'</h4>';if(k==='pan')ING.forEach((q,i)=>{t+=row(q[0]+' ×10 · almacén: '+(wh['i:'+q[0]]||0),Math.round(q[1]*10),`whBuyI(${i})`,q[2])});else PRODS[k].forEach((q,i)=>{t+=row(q[0]+' ×10 · almacén: '+(wh[q[0]]||0),Math.round(q[1]*10),`whBuy('${k}',${i})`,q[3])})});return t}
 function whBuyI(i){const q=ING[i];if(!pay(Math.round(q[1]*10)))return;wh['i:'+q[0]]=(wh['i:'+q[0]]||0)+10;toast('Comprado: '+q[0]+' ×10 (en tu almacén)');if(facW)talk(facW)}
 function bakeHtml(h){h.stock=h.stock||{};let t='<h3>🥖 Obrador</h3><p>Compra ingredientes en la fábrica de comida (afueras, al este del barrio). Al reponer se hornea el pan (hornadas de 10 uds). Máx. '+stCap(h)+' por producto.</p><p><small>Ingredientes en almacén: '+ING.map(q=>q[2]+' '+q[0]+' '+(wh['i:'+q[0]]||0)).join(' · ')+'</small></p>';
  PRODS.pan.forEach((q,i)=>{t+=`<div class="r"><i class="ic">${q[3]}</i><span>${q[0]}<br><small>En tienda: <b>${h.stock[q[0]]||0}</b>/${stCap(h)} · venta €${q[2]}<br>Hornada ×10: ${Object.keys(REC[q[0]]).map(k=>REC[q[0]][k]+' '+k.toLowerCase()).join(', ')}</small></span><button onclick="bizPut(${h.id},${i},10)">Hornear +10</button><button onclick="bizPut(${h.id},${i},9999)">Todo</button></div>`});return t}
-function bake(id,i,a){const h=HOUSES[id],q=PRODS.pan[i],r=REC[q[0]];h.stock=h.stock||{};let made=0,why='';
+function bake(id,i,a){const h=BO(id),q=PRODS.pan[i],r=REC[q[0]];h.stock=h.stock||{};let made=0,why='';
  for(let b=0;b<(a>10?99:1);b++){const free=stCap(h)-(h.stock[q[0]]||0);if(free<=0){why='Estantería llena';break}const u=Math.min(10,free),need={};
   Object.keys(r).forEach(k=>need[k]=Math.ceil(r[k]*u/10));const miss=Object.keys(need).find(k=>(wh['i:'+k]||0)<need[k]);if(miss){why='Te falta '+miss.toLowerCase()+' (cómpralo en la fábrica de comida)';break}
   Object.keys(need).forEach(k=>wh['i:'+k]-=need[k]);h.stock[q[0]]=(h.stock[q[0]]||0)+u;made+=u}
@@ -2622,7 +2668,7 @@ function whBuy(k,i){const q=PRODS[k][i];if(!pay(Math.round(q[1]*10)))return;wh[q
 function bizStock(h){if(h.ty==='pan')return bakeHtml(h);const P=PRODS[h.ty];if(!P)return'';h.stock=h.stock||{};
  let t='<h3>Mercancía</h3><p>Sin producto no vendes. Compra en la fábrica correspondiente (afueras, al este del barrio) y repón aquí (máx. '+stCap(h)+' por producto).</p>';
  P.forEach((q,i)=>{t+=`<div class="r"><i class="ic">${q[3]}</i><span>${q[0]}<br><small>En tienda: <b>${h.stock[q[0]]||0}</b>/${stCap(h)} · Almacén: ${wh[q[0]]||0} · venta €${q[2]}</small></span><button onclick="bizPut(${h.id},${i},10)">+10</button><button onclick="bizPut(${h.id},${i},9999)">Todo</button></div>`});return t}
-function bizPut(id,i,a){if(HOUSES[id].ty==='pan')return bake(id,i,a);const h=HOUSES[id],q=PRODS[h.ty][i];h.stock=h.stock||{};const n=Math.min(a,wh[q[0]]||0,stCap(h)-(h.stock[q[0]]||0));if(n<=0){toast((wh[q[0]]||0)<=0?'No tienes '+q[0]+' en el almacén (cómpralo en la fábrica correspondiente, al este del barrio)':'Estantería llena');return}
+function bizPut(id,i,a){if(BO(id).ty==='pan')return bake(id,i,a);const h=BO(id),q=PRODS[h.ty][i];h.stock=h.stock||{};const n=Math.min(a,wh[q[0]]||0,stCap(h)-(h.stock[q[0]]||0));if(n<=0){toast((wh[q[0]]||0)<=0?'No tienes '+q[0]+' en el almacén (cómpralo en la fábrica correspondiente, al este del barrio)':'Estantería llena');return}
  h.stock[q[0]]=(h.stock[q[0]]||0)+n;wh[q[0]]-=n;toast('Repuesto: '+q[0]+' ×'+n);bizOpen(id)}
 function bizDay(h,msg){if(!h.ty){msg.push('tu local está vacío: elige qué negocio montar (L)');return}const lv=h.lv||1,P=PRODS[h.ty];let g;
  if(P){h.stock=h.stock||{};const avg=P.reduce((a,q)=>a+q[2],0)/P.length,D=bizInc(h,lv)/avg/P.length,out=[];g=0;
@@ -2637,11 +2683,32 @@ function bizHtml(h){if(!h.ty)return bizPick(h);const T=LTYPES[h.ty],lv=h.lv||1,t
  let t=`<h2>${T.i} ${T.n[0]+T.n.slice(1).toLowerCase()}: ${BIZN[lv]} (nivel ${lv}/5)</h2><p>Ingresos: unos €${bizInc(h,lv)} al día. La caja se llena cada medianoche y guarda como máximo 3 días de ingresos.</p><div class="r"><span>Caja</span><b>€${till} / €${cap}</b><button onclick="bizCollect(${h.id})">Recoger</button></div>`;
  t+=lv<5?`<div class="r"><span>Mejorar a ${BIZN[lv+1]} (€${bizInc(h,lv+1)}/día)</span><b>€${BIZUP[lv]}</b><button onclick="bizUp(${h.id})">Mejorar</button></div>`:'<p>Nivel máximo alcanzado.</p>';
  return t+bizStock(h)+`<div><button onclick="closeDlg()" style="background:#666">Salir</button></div>`}
-function bizOpen(id){const h=HOUSES[id];openDlg();dlg.innerHTML=bizHtml(h)}
-function bizCollect(id){const h=HOUSES[id],c=Math.round(h.till||0);if(c<=0){toast('La caja está vacía');return}h.till=0;money+=taxNet(c);sfx.cash();toast('Has recogido €'+c+' de la caja');bizOpen(id)}
-function bizUp(id){const h=HOUSES[id],lv=h.lv||1;if(lv>=5||!pay(BIZUP[lv]))return;h.lv=lv+1;if(h.ty)localIn(h,h.ty);toast('¡Local mejorado a '+BIZN[lv+1]+'!');bizOpen(id)}
-function bizKey(){let b=null,bd=8;HOUSES.forEach(h=>{if(!h.local||!h.owned)return;const d=Math.hypot(h.door.x-pl.x,h.door.z-pl.z);if(d<bd){bd=d;b=h}});if(b)bizOpen(b.id);else{let r=null,rd=99;HOUSES.forEach(h=>{if(!h.local||!h.remote||h.owned)return;const d=Math.min(Math.hypot(h.door.x-pl.x,h.door.z-pl.z)*1.5,Math.hypot(h.x-pl.x,h.z-pl.z));if(d<12&&d<rd){rd=d;r=h}});if(r)bsOpen(r.id);else toast('Acércate a la puerta de tu local o de un negocio (L)')}}
+function bizOpen(id){const h=BO(id);if(!h)return;openDlg();dlg.innerHTML=bizHtml(h)}
+function bizCollect(id){const h=BO(id),c=Math.round(h.till||0);if(c<=0){toast('La caja está vacía');return}h.till=0;money+=taxNet(c);sfx.cash();toast('Has recogido €'+c+' de la caja');bizOpen(id)}
+function bizUp(id){const h=BO(id),lv=h.lv||1;if(lv>=5||!pay(BIZUP[lv]))return;h.lv=lv+1;if(h.ty)localIn(h,h.ty);toast('¡Local mejorado a '+BIZN[lv+1]+'!');bizOpen(id)}
+function bizKey(){let b=null,bd=8;HOUSES.forEach(h=>{if(!h.local||!h.owned)return;const d=Math.hypot(h.door.x-pl.x,h.door.z-pl.z);if(d<bd){bd=d;b=h}});if(b)bizOpen(b.id);else if(terrBizNear())terrBizOpen(terrBizNear());else{let r=null,rd=99;HOUSES.forEach(h=>{if(!h.local||!h.remote||h.owned)return;const d=Math.min(Math.hypot(h.door.x-pl.x,h.door.z-pl.z)*1.5,Math.hypot(h.x-pl.x,h.z-pl.z));if(d<12&&d<rd){rd=d;r=h}});if(r)bsOpen(r.id);else{const rt=TERRENOS.find(t=>t.bremote&&!t.owned&&Math.hypot(pl.x-t.x,pl.z-t.z)<Math.hypot(t.w,t.d)/2+6);if(rt)bsOpen(100000+rt.id);else toast('Acércate a la puerta de tu local o de un negocio (L)')}}}
 
+
+// ---------- 13.5 Convertir tu construcción de un terreno en negocio (fase 1) ----------
+// Un terreno tuyo puede tener un negocio: t.biz = {id, ty, lv, till, stock}. Usa EL MISMO sistema que los locales de la ciudad (13.4).
+// El id del negocio de un terreno es 100000 + el nº del terreno, y BO(id) devuelve el negocio sea de un local o de un terreno.
+// Fase 1: solo en tu partida (los otros jugadores todavía no lo ven ni le compran) y sin interior propio.
+const TBIZ_FEE=3000,TBIZ_MIN={f:6,r:6,w:8,d:1}; // licencia y requisitos mínimos del edificio (planta baja)
+const terrAt=(x,z)=>TERRENOS.find(t=>Math.abs(t.x-x)<1&&Math.abs(t.z-z)<1)||null; // el negocio de un terreno se identifica por el centro del terreno
+function BO(id){return id>=100000?((TERRENOS.find(q=>q.id===id-100000)||{}).biz||null):HOUSES[id]}
+function terrBizCheck(t){const b=t.b,c={f:0,r:0,w:0,d:0};if(b){c.f=b.f.size;c.r=b.r.size;for(const v of b.e.values()){if(v===1||v===2||v===3)c.w++;if(v===2||v===5)c.d++}}
+ c.ok=c.f>=TBIZ_MIN.f&&c.r>=TBIZ_MIN.r&&c.w>=TBIZ_MIN.w&&c.d>=TBIZ_MIN.d;return c}
+function terrBizNear(){return TERRENOS.find(t=>t.owned&&Math.abs(pl.x-t.x)<=t.w/2+6&&Math.abs(pl.z-t.z)<=t.d/2+6)||null}
+function terrBizHtml(t){const c=terrBizCheck(t),li=(n,v,m)=>'<div>'+(v>=m?'✅':'❌')+' '+n+' <small>('+v+' / '+m+')</small></div>';
+ let h='<h2>🏪 Convertir en negocio · Terreno nº '+t.id+'</h2><p>Convierte tu construcción en un negocio. Licencia: <b>€'+TBIZ_FEE+'</b>. El tipo de negocio no se puede cambiar después.</p><p><b>Requisitos del edificio (planta baja):</b></p>'+li('Casillas de suelo',c.f,TBIZ_MIN.f)+li('Casillas con techo',c.r,TBIZ_MIN.r)+li('Paredes, puertas y ventanas',c.w,TBIZ_MIN.w)+li('Puerta de entrada',c.d,TBIZ_MIN.d);
+ if(!c.ok)return h+'<p><small>Termina tu edificio en el modo construcción (E) y vuelve a pulsar L.</small></p><div><button onclick="closeDlg()" style="background:#666">Salir</button></div>';
+ h+='<p>Elige qué negocio montar:</p>';
+ Object.keys(LTYPES).forEach(k=>{const T=LTYPES[k];h+='<div class="r"><i class="ic">'+T.i+'</i><span>'+T.n[0]+T.n.slice(1).toLowerCase()+'<br><small>'+T.d+' ≈ €'+Math.round(BIZINC[1]*T.m)+'/día de inicio</small></span><button onclick="terrBizChoose('+t.id+',\''+k+'\')">Montar</button></div>'});
+ return h+'<div><button onclick="closeDlg()" style="background:#666">Salir</button></div>'}
+function terrBizOpen(t){if(!t||!t.owned)return;if(t.biz&&t.biz.ty){bizOpen(t.biz.id);return}openDlg();dlg.innerHTML=terrBizHtml(t)}
+function terrBizChoose(tid,k){const t=TERRENOS.find(q=>q.id===tid);if(!t||!t.owned||t.biz||!LTYPES[k])return;if(!terrBizCheck(t).ok){toast('Tu edificio ya no cumple los requisitos');return}
+ if(!confirm('¿Montar '+LTYPES[k].n.toLowerCase()+' por €'+TBIZ_FEE+'? No se podrá cambiar.'))return;if(!pay(TBIZ_FEE))return;
+ t.biz={id:100000+tid,ty:k,lv:1,till:0,stock:{}};toast('¡'+LTYPES[k].n+' montado en tu terreno!');saveGame();bizOpen(t.biz.id)}
 
 // =================================================================================================
 // 14. PANEL DE ADMINISTRADOR
@@ -2655,8 +2722,8 @@ const admToast=t=>{if(!ADM_SILENT)toast(t)};
 function admApply(c){if(!c||typeof c!=='object')return;
  if(c.t==='money'){money=Math.max(0,Math.floor(Number(c.money)||0));sfx.cash();admToast('💼 Un administrador ha ajustado tu dinero: €'+Math.round(money))}
  else if(c.t==='vit'){if(c.h!=null)hunger=Math.max(0,Math.min(100,Number(c.h)||0));if(c.e!=null)energy=Math.max(0,Math.min(100,Number(c.e)||0));admToast('💼 Un administrador ha ajustado tu hambre y energía')}
- else if(c.t==='biz'){const h=xfFind(c.x,c.z,true);if(!h||!h.owned)return;
-  if(c.remove){if(dlgOpen)closeDlg();releaseHouse(h);h.ty='';h.lv=0;h.till=0;h.stock={};try{localIn(h,'')}catch(_){}admToast('💼 Un administrador te ha retirado un local')}
+ else if(c.t==='biz'){let h=xfFind(c.x,c.z,true),tt=null;if(!h){tt=terrAt(c.x,c.z);h=tt&&tt.owned&&tt.biz?tt.biz:null}if(!h||(!tt&&!h.owned))return;
+  if(c.remove){if(dlgOpen)closeDlg();if(tt)tt.biz=null;else{releaseHouse(h);h.ty='';h.lv=0;h.till=0;h.stock={};try{localIn(h,'')}catch(_){}}admToast('💼 Un administrador te ha retirado un local')}
   else{if(c.lv){h.lv=Math.max(1,Math.min(5,c.lv|0));if(h.ty){try{localIn(h,h.ty)}catch(_){}}}
    if(c.till!=null)h.till=Math.max(0,Number(c.till)||0);
    if(c.stock&&typeof c.stock==='object'){h.stock=h.stock||{};for(const k in c.stock)h.stock[k]=Math.max(0,Math.floor(Number(c.stock[k])||0))}
@@ -2778,7 +2845,7 @@ function collapse(){collapsing=true;seat=null;setSit(body,false);
 let micro=0,microT=10,microW=false,microDir=0;
 const eyes=document.createElement('div');eyes.style.cssText='position:fixed;inset:0;background:#000;opacity:0;pointer-events:none;transition:opacity .35s;z-index:7';document.body.appendChild(eyes);
 // Dormir: avanza la hora, restaura energía y gasta hambre/sed según las horas dormidas
-function sleepFor(h,rate,msg,keep,nap){const e0=energy;if(!keep){tod=(tod+h)%24;if(h>=6){wx=Math.floor(Math.random()*3)}} // keep: la hora la fija el servidor, aquí solo se aplica el descanso
+function sleepFor(h,rate,msg,keep,nap){const e0=energy;if(!keep){tod=(tod+h)%24;if(h>=6){wx=Math.floor(Math.random()*3);wxT=0}} // keep: la hora la fija el servidor, aquí solo se aplica el descanso
  hunger=Math.max(0,hunger-h*3.1);thirst=100;energy=Math.min(100,energy+h*rate);
  const hh=Math.floor(tod),mm=Math.floor((tod%1)*60);toast(msg+(nap?' ('+h+' h)':' ('+(h%1?h.toFixed(1):h)+' h · son las '+(hh<10?'0':'')+hh+':'+(mm<10?'0':'')+mm+')')+' · energía +'+Math.round(energy-e0))}
 function hoursToMorning(){const h=(7-tod+24)%24;return h>12?8:Math.max(1,h)}
@@ -2870,6 +2937,7 @@ function houseDay(){const msg=[];HOUSES.forEach(h=>{if(!h.owned)return;if(h.loca
  else if(h.mode==='mort'&&h.mort){const c=h.mort.n<=1?h.mort.left:Math.min(h.mort.cuota,h.mort.left);
   if(money>=c){money-=c;h.mort.left-=c;h.mort.n--;h.late=0;msg.push('hipoteca -€'+c);mortDone(h)}
   else{const r=Math.max(1,Math.round(c*.1));h.mort.left+=r;h.late=(h.late||0)+1;if(h.late>=HOUSE_LATE_MAX){releaseHouse(h);msg.push('⚠️ EMBARGO: el banco se queda tu casa')}else msg.push('hipoteca impagada ('+h.late+'/'+HOUSE_LATE_MAX+'), recargo +€'+r)}}});
+ TERRENOS.forEach(t=>{if(t.owned&&t.biz&&t.biz.ty)bizDay(t.biz,msg)});
  if(msg.length){sfx.cash();const t='🏠 '+msg.join(' · ');setTimeout(()=>toast(t),loan?2700:0)}}
 function hotelSleep(){if(money<100){toast('No tienes 100 €');return}closeDlg();sleepNight('Pasas la noche en el hotel...',15,'Has descansado en una cama de hotel',{cost:100})}
 function sitAt(o){seat={x:o.x,z:o.z};pl.x=o.x;pl.z=o.z;setSit(body,true);toast('Te sientas (E o moverte para levantarte)')}
@@ -3131,6 +3199,9 @@ function useItem(k){const o=inv[k];if(!o||o.n<1)return;
   toast(TERRENOS.some(x=>x.owned)?'Acércate a tu terreno, pulsa E para construir y elige 🛋️ Muebles':'Necesitas un terreno propio con suelo para colocar muebles');return}
  else if(o.cat==='Ropa'){const it=CLOTH[k];if(!it)toast('Te has puesto: '+k);else{if(worn[it.slot]===k){delete worn[it.slot];toast('Te has quitado: '+k)}else{worn[it.slot]=k;toast('Te has puesto: '+k)}applyOutfit()}}else if(o.cat==='Combustible')useJerry(k);else if(o.cat==='Mascotas')feedPets(k);else if(o.cat==='Ropa de mascota')wearPet(k);else eat(k)
  renderInv()}
+function toggleInvOld(){const e=$('inv');if(e.style.display==='block'){e.style.display='none';return}
+ const cs=cars.filter(c=>c.owned).map(c=>c.spec.name),hs=HOUSES.filter(h=>h.owned).map(h=>`${h.local?'Local':h.apt?'Piso':'Casa'} (${h.x}, ${h.z})`).concat(TERRENOS.filter(t=>t.owned).map(t=>'Terreno nº '+t.id+' ('+t.w+'×'+t.d+' m)'));
+ e.innerHTML='<b>Inventario</b><br>'+(Object.keys(inv).map(k=>k+' ×'+inv[k]).join('<br>')||'(vacío)')+'<br><b>Vehículos</b><br>'+(cs.join(', ')||'ninguno')+'<br><b>Propiedades</b><br>'+(hs.join('<br>')||'ninguna');e.style.display='block'}
 function objective(){if(!flags.worked)return['Trabaja un turno: pulsa E junto a un trabajador de un comercio','super'];
  if(!flags.car)return['Compra un coche en el concesionario (C)','dealer'];if(!flags.house)return['Compra una casa en la inmobiliaria (I)','estate'];return['¡Objetivos completados! Explora la ciudad.',null]}
 
@@ -3184,7 +3255,7 @@ function work(k){if(working||task)return;if(!jobCanDo(k,'shift'))return;working=
 function jobsInv(){const ks=Object.keys(jx);return '<h3>Carrera laboral</h3>'+(ks.map(q=>{const[a,b]=q.split(':');return '<div>'+jname(a,b)+' · '+jdone(a,b)+' tareas · '+jprog(a,b)+'</div>'}).join('')||'<div>aún sin trabajos</div>')}
 const jh=document.createElement('div');jh.style.cssText='top:184px;left:14px;font-size:15px;max-width:340px;background:rgba(0,0,0,.35);border-radius:8px;padding:0 8px';$('hud').appendChild(jh);
 const beacon=new THREE.Mesh(new THREE.CylinderGeometry(1.6,1.6,45,14,1,true),new THREE.MeshBasicMaterial({color:0xffd23f,transparent:true,opacity:.38,depthWrite:false,side:THREE.DoubleSide}));beacon.visible=false;scene.add(beacon);
-function endTask(msg){if(task&&task.g)scene.remove(task.g);task=null;beacon.visible=false;jh.textContent='';toast(msg)}
+function endTask(msg,ok){if(task&&task.g)scene.remove(task.g);task=null;beacon.visible=false;jh.textContent='';toast(msg)}
 function startJob(k,id){if(task||working){toast('Ya tienes un trabajo en curso (X: cancelar)');return}
  if(!jobCanDo(k,id))return;
  if(id==='stock')return stockStart(k);
@@ -3276,7 +3347,7 @@ function inWater(x,z){return heightAt(x,z)<-.3&&groundH(x,z,py)<-.3}
 function stepFoot(dt){if(seat){if(K.KeyW||K.KeyA||K.KeyS||K.KeyD||K.ArrowUp||K.ArrowDown||K.ArrowLeft||K.ArrowRight||K.Space){seat=null;setSit(body,false)}else{body.position.set(seat.x,py,seat.z);animPerson(body,walk,0,dt);return}}
  const fw=(K.KeyW||K.ArrowUp?1:0)-(K.KeyS||K.ArrowDown?1:0),st=(K.KeyA||K.ArrowLeft?1:0)-(K.KeyD||K.ArrowRight?1:0);
  let mx=Math.sin(yaw)*fw+Math.cos(yaw)*st,mz=Math.cos(yaw)*fw-Math.sin(yaw)*st;const l=Math.hypot(mx,mz);
- let amp=0;eff=0;const wasSwimming=inWater(pl.x,pl.z);
+ const ox=pl.x,oz=pl.z;let amp=0;eff=0;const wasSwimming=inWater(pl.x,pl.z);
  if(l>0){mx/=l;mz/=l;const run=(K.ShiftLeft||K.ShiftRight)&&energy>0,sp=(wasSwimming?(run?4.8:3.1):(run?9:5))*(hunger<=0?.5:1)*(energy<=0?.7:1)*1;eff=wasSwimming ? .15 : (run?1:.3);pl.x=clamp(pl.x+mx*sp*dt,WLIM0,WLIM1);pl.z=clamp(pl.z+mz*sp*dt,WLIM0,WLIM1);body.rotation.y=Math.atan2(mx,mz);walk+=dt*(wasSwimming?7:(sp>6?12:sp<3?6:9));amp=wasSwimming?.22:(sp>6?1.35:sp<3?.6:1)}
  const swimming=inWater(pl.x,pl.z);
  if(swimming){vy=0;py=SEA.position.y+.08;grounded=false}
@@ -3301,6 +3372,7 @@ function driveCar(c,dt){const s=c.spec,out=c.fuel<=0&&!s.nf,thr0=(MB.l?1:0)-(MB.
  const q=s.l*.35;let hit=blockHit(c.x+Math.sin(c.h)*q,c.z+Math.cos(c.h)*q,1,c.y)||blockHit(c.x-Math.sin(c.h)*q,c.z-Math.cos(c.h)*q,1,c.y)||wallHit(c.x+Math.sin(c.h)*q,c.z+Math.cos(c.h)*q,1.2,c.y||0)||wallHit(c.x-Math.sin(c.h)*q,c.z-Math.cos(c.h)*q,1.2,c.y||0)||c.x<WLIM0||c.x>WLIM1||c.z<WLIM0||c.z>WLIM1;
  for(const o of cars)if(o!==c&&Math.abs((o.y||0)-(c.y||0))<2&&Math.hypot(o.x-c.x,o.z-c.z)<9){const g=carGap(c,c.x,c.z,c.h,o);if(g<-.02&&g<carGap(c,ox,oz,c.h,o))hit=true}
  for(const b of BUSES)if(Math.hypot(b.x-c.x,b.z-c.z)<13){const g=carGap(c,c.x,c.z,c.h,b);if(g<-.02&&g<carGap(c,ox,oz,c.h,b))hit=true}
+ for(const o of colliders)if(o.on&&!o.car&&o.y1>0&&o.z0<9999&&c.x>o.x0-1&&c.x<o.x1+1&&c.z>o.z0-1&&c.z<o.z1+1&&o.y1<2.7&&o.x1-o.x0<3&&false)hit=true;
  if(hit){c.x=ox;c.z=oz;c.v*=-.3}
  const gh=groundH(c.x,c.z,(c.y||0)+.3),onW=gh===0&&c.x>=0&&c.x<=CE&&c.z>=0&&c.z<=CE&&c.x%P<=40&&c.z%P<=40,ty2=onW?G:gh;c.y=(c.y||0)+(ty2-(c.y||0))*Math.min(1,12*dt);c.m.position.set(c.x,c.y,c.z);c.m.rotation.y=c.h;if(c.t==='moto'){c.lean=(c.lean||0)+((-str*.32*Math.min(1,Math.abs(c.v)/10))-(c.lean||0))*Math.min(1,8*dt);c.m.rotation.z=c.lean}pl.x=c.x;pl.z=c.z;py=c.y;$('spd').textContent=Math.round(Math.abs(c.v)*3.6)+' km/h'}
 const TLK=new Map();TLS.forEach(t=>TLK.set(t.i*16+t.j,t)); // cruce (i,j) → semáforo
@@ -3377,7 +3449,23 @@ const FURN={
  'Nevera':{wl:1,ico:'🧊',fp:[.8,.75],h:1.85,it:null,p:a=>{a(0,0,0,.75,1.8,.7,0xe8eaec);a(0,1.18,.355,.75,.02,.01,0x9aa0a6);a(.3,1.3,.365,.04,.35,.03,0x777777);a(.3,.45,.365,.04,.6,.03,0x777777)}},
  'Cocina':{wl:1,ico:'🍳',fp:[.7,.7],h:.95,it:null,p:a=>{a(0,0,0,.65,.9,.62,0xdcdcdc);a(0,.9,0,.65,.04,.62,0x2a2a2a);[[-.15,-.13],[.15,-.13],[-.15,.13],[.15,.13]].forEach(q=>a(q[0],.94,q[1],.17,.02,.17,0x111111));a(0,.1,.315,.55,.5,.01,0x333333);a(0,.25,.322,.4,.2,.01,0x66707a);a(0,.68,.33,.5,.03,.03,0x999999);[-.2,-.07,.07,.2].forEach(x=>a(x,.78,.32,.05,.05,.03,0x444444))}},
  'Encimera':{wl:1,ico:'🚰',fp:[1.4,.65],h:1.15,it:null,p:a=>{a(0,0,0,1.4,.88,.6,0xd9c9a8);a(-.35,.06,.305,.64,.7,.01,0xc9b78e);a(.35,.06,.305,.64,.7,.01,0xc9b78e);a(0,.88,0,1.4,.05,.62,0x6b6b6b);a(-.3,.925,0,.5,.012,.38,0x8fa5b5);a(-.3,.93,-.2,.04,.22,.04,0xaaaaaa);a(-.3,1.12,-.13,.04,.04,.15,0xaaaaaa)}},
- 'Taburete':{ico:'🪑',fp:[.45,.45],h:.75,it:'sit',p:a=>{[[-.15,-.15],[.15,-.15],[-.15,.15],[.15,.15]].forEach(q=>a(q[0],0,q[1],.05,.62,.05,0x5a3a1a));a(0,.25,0,.3,.03,.3,0x5a3a1a);a(0,.62,0,.4,.07,.4,0xa8763e)}}};
+ 'Taburete':{ico:'🪑',fp:[.45,.45],h:.75,it:'sit',p:a=>{[[-.15,-.15],[.15,-.15],[-.15,.15],[.15,.15]].forEach(q=>a(q[0],0,q[1],.05,.62,.05,0x5a3a1a));a(0,.25,0,.3,.03,.3,0x5a3a1a);a(0,.62,0,.4,.07,.4,0xa8763e)}},
+ // ---- Tanda 3: mobiliario de negocio (mostradores, estanterías, expositores...) ----
+ 'Mostrador':{ico:'🛍️',fp:[1.9,.75],h:1.1,it:null,p:a=>{a(0,0,0,1.8,1,.6,0x7a4a2a);a(0,.08,.305,1.6,.8,.01,0xa86f3c);a(0,1,0,1.9,.06,.7,0xece4d4)}},
+ 'Caja registradora':{ico:'🧾',fp:[.95,.7],h:1.45,it:null,p:a=>{a(0,0,0,.9,.95,.6,0x7a4a2a);a(0,.95,0,.98,.05,.66,0xece4d4);a(0,1,0,.4,.16,.34,0x2b2f36);a(0,1.16,-.06,.34,.2,.06,0x2b2f36);a(0,1.2,-.025,.28,.12,.01,0x7fe0a0,true);a(.3,1,.05,.2,.04,.2,0xb8bcc2)}},
+ 'Estantería de tienda':{wl:1,ico:'📦',fp:[1.6,.5],h:1.9,it:null,p:a=>{a(-.78,0,0,.05,1.85,.44,0x8a929a);a(.78,0,0,.05,1.85,.44,0x8a929a);a(0,0,-.2,1.6,1.85,.03,0x6f777f);
+  [.12,.6,1.08,1.56].forEach((y,r)=>{a(0,y,0,1.55,.04,.44,0xb4bcc4);[0xe74c3c,0xf1c40f,0x3498db,0x2ecc71,0xe67e22,0x9b59b6,0xecf0f1].forEach((c,k)=>{if((k+r)%4!==3)a(-.62+k*.2,y+.04,.02,.15,.2+((k*5+r*3)%3)*.06,.22,c)})});a(0,1.85,0,1.6,.04,.46,0xb4bcc4)}},
+ 'Góndola':{ico:'🛒',fp:[1.7,.85],h:1.5,it:null,p:a=>{a(0,0,0,1.6,.12,.8,0x8a929a);a(0,.12,0,1.6,1.25,.06,0xa0a8b0);a(-.78,.12,0,.05,1.2,.8,0x8a929a);a(.78,.12,0,.05,1.2,.8,0x8a929a);
+  [.3,.65,1].forEach((y,r)=>{a(0,y,0,1.55,.04,.8,0xb4bcc4);[0xe74c3c,0xf1c40f,0x3498db,0x2ecc71,0xe67e22,0x9b59b6,0xecf0f1].forEach((c,k)=>{const hh=.2+((k*5+r*3)%3)*.05;a(-.62+k*.2,y+.04,.24,.15,hh,.2,c);a(-.62+k*.2,y+.04,-.24,.15,hh,.2,c)})});a(0,1.38,0,1.6,.1,.12,0xe74c3c)}},
+ 'Vitrina':{wl:1,ico:'🪟',fp:[1.5,.65],h:1.25,it:null,p:a=>{a(0,0,0,1.5,.55,.6,0x3a2a1c);a(0,.1,.305,1.35,.35,.01,0x4a3724);a(0,.55,0,1.5,.04,.6,0xe8f4fa);[[-.72,-.27],[.72,-.27],[-.72,.27],[.72,.27]].forEach(q=>a(q[0],.59,q[1],.05,.56,.05,0xcfe6f2));
+  a(0,.59,-.28,1.45,.56,.03,0xb8d4e3);a(0,1.15,0,1.5,.05,.6,0xcfe6f2);a(0,1.12,0,1.3,.03,.5,0xfff6d0,true);a(-.45,.59,0,.22,.14,.22,0xd4af37);a(0,.59,0,.2,.2,.2,0xc0392b);a(.45,.59,0,.24,.1,.24,0x2980b9)}},
+ 'Nevera expositora':{wl:1,ico:'🥶',fp:[1.05,.8],h:2.05,it:null,p:a=>{a(0,0,0,1,2,.75,0x2f6fb0);a(0,.12,.38,.86,1.65,.01,0x1b2a38);
+  [.2,.62,1.04,1.46].forEach(y=>[0xe74c3c,0x2ecc71,0xf1c40f,0x3498db,0xe67e22].forEach((c,k)=>a(-.36+k*.18,y,.39,.1,.3,.02,c)));a(.46,.5,.39,.03,.9,.03,0xcccccc);a(0,2,0,1,.05,.5,0xbfe9ff,true)}},
+ 'Barra de bar':{ico:'🍸',fp:[2.3,.8],h:1.45,it:null,p:a=>{a(0,0,0,2.2,1.05,.6,0x3b2314);a(0,.1,.305,2,.8,.01,0x5a3720);a(0,1.05,0,2.3,.07,.8,0x1f1f24);a(-1,0,.4,.04,.16,.04,0xc9a24a);a(1,0,.4,.04,.16,.04,0xc9a24a);a(0,.12,.4,2.1,.04,.04,0xc9a24a);
+  a(-.6,1.12,0,.1,.18,.1,0xe8f4fa);a(.5,1.12,.1,.1,.14,.1,0xe0b020);a(0,1.12,-.2,.08,.3,.08,0x2e8b3a)}},
+ 'Perchero':{ico:'👗',fp:[1.5,.6],h:1.7,it:null,p:a=>{a(-.7,0,0,.05,1.6,.05,0x555a60);a(.7,0,0,.05,1.6,.05,0x555a60);a(-.7,0,0,.3,.03,.5,0x555a60);a(.7,0,0,.3,.03,.5,0x555a60);a(0,1.55,0,1.45,.04,.04,0xb8bcc2);
+  [0xc0392b,0x2980b9,0xf1c40f,0x27ae60,0x8e44ad,0xecf0f1,0xe67e22].forEach((c,k)=>a(-.55+k*.18,.75,0,.1,.8,.3,c))}},
+ 'Cartel luminoso':{ico:'🪧',fp:[1.2,.4],h:1.65,it:null,p:a=>{a(0,0,0,1.1,.05,.4,0x333333);a(-.45,.05,0,.05,.95,.05,0x555a60);a(.45,.05,0,.05,.95,.05,0x555a60);a(0,1,0,1.1,.6,.08,0x1c2733);a(0,1.05,.045,1,.5,.01,0xff4d4d,true);a(0,1.2,.05,.7,.12,.01,0xfff2a8,true)}}};
 // los muebles con wl:1 van pegados al lado de atrás de su casilla (el opuesto al frente), de modo que quedan contra la pared de esa arista
 const bmFOff=(def,d)=>{if(!def.wl)return[0,0];const s=Math.max(0,BCELL/2-BWT/2-def.fp[1]/2),v=BDIR[d];return[-v[0]*s,-v[1]*s]};
 const FCOLC=new Map(),fcol=h=>{let c=FCOLC.get(h);if(!c){c=new THREE.Color(h);FCOLC.set(h,c)}return c};
@@ -3398,6 +3486,7 @@ const bmN=b=>b.f.size+b.r.size+b.e.size+b.r2.size+b.e2.size+b.s.size+b.o.size+b.
  RTOOL=['roof','roofg','roofh'],bmRC=(b,k)=>BCOST[RTOOL[b.rt.get(k)||0]], // coste del techo de la planta 2 según su tipo
  bmTL=()=>BM.lvl===2?['slab','wall','door','window','fence','roof','roofg','roofh','erase','furn']:BTOOLS,
  bmEC=k=>{const p=k.split(','),i=+p[1],j=+p[2];return p[0]==='h'?[i+','+(j-1),i+','+j]:[(i-1)+','+j,i+','+j]},
+ bmSup=(b,k,sm)=>true, // en planta 2 se puede construir encima de la planta baja o sobre el hueco de una escalera
  bmStMid=(sm,k)=>{const q=bmEC(k);return sm.has(q[0])&&sm.get(q[0])===sm.get(q[1])}; // arista entre las 2 celdas de una misma escalera (taparía los peldaños)
 function bmDes(t,o){if(!o||typeof o!=='object')return;const b=bmData(t),g=bmGrid(t),okc=k=>{const p=String(k).split(',').map(Number);return p.length===2&&p[0]>=0&&p[1]>=0&&p[0]<g.nx&&p[1]<g.nz};
  (o.f||[]).forEach(k=>okc(k)&&b.f.add(k));(o.r||[]).forEach(k=>okc(k)&&b.r.add(k));(o.r2||[]).forEach(k=>okc(k)&&b.r2.add(k));
@@ -3414,7 +3503,7 @@ function bmGPair(t,o,i,j){const g=bmGrid(t),ok=(a,b)=>o==='h'?(a>=0&&a<g.nx&&b>=
  if(!ok(a[0],a[1])||!ok(c[0],c[1]))return null;return{a,c,ka:o+','+a[0]+','+a[1],kc:o+','+c[0]+','+c[1]}}
 // quita lo de la planta 2 que se queda sin suelo debajo y devuelve el reembolso (50 %)
 function bmClean(t){const b=t.b,sm=bmStairMap(t);let ref=0;
-  for(const[k,ty]of[...b.e2])if(bmStMid(sm,k)){b.e2.delete(k);ref+=Math.round(BCOST[ETOOL[ty]]/2)}
+  for(const[k,ty]of[...b.e2])if(!bmSup(b,k,sm)||bmStMid(sm,k)){b.e2.delete(k);ref+=Math.round(BCOST[ETOOL[ty]]/2)}
  for(const[k,v]of[...b.m]){const l2=k.startsWith('2:'),c=l2?k.slice(2):k;if(!(!sm.has(c)&&(l2?true:(b.f.has(c)||b.o.has(c))))){b.m.delete(k);bmFGive(v[0]);BM.fr=(BM.fr|0)+1}}
  return ref}
 // Tejado inclinado sobre un rectángulo (x0..x1, z0..z1) que arranca en la altura yb. ty 1 = 2 aguas (cumbrera en el lado largo, con piñones) · ty 2 = 4 aguas.
@@ -3485,7 +3574,7 @@ function bmRebuild(t){
    if(hz)col(cx-C/2,cx+C/2,cz-.1,cz+.1,yb-.3,yb+1.5);else col(cx-.1,cx+.1,cz-C/2,cz+C/2,yb-.3,yb+1.5)} // más alta de lo que se ve: no se salta
   else{seg(-C/2,C/2,0,.9,'wall',true);seg(-C/2,C/2,2.1,BWH-2.1,'wall',false);seg(-C/2,-.9,.9,1.2,'wall',false);seg(.9,C/2,.9,1.2,'wall',false);seg(-.9,.9,.9,1.2,'glass',false,.06)}};
  for(const[k,ty]of b.e)edge(k,ty,by,A,'');
- for(const[k,ty]of b.e2)if(!bmStMid(sm,k))edge(k,ty,y2,A2,'2:');
+ for(const[k,ty]of b.e2)if(bmSup(b,k,sm)&&!bmStMid(sm,k))edge(k,ty,y2,A2,'2:');
  // escaleras: peldaños sólidos (visual + colisión por debajo) y una rampa invisible por la que sube el jugador
  for(const[k,d]of b.s){if(sm.get(k)!==k)continue;const p=k.split(','),i=+p[0],j=+p[1],v=BDIR[d],i2=i+v[0],j2=j+v[1],
    xa=g.ox+Math.min(i,i2)*C,xb=g.ox+(Math.max(i,i2)+1)*C,za=g.oz+Math.min(j,j2)*C,zb=g.oz+(Math.max(j,j2)+1)*C,ax=v[0]!==0,sg=ax?v[0]:v[1],
@@ -3518,9 +3607,9 @@ function bmRoofVis(){const on=!!BM.on,l=BM.lvl,sv=(m,tr,o)=>{if(m.transparent!==
 setInterval(bmRoofVis,250);
 // ---- interfaz ----
 document.head.appendChild(Object.assign(document.createElement('style'),{textContent:'#bmUI{position:fixed;left:50%;bottom:calc(10px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:70;display:none;background:rgba(15,20,30,.9);color:#fff;border-radius:14px;padding:10px 12px;width:min(640px,calc(100vw - 16px));box-sizing:border-box;font:14px system-ui,sans-serif;text-align:center;user-select:none}#bmUI .bmi{font-weight:700;margin-bottom:4px}#bmUI small{display:block;color:#b8c4d4;margin:2px 0 6px}#bmUI .bmt{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}#bmUI button{border:0;border-radius:9px;background:#3a4357;color:#fff;padding:7px 10px;font-size:14px;cursor:pointer;min-width:62px}#bmUI button.on{background:#a84be8}#bmUI button.bmx{background:#2f9e5a}#bmUI .bmr{margin-top:8px;display:flex;flex-wrap:wrap;gap:8px;justify-content:center}body.bm #tc{display:none!important}body.bm canvas{touch-action:none}'}));
-const bmUI=document.createElement('div');bmUI.id='bmUI';bmUI.innerHTML='<div class="bmi" id="bmInfo"></div><small id="bmHelp"></small><div class="bmt" id="bmTools"></div><div class="bmt" id="bmFurn" style="margin-top:6px;display:none"></div><div class="bmr"><button id="bmLv"></button><button id="bmRot">↻ Girar</button><button id="bmZm">🔍−</button><button id="bmZp">🔍+</button><button class="bmx" id="bmEx">✅ Terminar</button></div>';document.body.appendChild(bmUI);
+const bmUI=document.createElement('div');bmUI.id='bmUI';bmUI.innerHTML='<div class="bmi" id="bmInfo"></div><small id="bmHelp"></small><div class="bmt" id="bmTools"></div><div class="bmt" id="bmFurn" style="margin-top:6px;display:none"></div><div class="bmr"><button id="bmLv"></button><button id="bmRot">↻ Girar</button><button id="bmZm">🔍−</button><button id="bmZp">🔍+</button><button id="bmBz">🏪 Negocio</button><button class="bmx" id="bmEx">✅ Terminar</button></div>';document.body.appendChild(bmUI);
 bmUI.addEventListener('pointerdown',e=>e.stopPropagation());
-$('bmEx').addEventListener('click',()=>bmExit());$('bmZm').addEventListener('click',()=>{BM.zoom=clamp(BM.zoom*1.15,.6,1.8)});$('bmZp').addEventListener('click',()=>{BM.zoom=clamp(BM.zoom/1.15,.6,1.8)});
+$('bmEx').addEventListener('click',()=>bmExit());$('bmBz').addEventListener('click',()=>{const t=BM.t;if(!t)return;bmExit();terrBizOpen(t)});$('bmZm').addEventListener('click',()=>{BM.zoom=clamp(BM.zoom*1.15,.6,1.8)});$('bmZp').addEventListener('click',()=>{BM.zoom=clamp(BM.zoom/1.15,.6,1.8)});
 $('bmLv').addEventListener('click',()=>bmLevel(BM.lvl===1?2:1));$('bmRot').addEventListener('click',()=>bmRot2());function bmRot2(){if(BM.tool==='yard'){BM.yv=(BM.yv+1)%3;bmToolsUpd()}else BM.sd=(BM.sd+1)%4;bmGhostUpd()}
 function bmFurnUpd(){const e=$('bmFurn');if(!e)return;if(!BM.on||BM.tool!=='furn'){e.style.display='none';return}
  const ks=Object.keys(FURN).filter(k=>inv[k]&&inv[k].cat==='Muebles'&&inv[k].n>0);if(!ks.includes(BM.fi))BM.fi=ks[0]||null;e.style.display='';
@@ -3631,7 +3720,7 @@ function bmExit(){if(!BM.on)return;BM.on=false;scene.remove(BM.grid);BM.grid.geo
 addEventListener('keydown',e=>{if(!BM.on)return;const a=document.activeElement;if(a&&(a.tagName==='INPUT'||a.tagName==='TEXTAREA'))return;
  if(e.code==='Escape'){e.preventDefault();bmExit();return}if(e.code==='Tab'){e.preventDefault();bmLevel(BM.lvl===1?2:1);return}if(e.code==='KeyR'&&(BM.tool==='stair'||BM.tool==='yard'||BM.tool==='furn')){e.preventDefault();bmRot2();return}if(e.code==='KeyB'){e.preventDefault();BM.tool='furn';BM.hv=null;bmToolsUpd();bmGhostUpd();return}const k=bmTL()[(e.key==='0'?10:(+e.key||0))-1];if(k){BM.tool=k;BM.hv=null;bmToolsUpd();bmGhostUpd()}});
 // aviso de interacción: cerca de un terreno propio → E para construir
-function bmNear(tt){for(const q of TERRENOS)if(q.owned)tt(q,q.x,q.z,Math.max(q.w,q.d)/2,'bterr','E: construir en tu terreno nº '+q.id+' ('+q.w+'×'+q.d+' m) · vista desde arriba')}
+function bmNear(tt){for(const q of TERRENOS)if(q.owned)tt(q,q.x,q.z,Math.max(q.w,q.d)/2,'bterr','E: construir en tu terreno nº '+q.id+' ('+q.w+'×'+q.d+' m) · vista desde arriba'+(q.biz&&q.biz.ty?' · L: tu negocio':' · L: montar negocio'));for(const q of TERRENOS)if(!q.owned&&q.bremote)tt(q,q.x,q.z,Math.hypot(q.w,q.d)/2+3,'tshop','E: comprar en '+((LTYPES[q.bremote.ty]||{}).n||'NEGOCIO').toLowerCase()+' de '+bizWho(q.bremote))}
 
 
 // =================================================================================================
@@ -3658,7 +3747,7 @@ function nearest(){if(seat)return{kind:'stand',txt:'E: levantarte'};if(inCar)ret
 function enterCar(c){inCar=c;c.mode='player';c.v=0;body.visible=false;if(c.m.userData.rider)c.m.userData.rider.visible=true;pl.x=c.x;pl.z=c.z}
 function interact(){if(seat){seat=null;setSit(body,false);return}const n=nearest();if(!n)return;
  if(n.kind==='door'){if(lockedFor(n.o)){toast(n.o.shop?'Cerrado':'🔒 Está cerrada con llave: necesitas la llave (el dueño te puede dar una copia)');return}n.o.open=!n.o.open;n.o.col.on=!n.o.open;if(n.o.col2)n.o.col2.on=n.o.col.on;sfx.door(n.o.open)}
- else if(n.kind==='talk')talk(n.o);else if(n.kind==='obj')IDEF[n.o.type].act(n.o);else if(n.kind==='bterr')bmEnter(n.o);else if(n.kind==='car')enterCar(n.o);
+ else if(n.kind==='talk')talk(n.o);else if(n.kind==='obj')IDEF[n.o.type].act(n.o);else if(n.kind==='bterr')bmEnter(n.o);else if(n.kind==='tshop')bsOpen(100000+n.o.id);else if(n.kind==='car')enterCar(n.o);
  else if(n.kind==='boat')boardBoat(n.o);else if(n.kind==='boatoff'){if(riding&&riding.net){toast('Recoge la red antes de bajar (G)');return}leaveBoat()}else if(n.kind==='avion')boardAvion(n.o);else if(n.kind==='avioff')leaveAvion();else if(n.kind==='heli')boardHeli(n.o);else if(n.kind==='helioff')leaveHeli();else if(n.kind==='plane')boardPlane(n.o);else if(n.kind==='planeoff')leavePlane();else if(n.kind==='planein'){toast('Abróchate el cinturón: solo puedes bajar en la terminal')}
  else if(n.kind==='bus')boardBus(n.o);else if(n.kind==='busoff')leaveBus();else if(n.kind==='busin'){if(riding)toast('El bus solo para en las paradas')}
  else{const c=inCar,sd=[[Math.cos(c.h)*2.6,-Math.sin(c.h)*2.6],[-Math.cos(c.h)*2.6,Math.sin(c.h)*2.6],[-Math.sin(c.h)*3.5,-Math.cos(c.h)*3.5]];
@@ -3881,7 +3970,7 @@ function navDraw(tf){
 // 23. DÍA/NOCHE Y CLIMA
 //     Hora del día, tiempo (sol, nubes, lluvia), luces de las farolas y sombras.
 // =================================================================================================
-let tod=9,wx=0;
+let tod=9,wx=0,wxT=0,wxNext=90;
 const WX=[{n:'Soleado',i:'☀️',cl:.25,gr:0,dim:1,rain:0},{n:'Nublado',i:'☁️',cl:1,gr:.5,dim:.85,rain:0},{n:'Lluvia',i:'🌧️',cl:1,gr:.85,dim:.7,rain:1}],cur={cl:.25,gr:0,dim:1,rain:0};
 const C1=new THREE.Color(),C2=new THREE.Color(),C3=new THREE.Color(),C4=new THREE.Color();
 const cloudMat=new THREE.MeshLambertMaterial({color:0xffffff,fog:false}),clouds=[];
@@ -4097,7 +4186,7 @@ function openSendForm(){
  h+='<h3>🏠 Casas y pisos</h3>'+(hs.length?hs.map(x=>'<div class="xfRow"><label><input type="checkbox" class="xfHouse" data-i="'+x.id+'"> '+(x.apt?'Piso':'Casa')+' ('+x.x+', '+x.z+')</label></div>').join(''):'<div class="xfNote">No tienes casas propias para enviar</div>')+(locked?'<div class="xfNote">Las casas alquiladas o con hipoteca no se pueden enviar.</div>':'');
  h+='<h3>🏪 Negocios</h3>'+(bs.length?bs.map(x=>'<div class="xfRow"><label><input type="checkbox" class="xfHouse" data-i="'+x.id+'"> '+pcEsc(xfBizName(x.ty))+' · nivel '+(x.lv||1)+' ('+x.x+', '+x.z+')</label></div>').join(''):'<div class="xfNote">No tienes negocios para enviar</div>');
  const ts=TERRENOS.filter(t=>t.owned);
- h+='<h3>🟩 Terrenos</h3>'+(ts.length?ts.map(t=>'<div class="xfRow"><label><input type="checkbox" class="xfPlot" data-t="'+t.id+'"> Terreno nº '+t.id+' · '+t.w+'×'+t.d+' m'+(t.b&&bmN(t.b)?' (con construcción)':'')+'</label></div>').join('')+'<div class="xfNote">La construcción pasa con el terreno; los muebles colocados vuelven a tu inventario.</div>':'<div class="xfNote">No tienes terrenos para enviar</div>');
+ h+='<h3>🟩 Terrenos</h3>'+(ts.length?ts.map(t=>'<div class="xfRow"><label><input type="checkbox" class="xfPlot" data-t="'+t.id+'"'+(t.biz&&t.biz.ty?' disabled':'')+'> Terreno nº '+t.id+' · '+t.w+'×'+t.d+' m'+(t.b&&bmN(t.b)?' (con construcción)':'')+(t.biz&&t.biz.ty?' · tiene negocio: aún no se puede enviar':'')+'</label></div>').join('')+'<div class="xfNote">La construcción pasa con el terreno; los muebles colocados vuelven a tu inventario.</div>':'<div class="xfNote">No tienes terrenos para enviar</div>');
  h+='<button class="xfBtn" onclick="xfSubmit()">Enviar oferta</button>';
  playerCard.innerHTML=h}
 function xfSubmit(){
@@ -4127,7 +4216,7 @@ function xfTake(o){
  (o.houses||[]).forEach(q=>{const h=xfFind(q.x,q.z,false);if(h)releaseHouse(h)});
  (o.biz||[]).forEach(q=>{const h=xfFind(q.x,q.z,true);if(!h)return;releaseHouse(h);if(h.ty){h.ty='';try{localIn(h,'')}catch(e){}}h.lv=0;h.till=0;h.stock={}});
  const bs={};
- (o.plots||[]).forEach(q=>{const t=TERRENOS.find(x=>x.id===q.id);if(!t)return;if(BM.on&&BM.t===t)bmExit();bmFReturn(t);bs[q.id]=bmSer(t);t.setOwned(false);t.b=null;t.rem=null;t._rsig='';bmRebuild(t);houseSent[t.id]=undefined});
+ (o.plots||[]).forEach(q=>{const t=TERRENOS.find(x=>x.id===q.id);if(!t)return;if(BM.on&&BM.t===t)bmExit();bmFReturn(t);bs[q.id]=bmSer(t);t.setOwned(false);t.b=null;t.biz=null;t.rem=null;t._rsig='';bmRebuild(t);houseSent[t.id]=undefined});
  estateRefresh();if(invOpen)renderInv();return bs}
 function xfApply(o){
  money+=(o.money||0);
@@ -4489,31 +4578,38 @@ function moBan(){const t=document.getElementById('moBan');if(t&&t.value.trim()){
 var bizSynced=false,bizSig='';
 const BIZ_CAT={super:'Comida',bar:'Comida',pan:'Comida',ropa:'Ropa',muebles:'Muebles'};
 function bizSyncSend(force){if(!bizSynced||!MP.connected)return;
- const list=HOUSES.filter(h=>h.owned&&h.local&&h.ty&&PRODS[h.ty]).map(h=>({x:h.x,z:h.z,ty:h.ty,lv:h.lv||1,till:Math.round(h.till||0),items:PRODS[h.ty].map(q=>({k:q[0],p:Math.max(1,Math.round(q[2])),n:Math.max(0,Math.floor((h.stock||{})[q[0]]||0)),e:q[3]}))})),owned=HOUSES.filter(h=>h.owned&&h.local).map(h=>({x:h.x,z:h.z})),sig=JSON.stringify([list.map(e=>Object.assign({},e,{till:Math.floor(e.till/25)})),owned]);
+ const ent=(h,x,z,tid)=>{const e={x,z,ty:h.ty,lv:h.lv||1,till:Math.round(h.till||0),items:PRODS[h.ty].map(q=>({k:q[0],p:Math.max(1,Math.round(q[2])),n:Math.max(0,Math.floor((h.stock||{})[q[0]]||0)),e:q[3]}))};if(tid!=null)e.tid=tid;return e},
+  tb=TERRENOS.filter(t=>t.owned&&t.biz&&t.biz.ty&&PRODS[t.biz.ty]), // negocios montados en tus terrenos (13.5)
+  list=HOUSES.filter(h=>h.owned&&h.local&&h.ty&&PRODS[h.ty]).map(h=>ent(h,h.x,h.z)).concat(tb.map(t=>ent(t.biz,t.x,t.z,t.id))),
+  owned=HOUSES.filter(h=>h.owned&&h.local).map(h=>({x:h.x,z:h.z})).concat(tb.map(t=>({x:t.x,z:t.z}))),
+  sig=JSON.stringify([list.map(e=>Object.assign({},e,{till:Math.floor(e.till/25)})),owned]);
  if(!force&&sig===bizSig)return;bizSig=sig;govSend({type:'biz_sync',list,owned})}
 setInterval(()=>bizSyncSend(false),3000);
-function bizSaleApply(s){const h=xfFind(s.x,s.z,true);if(!h||!h.owned)return 0;h.stock=h.stock||{};h.stock[s.k]=Math.max(0,(h.stock[s.k]||0)-s.n);h.till=(h.till||0)+s.total;return s.total}
+function bizSaleApply(s){let h=xfFind(s.x,s.z,true);if(h&&!h.owned)h=null;if(!h){const t=terrAt(s.x,s.z);h=t&&t.owned&&t.biz&&t.biz.ty?t.biz:null}if(!h)return 0;h.stock=h.stock||{};h.stock[s.k]=Math.max(0,(h.stock[s.k]||0)-s.n);h.till=(h.till||0)+s.total;return s.total}
 function bizOnPending(m){const sales=Array.isArray(m.sales)?m.sales:[];let tot=0;sales.forEach(s=>{tot+=bizSaleApply(s)});
  if(sales.length){saveGame();setTimeout(()=>toast('💰 Mientras no estabas vendiste €'+tot+' en tus negocios (están en la caja)'),1500)}
  govSend({type:'biz_ack',n:sales.length});bizSynced=true;bizSig='';bizSyncSend(true)}
 function bizOnSold(m){const t=bizSaleApply(m);if(t){toast('💰 '+m.buyer+' ha comprado '+m.n+'× '+m.k+' en tu local (+€'+t+' en caja)');sfx.cash()}}
 function bizOnBought(m){const cat=BIZ_CAT[m.ty]||'Comida';money=Math.max(0,money-m.total);const o=inv[m.k]||(inv[m.k]={n:0,cat,act:xfAct(cat)});o.n+=m.n;sfx.cash();toast('Comprado: '+m.k+' ×'+m.n+' (−€'+m.total+')');if(invOpen)renderInv();saveGame()}
 function bizApply(m){const seen=new Set();
- (m.list||[]).forEach(e=>{const h=xfFind(e.x,e.z,true);if(!h)return;if(e.own||h.owned){h.remote=null;return}
+ const tseen=new Set();
+ (m.list||[]).forEach(e=>{const h=xfFind(e.x,e.z,true);if(!h){const t=terrAt(e.x,e.z);if(t){if(e.own||t.owned)t.bremote=null;else if(e.ty){tseen.add(t.id);t.bremote={name:e.owner,ty:e.ty,lv:e.lv||0,items:e.items||[],on:!!e.on}}}return}if(e.own||h.owned){h.remote=null;return}
   seen.add(h.id);h.remote={name:e.owner,ty:e.ty||'',lv:e.lv||0,items:e.items||[],occ:!!e.occ,on:!!e.on};const sig=(e.ty||'')+':'+(e.lv||0);
   if(h.rsig!==sig){h.rsig=sig;h.ty=e.ty||'';h.lv=e.lv||0;try{localIn(h,e.ty||'')}catch(_){}}
   const rc=e.occ?2:1;if(h.rcol!==rc){h.rcol=rc;setHouseColor(h,e.occ?0x95a5a6:0x16a085)}});
  HOUSES.forEach(h=>{if(h.local&&h.remote&&!seen.has(h.id)){h.remote=null;h.rsig='';h.rcol=0;if(!h.owned){h.ty='';h.lv=0;try{localIn(h,'')}catch(_){}if(h.om)h.door.leaf.material=h.om}}});
- const r=document.getElementById('bsRoot');if(r&&dlgOpen){const h=HOUSES[+r.dataset.k];if(h)bsRender(h)}}
+ TERRENOS.forEach(t=>{if(t.bremote&&!tseen.has(t.id))t.bremote=null});
+ const r=document.getElementById('bsRoot');if(r&&dlgOpen){const h=BSH(+r.dataset.k);if(h)bsRender(h)}}
 
 // comprar en la tienda de otro jugador
-function bsOpen(id){openDlg();bsRender(HOUSES[id])}
-function bsRender(h){const e=h.remote;if(!e){dlg.innerHTML='<h2>🏪 Local</h2><p>Este negocio ya no está disponible.</p><div><button onclick="closeDlg()">Cerrar</button></div>';return}
+function BSH(id){if(id>=100000){const t=TERRENOS.find(q=>q.id===id-100000);return t?{id,x:t.x,z:t.z,remote:t.bremote||null}:null}return HOUSES[id]}
+function bsOpen(id){openDlg();bsRender(BSH(id))}
+function bsRender(h){const e=h&&h.remote;if(!e){dlg.innerHTML='<h2>🏪 Local</h2><p>Este negocio ya no está disponible.</p><div><button onclick="closeDlg()">Cerrar</button></div>';return}
  if(e.occ){dlg.innerHTML='<h2>🏪 Local ocupado</h2><p>Este local es de <b>'+pcEsc(e.name)+'</b>'+(e.on?'':' (ahora desconectado)')+' y todavía no tiene ningún negocio abierto.</p><div><button onclick="closeDlg()">Cerrar</button></div>';return}
  const T=LTYPES[e.ty]||{i:'🏪',n:'NEGOCIO'};let t='<div id="bsRoot" data-k="'+h.id+'"><h2>'+T.i+' '+pcEsc(T.n[0]+T.n.slice(1).toLowerCase())+'</h2><p style="margin:2px 0">Negocio de <b>'+pcEsc(e.name)+'</b> · '+BIZN[e.lv||1]+'</p><p style="margin:2px 0 8px">Tu dinero: <b>€'+Math.round(money)+'</b></p>';
  (e.items||[]).forEach((q,i)=>{t+='<div class="r"><i class="ic">'+pcEsc(q.e||'🛒')+'</i><span>'+pcEsc(q.k)+'<br><small>En tienda: '+q.n+' · €'+q.p+'</small></span>'+(q.n>0?'<button onclick="bsBuy('+h.id+','+i+',1)">Comprar 1</button><button onclick="bsBuy('+h.id+','+i+',5)">×5</button>':'<b>Agotado</b>')+'</div>'});
  dlg.innerHTML=t+'<div><button onclick="closeDlg()" style="background:#666">Salir</button></div></div>'}
-function bsBuy(id,i,n){const h=HOUSES[id],q=h&&h.remote&&h.remote.items[i];if(!q)return;n=Math.min(n,q.n);if(n<1){toast('Agotado');return}if(money<q.p*n){toast('No tienes suficiente dinero');return}if(!govSend({type:'biz_buy',x:h.x,z:h.z,k:q.k,n}))toast('Sin conexión con el servidor')}
+function bsBuy(id,i,n){const h=BSH(id),q=h&&h.remote&&h.remote.items[i];if(!q)return;n=Math.min(n,q.n);if(n<1){toast('Agotado');return}if(money<q.p*n){toast('No tienes suficiente dinero');return}if(!govSend({type:'biz_buy',x:h.x,z:h.z,k:q.k,n}))toast('Sin conexión con el servidor')}
 
 // ---------- 28.2 Casas en terrenos: se sincronizan con el servidor y las ven todos los jugadores ----------
 // El dueño publica su construcción (house_set, cada vez que cambia) y el servidor la reparte. Los terrenos de otros se dibujan con el mismo código que los tuyos (t.rem = su dueño, sin editarlos).
@@ -4545,8 +4641,8 @@ function houseOnClaimDeny(m){housePend=null;toast('🟥 OCUPADO · el terreno n�
 function bmValue(t){const b=t.b;if(!b)return 0;let v=b.f.size*BCOST.floor+b.r.size*BCOST.roof+b.s.size*BCOST.stair+b.o.size*BCOST.yard;
  for(const[k,ty]of b.e)v+=ty<=4?BCOST[ETOOL[ty]]:ty===5?BCOST.garage:0;for(const[k,ty]of b.e2)v+=BCOST[ETOOL[ty]];for(const k of b.r2)v+=bmRC(b,k);return v}
 function houseOnConflict(m){const t=TERRENOS.find(q=>q.id===m.id);if(!t||!t.owned)return;
- const back=Math.round(t.price+bmValue(t));if(BM.on&&BM.t===t)bmExit();if(dlgOpen)closeDlg();
- bmFReturn(t);t.setOwned(false);t.b=null;bmRebuild(t);houseSent[t.id]=undefined;money+=back;sfx.cash();estateRefresh();saveGame();
+ const back=Math.round(t.price+bmValue(t)+(t.biz&&t.biz.ty?TBIZ_FEE+(t.biz.till||0):0));if(BM.on&&BM.t===t)bmExit();if(dlgOpen)closeDlg();
+ bmFReturn(t);t.setOwned(false);t.b=null;t.biz=null;bmRebuild(t);houseSent[t.id]=undefined;money+=back;sfx.cash();estateRefresh();saveGame();
  toast('⚠️ El terreno nº '+t.id+' ya estaba registrado a nombre de '+String(m.owner||'otro jugador').slice(0,18)+'. Se te devuelven €'+back)}
 
 // =================================================================================================
@@ -4559,7 +4655,7 @@ function gatherState(){
  return {v:SAVE_VER,isv:1,pets:pets.map(p=>({t:p.t,n:p.name,c:p.col,h:Math.round(p.hunger),p:Math.round(p.hap),w:Object.assign({},p.wear)})),money,loan,hunger,thirst,energy,tod,wx,pl:lastPos,
   inv:JSON.parse(JSON.stringify(inv)),worn:Object.assign({},worn),placed:Object.assign({},placed),wh:Object.assign({},wh),flags:Object.assign({},flags),jx:Object.assign({},jx),sk:Object.assign({},skills),fh:JSON.parse(JSON.stringify(HOLD)),fd:fishDay,
   houses:HOUSES.filter(h=>h.owned).map(h=>({x:h.x,z:h.z,m:h.mode||'own',late:h.late||0,mt:h.mort||null,lv:h.lv||0,tl:h.till||0,ty:h.ty||'',sk:Object.assign({},h.stock||{})})),
-  terrenos:TERRENOS.filter(t=>t.owned).map(t=>({id:t.id,b:bmSer(t)})),
+  terrenos:TERRENOS.filter(t=>t.owned).map(t=>({id:t.id,b:bmSer(t),bz:t.biz&&t.biz.ty?{ty:t.biz.ty,lv:t.biz.lv||1,tl:Math.round(t.biz.till||0),sk:Object.assign({},t.biz.stock||{})}:null})),
   cars:cars.filter(c=>c.owned).map(c=>({t:c.t,col:c.col,lm:c.lm||0,lt:c.lt||0,x:c.x,z:c.z,y:c.y||0,h:c.h,fuel:c.fuel}))}}
 function saveGame(){if(noSave||!started)return;
  try{const st=gatherState();st.at=Date.now();const js=JSON.stringify(st);
@@ -4583,7 +4679,7 @@ function loadGame(src){ // src: partida ya leída (del servidor o de este dispos
   Object.assign(inv,s.inv||{});Object.assign(worn,s.worn||{});Object.assign(placed,s.placed||{});{let nb=0;for(const k of Object.keys(placed)){const n=placed[k]|0;if(n>0&&Object.prototype.hasOwnProperty.call(FURN,k)){const o=inv[k]||(inv[k]={n:0,cat:'Muebles',act:'Colocar en casa'});o.n+=n;nb+=n}delete placed[k]}if(nb)setTimeout(()=>toast('🛋️ Tus '+nb+' muebles antiguos vuelven al inventario: ahora puedes colocarlos de verdad en tu terreno'),1500)}Object.assign(wh,s.wh||{});Object.assign(flags,s.flags||{});Object.assign(jx,s.jx||{});
   if(s.sk&&typeof s.sk==='object')SKILLS.forEach(q=>{const v=Number(s.sk[q.k]);if(Number.isFinite(v)&&v>0)skills[q.k]=Math.floor(v)});
   (s.houses||[]).forEach(o=>{let best=null,bd=3;HOUSES.forEach(h=>{const d=Math.hypot(h.x-o.x,h.z-o.z);if(d<bd){bd=d;best=h}});if(best){best.owned=true;best.mode=o.m||'own';best.late=o.late||0;best.lv=o.lv||1;best.till=o.tl||0;best.stock=Object.assign({},o.sk||{});best.ty=(best.local&&LTYPES[o.ty])?o.ty:'';if(best.ty)localIn(best,best.ty);best.mort=(o.mt&&typeof o.mt.left==='number')?o.mt:null;if(best.mode==='mort'&&!best.mort)best.mode='own';setHouseColor(best,best.local?0xf1c40f:best.mode==='rent'?0x2f7fe0:0x22aa44)}});
-  (s.terrenos||[]).forEach(o=>{const id=(o&&typeof o==='object')?o.id:o,t=TERRENOS.find(q=>q.id===id);if(t){t.setOwned(true);if(o&&o.b)bmDes(t,o.b)}});
+  (s.terrenos||[]).forEach(o=>{const id=(o&&typeof o==='object')?o.id:o,t=TERRENOS.find(q=>q.id===id);if(t){t.setOwned(true);if(o&&o.b)bmDes(t,o.b);t.biz=null;const z=o&&o.bz;if(z&&LTYPES[z.ty])t.biz={id:100000+t.id,ty:z.ty,lv:Math.max(1,Math.min(5,Math.floor(Number(z.lv))||1)),till:Math.max(0,Number(z.tl)||0),stock:Object.assign({},z.sk||{})}}});
   (s.cars||[]).forEach(o=>{if(!SPEC[o.t])return;spawnCar(o.t,o.col,o.x,o.z,o.h||0,'parked',{owned:true,col:o.col,fuel:o.fuel,y:o.y||0,lm:o.lm||0,lt:o.lt||0})});
   if(s.pl){pl.x=s.pl.x;pl.z=s.pl.z;py=s.pl.py||0;vy=0;body.position.set(pl.x,py,pl.z);lastPos=s.pl}
   (s.pets||[]).slice(0,PET_MAX).forEach(o=>{if(o&&PET_T[o.t]){const pp=addPet(o.t,petClean(o.n)||'Mascota',typeof o.c==='number'?o.c:PET_T[o.t].col[0],typeof o.h==='number'?o.h:80,typeof o.p==='number'?o.p:70);if(pp&&o.w&&typeof o.w==='object'){Object.keys(o.w).forEach(sl=>{const nm=o.w[sl];if(PET_CLOTH[nm]&&PET_CLOTH[nm].slot===sl)pp.wear[sl]=nm});petDress(pp)}}});
