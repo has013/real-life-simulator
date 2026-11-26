@@ -62,7 +62,7 @@ function hotelUp(px,pz,w,d){const Y=[0,4.57,7.57,10.57,13.57],Y5=16.57,C=0xcfc8b
  sl(W,E,Z0,Z1,Y5);box(px,Y5,pz,w+.3,.3,d+.3,0x555555,false);
  addElev(px,pz,5,{e0,e1,z0,z1,ys:Y,H:Y5-.3-G,bx:e0-.5})}
 function shopIn(key,cx,cz,fz,w,d,zf){
- const S=SHOPS[key],L=d/2-.4,F=(x,y,l,sx,sy,sz,c,s)=>box(cx+x,G+.03+y,cz+fz*l,sx,sy,sz,c,s),big=w>20,bar=key==='bar'||key==='burger',cl=()=>pick([0xd9473a,0x3a9ad9,0xe0b020,0x4aa35a,0xe8e8e8,0xff8a3a]);
+ const S=SHOPS[key],L=d/2-.4,F=(x,y,l,sx,sy,sz,c,s)=>box(cx+x,G+.03+y,cz+fz*l,sx,sy,sz,c,s),big=w>20,bar=key==='bar'||key==='burger'||key==='pizza'||key==='ice',cl=()=>pick([0xd9473a,0x3a9ad9,0xe0b020,0x4aa35a,0xe8e8e8,0xff8a3a]);
  const gym=key==='gym';F(0,0,-L+3.3,bar?9:5,1,.9,gym?0x2b2f33:0x8b5a2b,true);F(0,1,-L+3.3,bar?9.2:5.2,.06,1.05,gym?0xf39c12:0x2f2f2f,false);if(!gym)F(1.5,1.06,-L+3.3,.6,.35,.45,0x222222,false);
  if(gym)gymIn(F,L,w,cl); // gimnasio: sin estanterías (gymIn gasta los mismos números aleatorios que una tienda, para no alterar el mapa)
  else{F(0,0,-L+.35,w-3,2.4,.5,0xd7dbde,true);for(let r=0;r<4;r++)for(let x=-(w-4)/2;x<=(w-4)/2;x+=1.2)F(x,.35+r*.55,-L+.85,.9,.4,.3,cl(),false)}
@@ -228,6 +228,8 @@ furn:{n:'MUEBLES',c:'#7a4a2a',wall:0xe3d3c0,floor:0xb89a78,L:'M',col:'#9b6a3a',w
 shop:{n:'MODA',c:'#8a2be2',wall:0xe8dff0,floor:0xcfc8d8,L:'T',col:'#a84be8',worker:'Dependienta',job:['Dependiente',140],items:[['Camiseta',25],['Camisa',45],['Chaqueta',95],['Vaqueros',60],['Pantalón corto',30],['Zapatillas',80],['Gorra',15],['Sombrero',30],['Gafas de sol',20],['Bufanda',18],['Mochila',40],['Reloj',35]]},
 bar:{n:'BAR',c:'#b8860b',wall:0xe8c9a0,floor:0x8a6a4a,L:'B',col:'#e0b020',worker:'Camarero',job:['Camarero',120],items:[['Café',2],['Cerveza',3],['Tapa',5]]},
 burger:{n:'HAMBURGUESERÍA',c:'#c62828',wall:0xfff1c1,floor:0xd9d2c5,L:'🍔',col:'#ffb300',worker:'Cocinero',job:['Cocinero de comida rápida',120],items:[['Hamburguesa',6],['Hamburguesa doble',9],['Patatas fritas',3],['Pollo frito',7],['Nuggets',5],['Perrito caliente',4],['Refresco de cola',2],['Batido',4],['Menú completo',12]]},
+pizza:{n:'PIZZERÍA',c:'#2e7d32',wall:0xfff3e0,floor:0xcdbfa6,L:'🍕',col:'#e53935',worker:'Pizzero',job:['Pizzero',125],items:[['Pizza margarita',8],['Pizza pepperoni',10],['Pizza cuatro quesos',11],['Pizza hawaiana',10],['Porción de pizza',3],['Pan de ajo',4],['Refresco de cola',2],['Cerveza',3]]},
+ice:{n:'HELADERÍA',c:'#00acc1',wall:0xe0f7fa,floor:0xd9e4e6,L:'🍦',col:'#26c6da',worker:'Heladero',job:['Heladero',115],items:[['Helado de vainilla',3],['Helado de chocolate',3],['Helado de fresa',3],['Cucurucho doble',5],['Polo de hielo',2],['Granizado',3],['Batido',4],['Copa de helado',7]]},
 estate:{n:'INMOBILIARIA',c:'#1f5fa8',wall:0xdfe6ee,floor:0xc2c8d0,L:'I',col:'#2f7fe0',worker:'Agente',job:null},
 gym:{n:'GIMNASIO',c:'#d35400',wall:0xe9ecef,floor:0x3a3f45,L:'💪',col:'#f39c12',worker:'Monitora',job:null,items:[]},
 hotel:{n:'HOTEL',c:'#6a2c91',wall:0xe8d8c0,floor:0xb08a5a,L:'H',col:'#8e44ad',worker:'Recepcionista',job:['Botones',160],items:[]},
