@@ -17,7 +17,7 @@ const pl={x:24,z:1.5},inv={},flags={},K={},body=person(0xdd3322,outfitOpts());sc
 const ov=$('ov'),dlg=$('dlg'),mm=$('mm'),ctx=mm.getContext('2d');
 const playing=()=>started&&ov.style.display==='none'&&!dlgOpen;
 function toast(t){const e=$('toast');e.textContent=t;clearTimeout(toast.t);toast.t=setTimeout(()=>e.textContent='',2600)}
-const ICON={'Comida para mascotas':'🦴','Manzanas':'🍎','Pan':'🍞','Agua':'💧','Pizza':'🍕','Leche':'🥛','Bocadillo':'🥪','Fruta':'🍓','Refresco':'🥤','Chocolate':'🍫','Sofá':'🛋️','Cama':'🛏️','Mesa':'🍽️','Lámpara':'💡','Armario':'🗄️','Sillón':'🪑','Mesa de centro':'🪵','Estantería':'📚','Mueble de TV':'📺','Alfombra':'🟥','Planta grande':'🪴','Nevera':'🧊','Cocina':'🍳','Encimera':'🚰','Taburete':'🪑','Mostrador':'🛍️','Caja registradora':'🧾','Estantería de tienda':'📦','Góndola':'🛒','Vitrina':'🪟','Nevera expositora':'🥶','Barra de bar':'🍸','Perchero':'👗','Cartel luminoso':'🪧','Café':'☕','Cerveza':'🍺','Tapa':'🍢','Bidón de gasolina':'⛽','Hamburguesa':'🍔','Hamburguesa doble':'🍔','Patatas fritas':'🍟','Pollo frito':'🍗','Nuggets':'🍗','Perrito caliente':'🌭','Refresco de cola':'🥤','Batido':'🥤','Menú completo':'🍱'},CARIC={hatch:'🚗',van:'🚐',sport:'🏎️',moto:'🏍️',bici:'🚲',patinete:'🛴'};
+const ICON={'Comida para mascotas':'🦴','Manzanas':'🍎','Pan':'🍞','Agua':'💧','Pizza':'🍕','Leche':'🥛','Bocadillo':'🥪','Fruta':'🍓','Refresco':'🥤','Chocolate':'🍫','Sofá':'🛋️','Cama':'🛏️','Mesa':'🍽️','Lámpara':'💡','Armario':'🗄️','Sillón':'🪑','Mesa de centro':'🪵','Estantería':'📚','Mueble de TV':'📺','Alfombra':'🟥','Planta grande':'🪴','Nevera':'🧊','Cocina':'🍳','Encimera':'🚰','Taburete':'🪑','Mostrador':'🛍️','Caja registradora':'🧾','Estantería de tienda':'📦','Góndola':'🛒','Vitrina':'🪟','Nevera expositora':'🥶','Barra de bar':'🍸','Perchero':'👗','Cartel luminoso':'🪧','Café':'☕','Cerveza':'🍺','Tapa':'🍢','Bidón de gasolina':'⛽','Hamburguesa':'🍔','Hamburguesa doble':'🍔','Patatas fritas':'🍟','Pollo frito':'🍗','Nuggets':'🍗','Perrito caliente':'🌭','Refresco de cola':'🥤','Batido':'🥤','Menú completo':'🍱','Pizza margarita':'🍕','Pizza pepperoni':'🍕','Pizza cuatro quesos':'🍕','Pizza hawaiana':'🍕','Porción de pizza':'🍕','Pan de ajo':'🥖','Helado de vainilla':'🍦','Helado de chocolate':'🍦','Helado de fresa':'🍦','Cucurucho doble':'🍦','Polo de hielo':'🧊','Granizado':'🍧','Copa de helado':'🍨'},CARIC={hatch:'🚗',van:'🚐',sport:'🏎️',moto:'🏍️',bici:'🚲',patinete:'🛴'};
 const row=(n,p,f,ic)=>`<div class="r">${ic?`<i class="ic">${ic}</i>`:''}<span>${n}</span><b>€${p}</b><button onclick="${f}">Comprar</button></div>`;
 function openDlg(){dlgOpen=true;dlg.classList.remove('wide');dlg.style.display='block';document.exitPointerLock&&document.exitPointerLock();for(const k in K)K[k]=false}
 function closeDlg(){if(SLP)return;dlgOpen=false;dlg.style.display='none';try{ren.domElement.requestPointerLock()}catch(e){}}
@@ -235,6 +235,8 @@ const JOB_REQ={
  'shop:shift':{negoc:3,calc:2},     // Dependiente (Moda)
  'bar:shift':{comm:2,social:3},      // Camarero (Bar)
  'burger:shift':{social:2},          // Cocinero de comida rápida (Hamburguesería)
+ 'pizza:shift':{social:2},           // Pizzero (Pizzería)
+ 'ice:shift':{social:1},             // Heladero (Heladería)
  'hotel:shift':{social:2,calc:1},    // Botones (Hotel)
  'gas:shift':{calc:2,social:2},      // Mozo de gasolinera (Gasolinera)
  'town:shift':{comm:3,social:4},     // Administrativo (Ayuntamiento)
@@ -248,7 +250,7 @@ function jobReqLine(k,id){const r=jobReq(k,id),a=SKILLS.filter(q=>(r[q.k]||0)>0)
 function jobCanDo(k,id){const m=jobMissing(k,id);if(!m.length)return true;const r=jobReq(k,id);toast('🔒 Te faltan puntos: '+m.map(q=>q.n+' ('+(skills[q.k]||0)+'/'+r[q.k]+')').join(', '));return false}
 let skillsOpen=false;
 function skillsHtml(){return '<details'+(skillsOpen?' open':'')+' ontoggle="skillsOpen=this.open"><summary style="cursor:pointer;font-weight:700;font-size:1.17em;margin:12px 0 6px">🧠 Habilidades</summary>'+SKILLS.map(q=>'<div class="r"><span>'+q.e+' '+q.n+'</span><b>'+skills[q.k]+' pts</b></div>').join('')+'</details>'}let hunger=100,thirst=100,energy=100,eff=0;let seat=null;
-const HRS={gym:[7,23],super:[8,22],dealer:[9,20],food:[8,22],furn:[10,20],shop:[10,21],bar:[12,24],burger:[11,24],estate:[9,19],hotel:[0,24],town:[9,18],bank:[9,18],pet:[10,21],gas:[0,24],garage:[8,20],ffood:[7,20],ffurn:[7,20],fcloth:[7,20]};
+const HRS={gym:[7,23],super:[8,22],dealer:[9,20],food:[8,22],furn:[10,20],shop:[10,21],bar:[12,24],burger:[11,24],pizza:[12,24],ice:[11,23],estate:[9,19],hotel:[0,24],town:[9,18],bank:[9,18],pet:[10,21],gas:[0,24],garage:[8,20],ffood:[7,20],ffurn:[7,20],fcloth:[7,20]};
 const pad2=n=>(n<10?'0':'')+n;
 function isOpen(k){const h=HRS[k];return !h||(tod>=h[0]&&tod<h[1])}
 function hrsTxt(k){return pad2(HRS[k][0])+':00'}
@@ -283,4 +285,3 @@ function sleepNight(msg1,rate,msg2,opt){opt=opt||{};if(SLP)return;
  if(!(MP.ws&&MP.ws.readyState===1)){fade(msg1,()=>{if(opt.cost)money=Math.max(0,money-opt.cost);if(opt.room)flags.room=0;sleepFor(hoursToMorning(),rate,msg2)});return} // sin conexión: pasa la noche como en solitario
  fade(msg1,()=>{SLP={rate,msg:msg2,cost:opt.cost||0,room:!!opt.room};dlgOpen=true;try{document.exitPointerLock&&document.exitPointerLock()}catch(e){}for(const k in K)K[k]=false;
   slpEl.querySelector('.slpInfo').textContent='Esperando al resto de jugadores...';slpEl.style.display='flex';govSend({type:'sleep',on:true})})}
-
