@@ -1,7 +1,7 @@
 /* ===============================================================================================
    FICHA · estudios-gimnasio.js
-   Qué hay:          Biblioteca (minijuegos de estudio), gimnasio (abonos y aparatos), universidad (matrícula, clases y examen), comida basura y la lista IDEF con lo que hace la E en cada objeto (IDEF.tipo = {txt, act}).
-   Tócalo si quieres: cambiar los minijuegos de la biblioteca o del gimnasio, la universidad, o ver ejemplos de objetos con E
+   Qué hay:          Biblioteca (minijuegos de estudio), gimnasio (abonos y aparatos), universidad (matrícula, clases y examen), comida basura, el inventario (ventana de la tecla I: toggleInv, renderInv con desplegables, useItem) y la lista IDEF con lo que hace la E en cada objeto (IDEF.tipo = {txt, act}).
+   Tócalo si quieres: cambiar los minijuegos de la biblioteca o del gimnasio, la universidad, el inventario (orden, desplegables, botones), o ver ejemplos de objetos con E
    Este fichero se carga en el orden de la lista de <script> de index.html y comparte variables con todos los demás.
    =============================================================================================== */
 'use strict';
@@ -251,16 +251,23 @@ function eatQuick(){const k=Object.keys(inv).find(x=>inv[x].cat==='Comida'&&inv[
 function toggleInv(){const e=$('inv');
  if(invOpen){invOpen=false;e.style.display='none';dlgOpen=false;try{ren.domElement.requestPointerLock()}catch(x){}return}
  invOpen=true;dlgOpen=true;document.exitPointerLock&&document.exitPointerLock();for(const k in K)K[k]=false;renderInv()}
-function renderInv(){const e=$('inv'),cats={};
+// Inventario con desplegables: cada sección (una por categoría de objetos, vehículos, propiedades, llaves, rango, trabajos…) es un <details>.
+// INVO guarda qué secciones están abiertas (por defecto todas cerradas), así no se cierran al usar un objeto. Si el html ya trae su <details> (habilidades) se deja tal cual.
+const INVO={},INVE={Comida:'🍔',Ropa:'👕',Muebles:'🛋️',Mascotas:'🐾','Ropa de mascota':'🐶',Combustible:'⛽'};
+function invSec(id,html,t){if(!html||!/\S/.test(html))return'';if(/^\s*<details/.test(html))return html;const m=html.match(/^\s*<h3[^>]*>([\s\S]*?)<\/h3>/);if(m){t=m[1];html=html.slice(m[0].length)}
+ return'<details'+(INVO[id]?' open':'')+' ontoggle="INVO[\''+id+'\']=this.open"><summary style="cursor:pointer;font-weight:700;font-size:1.17em;margin:12px 0 6px">'+t+'</summary>'+html+'</details>'}
+function renderInv(){const e=$('inv'),st=e.scrollTop,cats={};
  Object.keys(inv).forEach(k=>{if(inv[k].n>0)(cats[inv[k].cat]=cats[inv[k].cat]||[]).push(k)});
  let h='<h2>🎒 Inventario</h2><div>Dinero: <b>€'+money+'</b></div>'+(loan?'<div>Deuda: <b>€'+loan.left+'</b> · '+loan.n+' cuotas de €'+loan.cuota+'</div>':'')+houseInfoHtml()+petInfoHtml();const ks=Object.keys(cats);
  if(!ks.length)h+='<p>Aún no has comprado objetos.</p>';
- ks.forEach(c=>{h+='<h3>'+c+'</h3>';cats[c].forEach(k=>{const o=inv[k];const wr=o.cat==='Ropa'&&CLOTH[k]&&worn[CLOTH[k].slot]===k;h+='<div class="r">'+(o.cat==='Ropa'&&CLOTH[k]?'<img class="ti" src="'+thumbOf(k)+'">':'')+'<span>'+k+' ×'+o.n+(wr?' ✔ puesto':'')+'</span><button onclick="useItem(\''+k+'\')">'+(wr?'Quitarse':o.act)+'</button></div>'})});
+ ks.forEach(c=>{let b='';cats[c].forEach(k=>{const o=inv[k];const wr=o.cat==='Ropa'&&CLOTH[k]&&worn[CLOTH[k].slot]===k;b+='<div class="r">'+(o.cat==='Ropa'&&CLOTH[k]?'<img class="ti" src="'+thumbOf(k)+'">':'')+'<span>'+k+' ×'+o.n+(wr?' ✔ puesto':'')+'</span><button onclick="useItem(\''+k+'\')">'+(wr?'Quitarse':o.act)+'</button></div>'});
+  h+=invSec('c_'+c,b,(INVE[c]||'📦')+' '+c+' ('+cats[c].reduce((s,k)=>s+inv[k].n,0)+')')});
  const cs=cars.filter(c=>c.owned),hs=HOUSES.filter(x=>x.owned);
- h+='<h3>Vehículos</h3>'+(cs.map(c=>'<div>'+c.spec.name+'</div>').join('')||'<div>ninguno</div>');
- const ts=TERRENOS.filter(x=>x.owned);h+='<h3>Propiedades</h3>'+((hs.map(x=>'<div>Casa en ('+x.x+', '+x.z+')</div>').join('')+ts.map(x=>'<div>Terreno nº '+x.id+' ('+x.w+'×'+x.d+' m)</div>').join(''))||'<div>ninguna</div>');
- h+=keysInvHtml();h+=rankHtml();h+=skillsHtml();h+=jobsInv();const pc={};TERRENOS.forEach(t=>{if(t.owned&&t.b)for(const v of t.b.m.values())pc[v[0]]=(pc[v[0]]||0)+1});const pk=Object.keys(pc);if(pk.length)h+='<h3>Colocado en casa</h3>'+pk.map(k=>'<div>'+k+' ×'+pc[k]+'</div>').join('');
- e.innerHTML=h+'<div><button onclick="toggleInv()" style="background:#666">Cerrar (I)</button></div>';e.style.display='block';keysInvBind()}
+ h+=invSec('veh',cs.map(c=>'<div>'+c.spec.name+'</div>').join('')||'<div>ninguno</div>','🚗 Vehículos');
+ const ts=TERRENOS.filter(x=>x.owned);h+=invSec('prop',(hs.map(x=>'<div>Casa en ('+x.x+', '+x.z+')</div>').join('')+ts.map(x=>'<div>Terreno nº '+x.id+' ('+x.w+'×'+x.d+' m)</div>').join(''))||'<div>ninguna</div>','🏘️ Propiedades');
+ h+=invSec('keys',keysInvHtml(),'🔑 Llaves');h+=invSec('rank',rankHtml(),'🏅 Rango');h+=invSec('skills',skillsHtml(),'🧠 Habilidades');h+=invSec('jobs',jobsInv(),'💼 Carrera laboral');
+ const pc={};TERRENOS.forEach(t=>{if(t.owned&&t.b)for(const v of t.b.m.values())pc[v[0]]=(pc[v[0]]||0)+1});const pk=Object.keys(pc);if(pk.length)h+=invSec('col',pk.map(k=>'<div>'+k+' ×'+pc[k]+'</div>').join(''),'🛋️ Colocado en casa');
+ e.innerHTML=h+'<div><button onclick="toggleInv()" style="background:#666">Cerrar (I)</button></div>';e.style.display='block';e.scrollTop=st;keysInvBind()}
 function useItem(k){const o=inv[k];if(!o||o.n<1)return;
  if(o.cat==='Muebles'){const q=TERRENOS.find(x=>x.owned&&Math.abs(pl.x-x.x)<x.w/2+10&&Math.abs(pl.z-x.z)<x.d/2+10);
   if(q){invOpen=false;$('inv').style.display='none';BM.fi=FURN[k]?k:null;bmEnter(q);BM.tool='furn';BM.hv=null;bmToolsUpd();bmGhostUpd();toast('🛋️ Haz clic en una casilla con suelo para colocar: '+k);return}
@@ -269,4 +276,3 @@ function useItem(k){const o=inv[k];if(!o||o.n<1)return;
  renderInv()}
 function objective(){if(!flags.worked)return['Trabaja un turno: pulsa E junto a un trabajador de un comercio','super'];
  if(!flags.car)return['Compra un coche en el concesionario (C)','dealer'];if(!flags.house)return['Compra una casa en la inmobiliaria (I)','estate'];return['¡Objetivos completados! Explora la ciudad.',null]}
-
