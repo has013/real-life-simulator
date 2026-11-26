@@ -125,9 +125,10 @@ const SEQ=['house','apt','house','shop:food','house','apt','shop:furn','house','
 // Gimnasios: la 3.ª y la 5.ª inmobiliaria del barrio principal (nº 2 y 4 contando desde 0; en x≈65,z≈244 y x≈173,z≈190) son gimnasios. Quedan 4 inmobiliarias.
 let estN=0;const GYM_AT=[2,4];
 // Hamburgueserías: el 2.º y el 4.º bar del barrio principal (nº 1 y 3 contando desde 0). Mismo interior que un bar (shopIn), así no cambia nada más del mapa.
-let barN=0;const BURGER_AT=[1,3];
+// Pizzería: el 3.er bar (nº 2). Heladería: el 1.er bar (nº 0). Hay 5 bares en total; el nº 4 sigue siendo bar.
+let barN=0;const BURGER_AT=[1,3],PIZZA_AT=[2],ICE_AT=[0];
 function place(t,px,pz,fz){if(t==='house')house(px,pz,fz);else if(t==='apt')apt(px,pz,fz,false);else if(t==='tower')apt(px,pz,fz,true);
- else{let k=t.split(':')[1];if(k==='estate'&&GYM_AT.includes(estN++))k='gym';if(k==='bar'&&BURGER_AT.includes(barN++))k='burger';shop(k,px,pz,fz,16)}}
+ else{let k=t.split(':')[1];if(k==='estate'&&GYM_AT.includes(estN++))k='gym';if(k==='bar'){const bn=barN++;if(BURGER_AT.includes(bn))k='burger';else if(PIZZA_AT.includes(bn))k='pizza';else if(ICE_AT.includes(bn))k='ice'}shop(k,px,pz,fz,16)}}
 for(let i=0;i<N;i++)for(let j=0;j<N;j++){const x0=i*P,z0=j*P;
  if(i==PKI&&j==PKJ){makeParking(x0,z0);continue}
  if(GAS.some(g=>g[0]==i&&g[1]==j)){si+=4;makeGas(x0,z0);continue}
@@ -250,4 +251,3 @@ let TLU=null; // actualiza luces y brillo nocturno; lo llama updEnv con el facto
  TLU=night=>{let ch=false;for(const tl of TLS)for(let a=0;a<2;a++){const st=tlState(tl,a);if(st!==tl.last[a]){tl.last[a]=st;for(const hd of tl.heads[a])setHead(hd,st);ch=true}}
   if(ch){lamps.instanceColor.needsUpdate=true;hcol.needsUpdate=true}hm.opacity=.1+.9*night};
  TLU(0)})();
-
