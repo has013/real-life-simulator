@@ -214,8 +214,10 @@ const CLOTH={};
  A('back','Mochila azul',40,'esp',{c:0x2f5fb0});
  A('back','Capa de superhéroe',75,'esp',{c:0xd62828,k:'cape'});
 })();
-const worn={};
-function outfitOpts(w,dt){w=w||worn;const o={noIdle:1,fixed:1,fem:false,skin:0xe8b98f,hair:0x3b2314,pants:0x2a3550,shoe:0x3a2a1c,top:{s:'tee',c:dt||0xdd3322}};
+const worn={},MINE=[]; // MINE: modelos 3D del propio jugador (los rehace refreshLook al cambiar peinado)
+function outfitOpts(w,dt){const mine=!w;w=w||worn;const o={noIdle:1,fixed:1,fem:false,skin:0xe8b98f,hair:0x3b2314,pants:0x2a3550,shoe:0x3a2a1c,top:{s:'tee',c:dt||0xdd3322}};
+ // peinado propio (peluquería): flags.look={hs:estilo,hc:color}; flags aún no existe al cargar el mapa, por eso el try
+ if(mine){o.mine=1;o.cap=false;o.hs='short';try{const L=flags.look;if(L){if(L.hc!=null)o.hair=L.hc;if(L.hs)o.hs=L.hs}}catch(e){}}
  for(const sl in w){const it=CLOTH[w[sl]];if(!it)continue;
   if(sl==='top')o.top={s:it.s,c:it.c,p:it.p,c2:it.c2};else if(sl==='legs'){o.legs={s:it.s};o.pants=it.c}else o[sl]=it}
  return o}
@@ -223,7 +225,7 @@ function person(shirt,o){o=o||{};const R=Math.random,pk=a=>a[R()*a.length|0],
  fem=o.fem!=null?!!o.fem:R()<.5,skin=o.skin||pk(SKIN),hair=o.hair||pk(HAIR),pants=o.pants||pk(PANTS),shoe=(o.feet&&o.feet.c)||o.shoe||pk(SHOE),
  T=o.top||{s:(o.sleeve!=null?!!o.sleeve:R()<.3)?'long':'tee',c:shirt},ts=T.s,tc=T.c,lng=ts!=='tee',jk=ts==='jacket'?.012:0,jj=ts==='jacket'?.006:0,
  shorts=!!(o.legs&&o.legs.s==='shorts'),HD=o.head,hat=!!(HD&&HD.s==='hat'),hds=HD&&HD.s,cover=!!(hds==='beanie'||hds==='tophat'),cap=HD?HD.s==='cap':(o.cap!=null?!!o.cap:(!fem&&R()<.15)),capC=(HD&&HD.s==='cap')?HD.c:pk(CAPS),
- hs=fem?(R()<.75?'long':'short'):(R()<.08?'bald':'short'),
+ hs=o.hs||(fem?(R()<.75?'long':'short'):(R()<.08?'bald':'short')),
  sh=fem?.185:.21,wst=fem?.145:.165,hipR=fem?.185:.17,skD=shade(skin,.92),hD=shade(hair,.8),iris=pk([0x3b2a1a,0x2a4a6a,0x3a5a3a]),
  zf=y=>(wst+jk+(sh-wst)*((y-.02)/.56))*.58;
  const g=new THREE.Group(),hips=new THREE.Group(),up=new THREE.Group();hips.position.y=.94;g.add(hips);hips.add(up);
@@ -265,9 +267,15 @@ function person(shirt,o){o=o||{};const R=Math.random,pk=a=>a[R()*a.length|0],
  const H=[pCyl(.045,.05,.1,skin,0,.04,0),pSph(.115,skin,0,.19,0,.92,1.08,1),pSph(.026,skD,.108,.19,0,.5,1,.8),pSph(.026,skD,-.108,.19,0,.5,1,.8),
   pSph(.019,shade(skin,.96),0,.172,.118,.9,1.1,1.2),pBx(.042,.008,.01,fem?0xb04a55:0x8a4a4a,0,.13,.106)];
  [-1,1].forEach(s=>{H.push(pSph(.017,0xf5f5f5,s*.04,.205,.097,1,.8,.5),pSph(.0105,iris,s*.04,.205,.103,1,1,.5),pBx(.045,.008,.01,hD,s*.04,.228,.106))});
- if(hs!=='bald'){if(!cap&&!hat&&!cover)H.push(pG(new THREE.SphereGeometry(.123,10,8,0,Math.PI*2,0,Math.PI*.37),hair,0,.2,-.006,.94,1.1,1.02));
-  H.push(pG(new THREE.SphereGeometry(.123,10,8,Math.PI,Math.PI,0,Math.PI*(hs==='long'?.8:.72)),hair,0,.2,-.006,.94,1.1,1.02),pBx(.016,.05,.04,hair,.1,.2,.03),pBx(.016,.05,.04,hair,-.1,.2,.03));
-  if(hs==='long')H.push(pSph(.13,hair,0,.02,-.06,.92,1.55,.62))}
+ if(hs!=='bald'){const fr=!cap&&!hat&&!cover,hr=hs==='buzz'?.118:.123; // fr: sin gorra/sombrero encima · estilos: short, buzz, long, ponytail, bun, afro, mohawk
+  if(hs==='mohawk'){if(fr)for(let q=-4;q<=3;q++){const z=q*.022;H.push(pBx(.03,.08,.036,hair,0,.19+.124*Math.sqrt(Math.max(0,1-(z/.115)*(z/.115)))+.02,z))}}
+  else if(hs==='afro'&&fr)H.push(pSph(.16,hair,0,.27,-.05,1,.9,.85));
+  else{if(fr)H.push(pG(new THREE.SphereGeometry(hr,10,8,0,Math.PI*2,0,Math.PI*.37),hair,0,.2,-.006,.94,1.1,1.02));
+   H.push(pG(new THREE.SphereGeometry(hr,10,8,Math.PI,Math.PI,0,Math.PI*(hs==='long'?.8:.72)),hair,0,.2,-.006,.94,1.1,1.02));
+   if(hs!=='buzz')H.push(pBx(.016,.05,.04,hair,.1,.2,.03),pBx(.016,.05,.04,hair,-.1,.2,.03));
+   if(hs==='long')H.push(pSph(.13,hair,0,.02,-.06,.92,1.55,.62));
+   if(hs==='ponytail')H.push(pSph(.03,hair,0,.2,-.13),pCyl(.032,.016,.2,hair,0,.11,-.145));
+   if(hs==='bun'&&fr)H.push(pSph(.05,hair,0,.325,-.04))}}
  if(cap)H.push(pG(new THREE.SphereGeometry(.13,10,8,0,Math.PI*2,0,Math.PI*.5),capC,0,.236,0,.95,1,1.04),pBx(.17,.012,.1,capC,0,.236,.12));
  if(hat)H.push(pCyl(.085,.095,.11,HD.c,0,.31,0),pCyl(.0965,.0965,.026,0x5a3a22,0,.2675,0),pCyl(.19,.19,.01,HD.c,0,.255,0,1,1,1.04));
  if(hds==='beanie'){const bc=HD.c;H.push(pG(new THREE.SphereGeometry(.13,12,8,0,Math.PI*2,0,Math.PI*.5),bc,0,.245,0,.96,1.06,1.05),pCyl(.134,.134,.05,shade(bc,1.18),0,.252,0,.96,1,1.05),pSph(.032,shade(bc,1.25),0,.385,0))}
@@ -296,9 +304,11 @@ function person(shirt,o){o=o||{};const R=Math.random,pk=a=>a[R()*a.length|0],
  g.userData.P={hips,up,headG,aP,aM,eP,eM,lP,lM,kP,kM,amp:0,mode:0,pm:1,mw:0,ph0:R()*6.28};
  if(!o.fixed)g.scale.setScalar(.94+R()*.12);
  if(!o.noIdle)IDLERS.push(g);
+ if(o.mine)MINE.push(g);
  return g}
 // reconstruye el aspecto de un personaje (conserva postura y animación)
 function redress(g){const u=g.userData.P,keep=u?{mode:u.mode,pm:u.pm,mw:u.mw,amp:u.amp,ph0:u.ph0}:{},n=person(0xdd3322,outfitOpts());
+ {const k=MINE.indexOf(n);if(k>=0)MINE.splice(k,1)}
  while(g.children.length){const c=g.children[0];g.remove(c);c.traverse(x=>{if(x.geometry)x.geometry.dispose()})}
  const hp=n.children[0];n.remove(hp);g.add(hp);g.userData.P=Object.assign(n.userData.P,keep)}
 function applyOutfit(){redress(body);redress_riders()}
@@ -386,3 +396,5 @@ function carMesh(t,col){const s=SPEC[t],w=s.w,l=s.l,h=s.h,y0=.32,sp=t==='sport',
  g.add(bm);g.userData.beams=bm;return g}
 function spawnCar(t,col,x,z,h,mode,extra){const m=carMesh(t,col);m.userData.col=col;scene.add(m);
  const c=Object.assign({m,t,spec:SPEC[t],x,z,h,v:0,mode,fuel:SPEC[t].tank*(.3+Math.random()*.7)},extra||{});if(c.lm||c.lt)applyUp(c);m.position.set(x,c.y||0,z);m.rotation.y=h;cars.push(c);return c}
+// rehace todos los modelos del propio jugador (tras cambiar flags.look en la peluquería)
+function refreshLook(){MINE.slice().forEach(g=>redress(g))}
