@@ -314,31 +314,44 @@ function shopTab(t){SHOPTAB=t;const el=$('sb');if(!el)return;const g=TABS[t][0],
   h+=`<div class="card"><img src="${thumbOf(n)}" alt="${n}"><div>${n}</div><b>€${it.price}</b>${own?`<small>Tienes ×${own}</small>`:''}<button onclick="buy('shop',${i})">Comprar</button></div>`});
  el.innerHTML=h+'</div>';dlg.scrollTop=sc}
 
-// ---------- 4.3 Peluquería: elegir peinado y color de pelo ----------
-// El aspecto se guarda en flags.look={hs:estilo,hc:color}; outfitOpts() (mundo-base.js) lo lee y refreshLook() rehace el modelo del jugador.
+// ---------- 4.3 Peluquería y estética: peinado, color, cara, barba y maquillaje ----------
+// El aspecto se guarda en flags.look (campos en lookOpts, mundo-base.js); refreshLook() rehace el modelo del jugador y multijugador.js lo manda a los demás.
+// Cada lista es [valor, nombre, precio]. Se paga solo por lo que cambias.
 const HSTY=[['short','Corto',10],['buzz','Rapado',8],['long','Melena larga',18],['ponytail','Coleta',16],['bun','Moño',16],['afro','Afro',20],['mohawk','Cresta',22],['bald','Calvo',12]],
  HCOL=[[0x16110d,'Negro',6],[0x2b1a10,'Castaño oscuro',6],[0x3b2314,'Castaño',6],[0x7a4a24,'Cobrizo',6],[0xb98a45,'Rubio oscuro',6],[0xd9c58a,'Rubio',6],[0x8d8d8d,'Gris',6],[0x7b2a14,'Pelirrojo',6],
-  [0xe53935,'Rojo fantasía',14],[0xec407a,'Rosa',14],[0x8e24aa,'Morado',14],[0x1e88e5,'Azul',14],[0x43a047,'Verde',14],[0xf5f5f5,'Blanco',14]],HTC={};let HAIRSEL=null;
-function hairThumb(hs,hc){const k=hs+'_'+hc;if(HTC[k])return HTC[k];let url='';
- try{if(!THR)thumbOf(CK[0]);const o=outfitOpts({},0x9aa0aa);o.hs=hs;o.hair=hc;const g=person(0x9aa0aa,o);THR.s.add(g);
-  THR.c.position.set(Math.sin(.6)*.9,1.74,Math.cos(.6)*.9);THR.c.lookAt(0,1.74,0);THR.r.render(THR.s,THR.c);
+  [0xe53935,'Rojo fantasía',14],[0xec407a,'Rosa',14],[0x8e24aa,'Morado',14],[0x1e88e5,'Azul',14],[0x43a047,'Verde',14],[0xf5f5f5,'Blanco',14]],
+ SKINS=[[0xf3d2b3,'Muy clara',40],[0xe8b98f,'Clara',40],[0xd29b6b,'Morena clara',40],[0xb07a4f,'Morena',40],[0x8a5a3a,'Oscura',40],[0x5e3d28,'Muy oscura',40]],
+ EYES=[[0x3b2a1a,'Marrones',25],[0xa8722a,'Miel',25],[0x3a8a4a,'Verdes',25],[0x2a6aaa,'Azules',25],[0x7a8a99,'Grises',25],[0x7a4aa8,'Violeta',25]],
+ NOSES=[['s','Pequeña',50],['m','Normal',50],['l','Grande',50]],MOUTHS=[['normal','Normal',5],['smile','Sonrisa',15],['lips','Labios rojos',20]],
+ BEARDS=[['none','Afeitado',5],['stubble','Barba de 3 días',10],['mustache','Bigote',12],['goatee','Perilla',14],['full','Barba completa',20]],
+ SHADOWS=[[-1,'Sin sombra',3],[0xe0568c,'Rosa',10],[0x7e57c2,'Violeta',10],[0x29b6f6,'Azul',10],[0x26a69a,'Verde',10],[0xffb300,'Dorada',10]],FRECK=[[0,'Sin pecas',3],[1,'Con pecas',15]],
+ HLIST={hs:HSTY,hc:HCOL,sk:SKINS,ec:EYES,ns:NOSES,mo:MOUTHS,bd:BEARDS,mk:SHADOWS,fr:FRECK},HDEF={hs:'short',hc:0x3b2314,sk:0xe8b98f,ec:0x3b2a1a,mo:'normal',ns:'m',bd:'none',mk:-1,fr:0},
+ HTABS=[['✂️ Peinado',[['hs','Peinado'],['hc','Color de pelo']]],['🙂 Cara',[['sk','Piel'],['ec','Ojos'],['ns','Nariz'],['mo','Boca']]],['🧔 Barba',[['bd','Barba (del color del pelo)']]],['💄 Maquillaje',[['mk','Sombra de ojos'],['fr','Pecas']]]],
+ HSW={hc:1,sk:1,ec:1,mk:1},HTC={};let HAIRSEL=null,HTAB=0;
+function lookThumb(L){const k=JSON.stringify(L);if(HTC[k])return HTC[k];let url='';
+ try{if(!THR)thumbOf(CK[0]);const o=outfitOpts({},0x9aa0aa);o.cap=false;lookOpts(o,L);const g=person(0x9aa0aa,o);THR.s.add(g);
+  THR.c.position.set(Math.sin(.35)*.9,1.74,Math.cos(.35)*.9);THR.c.lookAt(0,1.74,0);THR.r.render(THR.s,THR.c);
   url=THR.r.domElement.toDataURL('image/png');THR.s.remove(g);g.traverse(x=>{if(x.geometry)x.geometry.dispose()})}catch(e){url=''}
  return HTC[k]=url||FALLBACK('💇')}
-function hairCur(){const L=flags.look||{};return{hs:L.hs||'short',hc:L.hc!=null?L.hc:0x3b2314}}
-function hairCost(){const c=hairCur(),S=HAIRSEL;let t=0;if(S.hs!==c.hs)t+=HSTY.find(a=>a[0]===S.hs)[2];if(S.hc!==c.hc){const q=HCOL.find(a=>a[0]===S.hc);t+=q?q[2]:6}return t}
-function hairMenu(){const c=hairCur();HAIRSEL={hs:c.hs,hc:c.hc};hairDraw()}
+function hairCur(){return Object.assign({},HDEF,flags.look)}
+function hairCost(){const c=hairCur(),S=HAIRSEL;let t=0;for(const f in HDEF)if(S[f]!==c[f]){const q=HLIST[f].find(a=>a[0]===S[f]);t+=q?q[2]:0}return t}
+function hairMenu(){HAIRSEL=hairCur();HTAB=0;hairDraw()}
 function hairPick(k,v){HAIRSEL[k]=v;hairDraw()}
-function hairDraw(){const S=HAIRSEL,cost=hairCost(),sc=dlg.scrollTop;openDlg();
- let h='<h2>💇 Peluquería y estética</h2><p>Elige peinado y color. Pagas solo lo que cambies.</p><h3>Peinado</h3><div class="grid">';
- HSTY.forEach(a=>{h+=`<div class="card"${S.hs===a[0]?' style="outline:3px solid #ec407a"':''}><img src="${hairThumb(a[0],S.hc)}" alt="${a[1]}"><div>${a[1]}</div><b>€${a[2]}</b><button onclick="hairPick('hs','${a[0]}')">${S.hs===a[0]?'Elegido':'Elegir'}</button></div>`});
- h+='</div><h3>Color</h3><div style="display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 10px">';
- HCOL.forEach(a=>{const hx='#'+a[0].toString(16).padStart(6,'0');h+=`<button title="${a[1]} · €${a[2]}" onclick="hairPick('hc',${a[0]})" style="width:34px;height:34px;border-radius:50%;background:${hx};border:${S.hc===a[0]?'4px solid #ec407a':'2px solid #888'};padding:0"></button>`});
- h+=`</div><p>Total: <b>€${cost}</b> · Tienes €${Math.floor(money)}</p><button ${cost&&money>=cost?'':'disabled'} onclick="hairApply()">Aplicar cambios</button> <button onclick="closeDlg()">Cerrar</button>`;
+function hairTab(i){HTAB=i;hairDraw()}
+function hairDraw(){const S=HAIRSEL,cost=hairCost(),sc=dlg.scrollTop,lit=v=>typeof v==='string'?`'${v}'`:v;openDlg();
+ let h='<h2>💇 Peluquería y estética</h2><div style="display:flex;gap:12px;align-items:center"><img src="'+lookThumb(S)+'" alt="Tu look" style="width:100px;border-radius:8px;background:#0003"><p>Así quedarías. Pagas solo lo que cambies.</p></div>';
+ h+='<div class="tabs">'+HTABS.map((t,i)=>`<button class="${i==HTAB?'on':''}" onclick="hairTab(${i})">${t[0]}</button>`).join('')+'</div>';
+ HTABS[HTAB][1].forEach(g=>{const f=g[0],L=HLIST[f];h+='<h3>'+g[1]+'</h3>';
+  if(f==='hs'){h+='<div class="grid">'+L.map(a=>`<div class="card"${S.hs===a[0]?' style="outline:3px solid #ec407a"':''}><img src="${lookThumb(Object.assign({},S,{hs:a[0]}))}" alt="${a[1]}"><div>${a[1]}</div><b>€${a[2]}</b><button onclick="hairPick('hs','${a[0]}')">${S.hs===a[0]?'Elegido':'Elegir'}</button></div>`).join('')+'</div>';return}
+  h+='<div style="display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 10px">'+L.map(a=>{const on=S[f]===a[0];
+   if(HSW[f]&&a[0]>=0)return `<button title="${a[1]} · €${a[2]}" onclick="hairPick('${f}',${a[0]})" style="width:34px;height:34px;border-radius:50%;background:#${a[0].toString(16).padStart(6,'0')};border:${on?'4px solid #ec407a':'2px solid #888'};padding:0"></button>`;
+   return `<button class="${on?'on':''}" onclick="hairPick('${f}',${lit(a[0])})" style="${on?'outline:3px solid #ec407a':''}">${a[1]} · €${a[2]}</button>`}).join('')+'</div>'});
+ h+=`<p>Total: <b>€${cost}</b> · Tienes €${Math.floor(money)}</p><button ${cost&&money>=cost?'':'disabled'} onclick="hairApply()">Aplicar cambios</button> <button onclick="closeDlg()">Cerrar</button>`;
  dlg.innerHTML=h;dlg.scrollTop=sc}
 function hairApply(){const c=hairCost();if(!c)return;if(money<c){toast('No tienes suficiente dinero');return}
- money-=c;flags.look=Object.assign({},flags.look,{hs:HAIRSEL.hs,hc:HAIRSEL.hc});refreshLook();
+ money-=c;flags.look=Object.assign({},HAIRSEL);refreshLook();
  try{sfx.cash()}catch(e){}toast('¡Nuevo look! -€'+c);try{saveGame()}catch(e){}hairDraw()}
-IDEF.hairchair={txt:o=>'E: sentarte en el sillón (peluquería)',act:o=>{
+IDEF.hairchair={txt:o=>'E: sentarte en el sillón (peluquería y estética)',act:o=>{
  try{if(!isOpen('hair')){toast('Cerrado · '+hrsTxt('hair'));return}}catch(e){}hairMenu()}};
 // horario de la peluquería: HRS vive en tiendas-negocios.js (se carga después), así que se añade cuando ya está todo cargado
 window.addEventListener('load',()=>{try{if(!HRS.hair)HRS.hair=[9,21]}catch(e){}});
