@@ -163,12 +163,12 @@ function buildHighway(){
   const skipR=ring?i=>nearP(po[i],HW.merge,28)||nearP(po[i+1],HW.merge,28):skipL,sk=(sd,off,base)=>i=>base(i)||(kd==='ramp'&&[i,i+1].some(j=>{const n=nr(po,j);return hwNear(po[j][0]+n[0]*off*sd,po[j][1]+n[1]*off*sd,HW.polys[0]).d<9.4}));
   const hw=ring?7.8:4.2,ho=hw+.5;rib(A,po,-hw,hw,.08);rib(W,po,-(hw-.2),-(hw-.4),.11,sk(-1,hw-.2,skipL));rib(W,po,hw-.4,hw-.2,.11,sk(1,hw-.2,skipL));
   if(ring){const dsh=i=>i%3!==0||skipL(i);rib(W,po,-4.3,-4.1,.11,dsh);rib(W,po,4.1,4.3,.11,dsh);rib(Y,po,-.75,-.55,.11);rib(Y,po,.55,.75,.11);rib(R,po,-.25,.25,1.05);wall(R,po,-.25,0,1.05);wall(R,po,.25,0,1.05);wcol(po,0,null)}else if(kd!=='ramp')rib(Y,po,-.08,.08,.11,i=>i%3!==0);
-  if(kd==='spur'){const dj=p=>HW.junc.reduce((m,j)=>Math.min(m,Math.hypot(p[0]-j[0],p[1]-j[1])),1e9),brg=i=>Math.min(dj(po[i]),dj(po[i+1]))<9.5,flat=i=>Yd(po[i])-po[i][2]<.08&&Yd(po[i+1])-po[i+1][2]<.08,nb=i=>!brg(i)||flat(i);
+  if(kd==='spur'){const dj=p=>HW.junc.reduce((m,j)=>Math.min(m,Math.hypot(p[0]-j[0],p[1]-j[1])),1e9),brg=i=>Math.min(dj(po[i]),dj(po[i+1]))<10.5,flat=i=>Yd(po[i])-po[i][2]<.08&&Yd(po[i+1])-po[i+1][2]<.08,nb=i=>!brg(i)||flat(i);
    rib(C,po,-4.9,4.9,.02,flat);rib(C,po,-4.9,4.9,-.5,nb);wall(C,po,-4.9,-.5,.02,nb);wall(C,po,4.9,-.5,.02,nb);
    for(let i=0;i<po.length-1;i++){if(brg(i)||flat(i))continue;const a=po[i],b=po[i+1],na=nr(po,i),nb2=nr(po,i+1);for(const sd of[-1,1]){const ax=a[0]+na[0]*4.9*sd,az=a[1]+na[1]*4.9*sd,bx=b[0]+nb2[0]*4.9*sd,bz=b[1]+nb2[1]*4.9*sd;quad(C,[[ax,Yd(a)+.02,az],[ax,a[2]-.7,az],[bx,Yd(b)+.02,bz],[bx,b[2]-.7,bz]])}}}
   for(const sd of[-1,1]){const sk2=sk(sd,ho,skipR);wall(R,po,ho*sd,.35,.95,sk2);wcol(po,ho*sd,sk2);for(let i=0;i<po.length-1;i+=2){if(sk2(i))continue;const n=nr(po,i);posts.push([po[i][0]+n[0]*ho*sd,Yd(po[i]),po[i][1]+n[1]*ho*sd])}}
   const step=ring||kd==='byp'?6:kd==='spur'?4:0;
-  if(step)for(let i=ring?3:2;i<po.length-1;i+=step){const p=po[i];if(ring?(nearP(p,HW.merge)||nearP(p,HW.junc,14)):(nearP(p,HW.junc,16)||nearP(p,HW.mouth)))continue;
+  if(step)for(let i=ring?3:2;i<po.length-1;i+=step){const p=po[i];if(ring?(nearP(p,HW.merge)||nearP(p,HW.junc,38)):(nearP(p,HW.junc,16)||nearP(p,HW.mouth)))continue;
    const n=nr(po,i),sd=(cnt++%2)?1:-1,off=ring?(bk(po,i)>.35?8.9:9.4):5.4,px=p[0]+n[0]*off*sd,pz=p[1]+n[1]*off*sd,dx=-n[0]*sd,dz=-n[1]*sd,y=Yd(p),ry=Math.atan2(dx,dz);
    M(.16,4.3,.16,0x3a3f44,px,y,pz);M(.12,.1,.95,0x3a3f44,px+dx*.45,y+4.2,pz+dz*.45,ry);M(.5,.12,.5,lampMat,px+dx*.9,y+4.1,pz+dz*.9,ry);
    LAMPS.push({x:px+dx*.9,y:y+4.1,z:pz+dz*.9});const pm=new THREE.Mesh(poolGeo,poolMat);pm.rotation.x=-Math.PI/2;pm.position.set(px+dx*.9,y+.15,pz+dz*.9);pm.userData.st=1;scene.add(pm)}});
