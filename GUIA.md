@@ -27,8 +27,8 @@ Estás ayudando a un chaval que no programa a hacer su juego. Usa el plan gratui
    - que no has borrado ni cambiado nada que no tenía que ver con la idea.
 5. **Termina diciendo:** qué ficheros hay que sustituir, y cómo probarlo (a dónde ir en el juego, qué pulsar y qué debería ver).
 6. **Si te pegan un error del cartel rojo**, viene con el fichero y la línea. Arréglalo y devuelve el fichero entero otra vez.
-7. **Al acabar CADA cambio, devuelve siempre este `GUIA.md` actualizado, aunque no te lo pidan** (si has creado un fichero o cambiado de qué se encarga uno, actualiza también la FICHA del principio de ese fichero). Esta regla también hay que mantenerla escrita aquí.
-8. Si tras tu cambio un fichero pasa de **45 KB**, avísalo y propón dividirlo en dos. Si no, Claude gratis no podrá devolverlo entero. (`js/mundo-base.js` ya pasa de 45 KB: cuando haya ocasión, conviene sacar el bloque de la autopista a un fichero nuevo.)
+7. **Si creas un fichero nuevo o cambias de qué se encarga uno, devuelve también este `GUIA.md` actualizado** (y actualiza la FICHA del principio del fichero).
+8. Si tras tu cambio un fichero pasa de **45 KB**, avísalo y propón dividirlo en dos. Si no, Claude gratis no podrá devolverlo entero.
 9. Mantén el estilo del fichero (compacto, comentarios en castellano). Todos los textos del juego van en castellano.
 
 ### Reglas del proyecto (importante)
@@ -53,23 +53,14 @@ Estás ayudando a un chaval que no programa a hacer su juego. Usa el plan gratui
 
 ---
 
-## La autopista (cómo funciona)
-
-- Se calcula en `mundo-base.js` (anillo `HW.polys[0]`, accesos `kind:'spur'`, rampas `kind:'ramp'`) y se dibuja en `ciudad.js` (`buildHighway`).
-- **Cada cruce es un paso inferior:** la carretera de acceso va a nivel del suelo y la autopista se hunde `BR` (4,4 m) para pasar por debajo. Los ajustes están en `mundo-base.js`: `CUTF` (dónde acaba el hueco bajo la carretera), `RDF0`/`RDF1` (cuánto dura el hundimiento de la autopista) y `FL` (altura mínima del fondo de la autopista hundida). **El mar está en y=-0,4**: si el fondo bajara de ahí, se vería inundado. Como el terreno en los cruces está solo 2-3 m sobre el mar, la carretera sube lo justo en cada cruce (tablero plano ±10 m) para que quepan los 4,4 m de altura libre.
-- Cada punto de un acceso tiene `p[2]` (suelo de debajo) y `p[3]` (altura del tablero de la carretera). Si `p[3]` es más alto que `p[2]`, hay tablero y `deckY()` lo usa para que coches y jugador puedan ir por encima. El suelo de debajo lo sigue el terreno, así que por debajo se circula normal.
-- `groundH()` está en `edificios.js` y no hay que tocarla para esto.
-- **Tráfico de la autopista.** `ciudad.js` crea 12 coches justo después de `buildHighway()` (4 grupos de 3: 2 sentidos × 2 carriles, a 2,4 m y 6 m del centro, se circula por la derecha). Llevan `mode:'ai'` y `hw:1`; `aiStep` los pasa a `hwStep` (en `servicios-trabajos-fisica.js`), que los mueve por el anillo (`HWR` y `hwPos`, en `ciudad.js`), con la altura del anillo, y los frena si hay un coche, el jugador o un obstáculo delante. Solo recorren el anillo (no entran en rampas ni en la ciudad). Para cambiar cuántos son o su velocidad, mira ese bloque de `ciudad.js`.
-- **Vallas y coches.** Las vallas son segmentos en la lista `WALLS` (se rellena en `buildHighway`, `ciudad.js`) y `wallHit()` (en `mundo-base.js`) las comprueba. El coche del jugador (`driveCar`, en `servicios-trabajos-fisica.js`) **no rebota** contra ellas: la valla lo empuja hacia fuera y solo lo frena según lo de frente que choque, así que no se queda pegado. Los coches del tráfico de la ciudad (`aiStep`) circulan por las calles del barrio.
-
 ## Ficheros
 
 | Fichero | Qué hay | Tócalo si quieres… |
 |---|---|---|
 | `index.html` | CSS (aspecto de HUD, ventanas, chat…), HTML (HUD, pantalla de inicio) y el cartel rojo de errores | cambiar colores o el aspecto de los menús, añadir algo al HUD |
-| `js/mundo-base.js` | configuración, terreno, escena 3D, la **forma y altura de la autopista** (anillo, accesos, rampas, paso inferior), `box`, `mat`, `rnd`, personajes y coches (modelos, tráfico) | cambiar personajes o coches, añadir un modelo de coche, la altura o el trazado de la autopista |
-| `js/edificios.js` | edificios y comercios del barrio principal, `SHOPS` (datos de cada tienda), `IA`, fábricas, ropa | añadir un tipo de tienda, cambiar edificios o interiores |
-| `js/ciudad.js` | calles, manzanas, dónde va cada comercio, el **dibujo de la autopista** (`buildHighway`: asfalto, quitamiedos, losa bajo la carretera, farolas), **los 12 coches de la autopista (`HWR`, `hwPos`)**, señales y semáforos | cambiar calles, dónde está cada tienda o cómo se ve la autopista |
+| `js/mundo-base.js` | configuración, terreno, escena 3D, `box`, `mat`, `rnd`, personajes (incluye peinados: `outfitOpts`, `person`, `refreshLook`) y coches (modelos, tráfico) | cambiar personajes, peinados o coches, añadir un modelo de coche |
+| `js/edificios.js` | edificios y comercios del barrio principal, `SHOPS` (datos de cada tienda), `IA`, fábricas, ropa, peluquería (menú de peinados, 4.3) | añadir un tipo de tienda, cambiar edificios o interiores, la peluquería |
+| `js/ciudad.js` | calles, manzanas, dónde va cada comercio, señales y semáforos | cambiar calles o dónde está cada tienda |
 | `js/afueras.js` | biblioteca, universidad, aeropuerto y hospital (los edificios) | cambiar esos edificios |
 | `js/puerto.js` | puerto, barcos, navegar y pesca | barcos, pesca, lonja |
 | `js/transporte.js` | montaña y mirador, coches aparcados, locales en venta, pisos, isla pequeña, autobuses, aviones y avionetas | autobuses, aviones, avionetas, isla pequeña |
@@ -78,7 +69,7 @@ Estás ayudando a un chaval que no programa a hacer su juego. Usa el plan gratui
 | `js/tiendas-negocios.js` | jugador (`money`, `pl`, `inv`, `flags`), avisos, ventanas, hablar con dependientes (`talk`), taller, comprar, negocios propios, admin, habilidades, horarios (`HRS`), dormir | tiendas, precios, horarios, negocios, habilidades, admin |
 | `js/banco-casas.js` | banco y préstamos, comprar/alquilar/hipotecar casas, inmobiliaria con mapa, hotel, sentarse | banco, casas, inmobiliaria |
 | `js/estudios-gimnasio.js` | minijuegos de biblioteca y gimnasio, universidad, comida basura, lista `IDEF` (objetos con E) | minijuegos, universidad, gimnasio |
-| `js/servicios-trabajos-fisica.js` | gasolina, hotel, ascensores, trabajos (`jobMenu`), teclas, física del jugador, **conducción del coche del jugador (`driveCar`, choques con vallas y edificios)**, **tráfico de IA (`aiStep` ciudad, `hwStep` autopista)** | trabajos, teclas, cómo se mueve el jugador o su coche |
+| `js/servicios-trabajos-fisica.js` | gasolina, hotel, ascensores, trabajos (`jobMenu`), teclas, física del jugador | trabajos, teclas, cómo se mueve el jugador |
 | `js/construccion.js` | construir por módulos en los terrenos | piezas o editor de construcción |
 | `js/interaccion-mapa-clima.js` | tecla E por dentro, cámara, minimapa, rutas, día/noche y clima | cámara, mapa, clima |
 | `js/multijugador.js` | conexión, chat, mensajes privados, transferencias, cuentas, llaves | chat, transferencias, cuentas (casi siempre con `server.js`) |
@@ -122,6 +113,7 @@ Estás ayudando a un chaval que no programa a hacer su juego. Usa el plan gratui
 | `sfx.cash()`, `sfx.door()`… | sonidos | guardado-sonido-movil.js |
 | `saveGame()` | guardar la partida ahora | guardado-sonido-movil.js |
 | `$('id')` | coger un elemento del HTML | mundo-base.js |
+| `refreshLook()` | rehacer el modelo 3D del jugador tras cambiar `flags.look` (peinado: `{hs:estilo,hc:color}`) | mundo-base.js |
 
 ## Ejemplo real: la hamburguesería
 
@@ -130,3 +122,9 @@ Se hizo así (sirve de modelo para cualquier tipo de tienda nueva):
 - `ciudad.js`: en qué locales del barrio aparece (`BURGER_AT`).
 - `tiendas-negocios.js`: horario en `HRS` (`burger:[11,24]`) y las habilidades que pide el trabajo de cocinero.
 - `estudios-gimnasio.js`: la comida basura que resta Condición Física.
+
+## Ejemplo real: la peluquería
+
+- `edificios.js`: `SHOPS.hair`, su interior `hairIn` (sillones con `IA(...,'hairchair')`) y el menú `hairMenu` con `IDEF.hairchair`. El horario `HRS.hair` se añade desde ahí al terminar de cargar (pendiente de moverlo a `tiendas-negocios.js`).
+- `ciudad.js`: la 2.ª tienda de moda del barrio (`petT`) es la peluquería.
+- `mundo-base.js`: `outfitOpts()` lee `flags.look` y `person()` dibuja los peinados (`hs`: short, buzz, long, ponytail, bun, afro, mohawk, bald).
