@@ -24,7 +24,7 @@ function mpHud(){let h=document.getElementById('mpHud');if(!h){h=document.create
 function mpStatus(t,ok){const e=document.getElementById('mpStatus');if(e){e.textContent=t;e.style.color=ok?'#80e6a0':'#ffd36a'}}
 function mpDispose(g){if(!g)return;g.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){if(Array.isArray(o.material))o.material.forEach(m=>m.dispose());else o.material.dispose()}})}
 // Coches aparcados: los míos (los que no conduzco) viajan en el estado; los de los demás se dibujan como copias solo para mirar
-function mpParkedMine(){const r=[];for(const c of cars){if(r.length>=6)break;if(c.mode!=='player'||c===inCar||!c.m)continue;r.push({t:c.t,col:c.m.userData.col||0x4477aa,x:+c.x.toFixed(1),y:+(c.y||0).toFixed(1),z:+c.z.toFixed(1),h:+c.h.toFixed(2)})}return r}
+function mpParkedMine(){const r=[];for(const c of cars){if(r.length>=6)break;if(!c.owned||c.mode==='ai'||c===inCar||!c.m)continue;r.push({t:c.t,col:c.col||c.m.userData.col||0x4477aa,x:+c.x.toFixed(1),y:+(c.y||0).toFixed(1),z:+c.z.toFixed(1),h:+c.h.toFixed(2)})}return r}
 function mpParked(p,list){const arr=Array.isArray(list)?list.slice(0,6):[];if(!p.pk)p.pk=[];
  arr.forEach((q,i)=>{if(!q||!SPEC[q.t])return;const col=Number(q.col)||0x4477aa,key=q.t+':'+col;let e=p.pk[i];
   if(!e||e.key!==key){if(e){MP.remoteRoot.remove(e.mesh);mpDispose(e.mesh)}const mesh=carMesh(q.t,col);MP.remoteRoot.add(mesh);e=p.pk[i]={key,mesh}}
