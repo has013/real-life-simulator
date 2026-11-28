@@ -23,13 +23,21 @@ function mpMakePlayer(d){const hue=(Math.abs(String(d.id).split('').reduce((a,c)
 function mpHud(){let h=document.getElementById('mpHud');if(!h){h=document.createElement('div');h.id='mpHud';h.style.cssText='position:fixed;right:12px;top:12px;z-index:30;background:rgba(8,17,28,.82);color:#fff;padding:9px 13px;border:1px solid rgba(255,255,255,.25);border-radius:12px;font:13px Arial;pointer-events:none;width:170px;box-sizing:border-box;box-shadow:0 3px 14px #0005';document.body.appendChild(h)}h.innerHTML='<b>🌐 MUNDO PÚBLICO</b><div id="mpStatus" style="margin-top:4px;color:#ffd36a">Conectando...</div><div id="mpCount" style="margin-top:3px">0 / 20 jugadores</div>'}
 function mpStatus(t,ok){const e=document.getElementById('mpStatus');if(e){e.textContent=t;e.style.color=ok?'#80e6a0':'#ffd36a'}}
 function mpDispose(g){if(!g)return;g.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){if(Array.isArray(o.material))o.material.forEach(m=>m.dispose());else o.material.dispose()}})}
-function mpRemove(id){const p=MP.players.get(id);if(!p)return;MP.remoteRoot.remove(p.mesh);mpDispose(p.mesh);if(p.vehicleMesh){MP.remoteRoot.remove(p.vehicleMesh);mpDispose(p.vehicleMesh)}for(const q of p.pets.values()){MP.remoteRoot.remove(q.mesh);mpDispose(q.mesh)}MP.players.delete(id);mpCount()}
+// Coches aparcados: los míos (los que no conduzco) viajan en el estado; los de los demás se dibujan como copias solo para mirar
+function mpParkedMine(){const r=[];for(const c of cars){if(r.length>=6)break;if(c.mode!=='player'||c===inCar||!c.m)continue;r.push({t:c.t,col:c.m.userData.col||0x4477aa,x:+c.x.toFixed(1),y:+(c.y||0).toFixed(1),z:+c.z.toFixed(1),h:+c.h.toFixed(2)})}return r}
+function mpParked(p,list){const arr=Array.isArray(list)?list.slice(0,6):[];if(!p.pk)p.pk=[];
+ arr.forEach((q,i)=>{if(!q||!SPEC[q.t])return;const col=Number(q.col)||0x4477aa,key=q.t+':'+col;let e=p.pk[i];
+  if(!e||e.key!==key){if(e){MP.remoteRoot.remove(e.mesh);mpDispose(e.mesh)}const mesh=carMesh(q.t,col);MP.remoteRoot.add(mesh);e=p.pk[i]={key,mesh}}
+  e.mesh.position.set(Number(q.x)||0,Number(q.y)||0,Number(q.z)||0);e.mesh.rotation.y=Number(q.h)||0});
+ while(p.pk.length>arr.length){const e=p.pk.pop();if(e){MP.remoteRoot.remove(e.mesh);mpDispose(e.mesh)}}}
+function mpParkedClear(p){if(!p.pk)return;p.pk.forEach(e=>{if(e){MP.remoteRoot.remove(e.mesh);mpDispose(e.mesh)}});p.pk=[]}
+function mpRemove(id){const p=MP.players.get(id);if(!p)return;MP.remoteRoot.remove(p.mesh);mpDispose(p.mesh);if(p.vehicleMesh){MP.remoteRoot.remove(p.vehicleMesh);mpDispose(p.vehicleMesh)}mpParkedClear(p);for(const q of p.pets.values()){MP.remoteRoot.remove(q.mesh);mpDispose(q.mesh)}MP.players.delete(id);mpCount()}
 function mpCount(){const e=document.getElementById('mpCount');if(e)e.textContent=(MP.players.size+1)+' / 20 jugadores'}
 function mpConnect(){mpHud();if(location.protocol==='file:'){mpStatus('Abre el juego desde el servidor online',false);return}
  // el nombre ya no se pregunta: es el de la cuenta (24.4). Tu propio nombre no se dibuja sobre tu cabeza (los demás jugadores sí ven el tuyo)
  const proto=location.protocol==='https:'?'wss://':'ws://';let ws;try{ws=new WebSocket(proto+location.host)}catch(e){mpStatus('No se pudo conectar',false);return}MP.ws=ws;
  // el peinado propio (flags.look) viaja en cada mensaje de estado; así no hay que tocar el fichero que los envía
- {const s0=ws.send.bind(ws);ws.send=t=>{try{if(typeof t==='string'&&t.indexOf('"type":"state"')>=0&&typeof flags!=='undefined'&&flags.look){const o=JSON.parse(t);o.look=flags.look;t=JSON.stringify(o)}}catch(e){}return s0(t)}}
+ {const s0=ws.send.bind(ws);ws.send=t=>{try{if(typeof t==='string'&&t.indexOf('"type":"state"')>=0){const o=JSON.parse(t);if(typeof flags!=='undefined'&&flags.look)o.look=flags.look;o.pk=mpParkedMine();t=JSON.stringify(o)}}catch(e){}return s0(t)}}
  ws.onopen=()=>{MP.connected=true;MP.retry=0;mpStatus('Conectado',true);accOnOpen()}; // primero se inicia sesión (24.4); cuando el servidor la acepta se envía 'join'
  ws.onmessage=e=>{let m;try{m=JSON.parse(e.data)}catch(_){return}if(accOnMsg(m)||keysOnMsg(m))return;
   if(m.type==='welcome'){MP.id=m.id;MP.feat=m.features||{};if(m.world){tod=m.world.tod;wx=m.world.wx} (m.players||[]).forEach(d=>{if(d.id!==MP.id)mpUpsert(d)});(m.chat||[]).forEach(chatAdd);mpCount()}
@@ -140,6 +148,7 @@ function mpUpsert(d){if(!d||!d.id)return;let p=MP.players.get(d.id);if(!p){p=mpM
  p.mesh.visible=!vt;if(vt==='boat')boatRemoteState(d);p.vPt=Number(d.vPt)||0;p.vBk=Number(d.vBk)||0;p.vThr=Number(d.vThr)||0;if(p.vehicleMesh){p.vehicleMesh.visible=!!vt;if(vt!=='avion'&&vt!=='plane'&&vt!=='heli'){p.vehicleMesh.position.set(Number(d.x)||0,Number(d.y)||0,Number(d.z)||0);p.vehicleMesh.rotation.y=Number(d.yaw)||0}}
  const incoming=Array.isArray(d.pets)?d.pets.slice(0,3):[],seen=new Set();incoming.forEach((q,i)=>{const key=String(i);seen.add(key);let rp=p.pets.get(key);if(!rp||rp.t!==q.t){if(rp){MP.remoteRoot.remove(rp.mesh);mpDispose(rp.mesh)}const mesh=petMesh(q.t,q.col);MP.remoteRoot.add(mesh);rp={mesh,t:q.t,wearKey:''};p.pets.set(key,rp)}const wk=JSON.stringify(q.wear||{});if(rp.wearKey!==wk){if(rp.mesh.userData.wg){rp.mesh.remove(rp.mesh.userData.wg);mpDispose(rp.mesh.userData.wg)}const wg=new THREE.Group(),A=PET_A[q.t];Object.keys(q.wear||{}).forEach(sl=>{const c=PET_CLOTH[q.wear[sl]];if(c)c.mk(wg,A)});rp.mesh.add(wg);rp.mesh.userData.wg=wg;rp.wearKey=wk}rp.mesh.position.set(Number(q.x)||0,Number(q.y)||0,Number(q.z)||0);rp.mesh.rotation.y=Number(d.yaw)||0;rp.mesh.visible=!vt});
  for(const [key,rp] of p.pets)if(!seen.has(key)){MP.remoteRoot.remove(rp.mesh);mpDispose(rp.mesh);p.pets.delete(key)}
+ mpParked(p,d.pk);
  mpCount()}
 
 function mpProfileSnapshot(){
