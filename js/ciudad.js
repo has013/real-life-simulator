@@ -1,6 +1,6 @@
 /* ===============================================================================================
    FICHA · ciudad.js
-   Qué hay:          La ciudad (sección 5): calles, manzanas y aceras, señales de tráfico (5.1) y semáforos (5.2).
+   Qué hay:          La ciudad (sección 5): calles, manzanas y aceras, señales de tráfico (5.1) y semáforos (5.2), el dibujo de la autopista y sus 12 coches de tráfico (HWR, hwPos).
    Tócalo si quieres: cambiar calles, señales o semáforos
    Este fichero se carga en el orden de la lista de <script> de index.html y comparte variables con todos los demás.
    =============================================================================================== */
@@ -177,6 +177,22 @@ function buildHighway(){
  const d=new THREE.Object3D(),im=new THREE.InstancedMesh(new THREE.BoxGeometry(.12,.7,.12),mat(0x777c82),posts.length);posts.forEach((q,i)=>{d.position.set(q[0],q[1]+.35,q[2]);d.updateMatrix();im.setMatrixAt(i,d.matrix)});scene.add(im);
  const ic=new THREE.InstancedMesh(new THREE.BoxGeometry(1,1,1),mat(0x8d9096),cols.length);d.rotation.set(0,0,0);cols.forEach((q,i)=>{d.position.set(q[0],q[1]+q[3]/2,q[2]);d.scale.set(.6,q[3],.6);d.updateMatrix();ic.setMatrixAt(i,d.matrix)});scene.add(ic)}
 buildHighway();
+
+// ---------- Tráfico de la autopista: datos del anillo y coches que lo recorren ----------
+// HWR: longitudes y normales del anillo (HW.polys[0]). hwPos(s,carril,sentido) da x,z,y y rumbo a s metros del inicio; los coches los mueve hwStep (servicios-trabajos-fisica.js)
+const HWR=(()=>{const po=HW.polys[0],n=po.length-1,cl=[0],nm=[],tg=[];
+ for(let i=0;i<n;i++)cl.push(cl[i]+Math.hypot(po[i+1][0]-po[i][0],po[i+1][1]-po[i][1]));
+ for(let i=0;i<n;i++){const p=po[(i-1+n)%n],q=po[(i+1)%n],tx=q[0]-p[0],tz=q[1]-p[1],l=Math.hypot(tx,tz)||1;tg.push([tx/l,tz/l]);nm.push([-tz/l,tx/l])}
+ return{po,n,cl,L:cl[n],nm,tg}})();
+function hwPos(s,off,dir){const R=HWR;s=((s%R.L)+R.L)%R.L;let lo=0,hi=R.n-1;while(lo<hi){const m=(lo+hi+1)>>1;if(R.cl[m]<=s)lo=m;else hi=m-1}
+ const i=lo,j=(i+1)%R.n,u=(s-R.cl[i])/((R.cl[i+1]-R.cl[i])||1),a=R.po[i],b=R.po[i+1],lp=(A,B)=>A+(B-A)*u,
+  nx=lp(R.nm[i][0],R.nm[j][0]),nz=lp(R.nm[i][1],R.nm[j][1]),nl=Math.hypot(nx,nz)||1,tx=lp(R.tg[i][0],R.tg[j][0]),tz=lp(R.tg[i][1],R.tg[j][1]);
+ return{x:lp(a[0],b[0])+nx/nl*off*dir,z:lp(a[1],b[1])+nz/nl*off*dir,y:lp(a[2],b[2]),h:Math.atan2(tx*dir,tz*dir)}} // la normal cae a la derecha del sentido de avance (se circula por la derecha)
+{const sd0=seed,L=HWR.L,COL=[0xc0392b,0x2980b9,0xf1c40f,0x27ae60,0xecf0f1,0x34495e,0xe67e22,0x8e44ad,0x16a085,0xbdc3c7,0xd35400,0x2c3e50];
+ // 12 coches: 4 grupos (sentido × carril) de 3 coches; carril rápido (2,4 m) con deportivos y utilitarios, carril lento (6 m) con furgonetas y utilitarios. Posiciones y colores fijos (no se usa rnd)
+ [[1,2.4],[-1,2.4],[1,6],[-1,6]].forEach((g,gi)=>{for(let k=0;k<3;k++){const fast=g[1]<4,t=fast?(k===1?'sport':'hatch'):(k===1?'van':'hatch'),sp=fast?(t==='sport'?34:28):(t==='van'?22:24),s0=L*(k/3+gi*.083+.013),p=hwPos(s0,g[1],g[0]);
+  const c=spawnCar(t,COL[gi*3+k],p.x,p.z,p.h,'ai',{y:p.y,hw:1,s:s0,dir:g[0],off:g[1],sp,spd:sp,axis:-1,line:-1});c.m.position.y=p.y}});
+ seed=sd0}
 
 // ---------- 5.1 Señales de tráfico (fase 1: sistema base; todavía sin reglas) ----------
 // addSign(tipo,x,z,ry,{y,h,s,col}): tipo ∈ SGT · ry = giro de la placa (su cara mira hacia (sen ry, cos ry)) · h = altura del centro de la placa · s = tamaño · col = false para que no tenga colisión
