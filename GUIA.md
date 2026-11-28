@@ -59,6 +59,7 @@ Estás ayudando a un chaval que no programa a hacer su juego. Usa el plan gratui
 - **Cada cruce es un paso inferior:** la carretera de acceso va a nivel del suelo y la autopista se hunde `BR` (4,4 m) para pasar por debajo. Los ajustes están en `mundo-base.js`: `CUTF` (dónde acaba el hueco bajo la carretera), `RDF0`/`RDF1` (cuánto dura el hundimiento de la autopista) y `FL` (altura mínima del fondo de la autopista hundida). **El mar está en y=-0,4**: si el fondo bajara de ahí, se vería inundado. Como el terreno en los cruces está solo 2-3 m sobre el mar, la carretera sube lo justo en cada cruce (tablero plano ±10 m) para que quepan los 4,4 m de altura libre.
 - Cada punto de un acceso tiene `p[2]` (suelo de debajo) y `p[3]` (altura del tablero de la carretera). Si `p[3]` es más alto que `p[2]`, hay tablero y `deckY()` lo usa para que coches y jugador puedan ir por encima. El suelo de debajo lo sigue el terreno, así que por debajo se circula normal.
 - `groundH()` está en `edificios.js` y no hay que tocarla para esto.
+- **Vallas y coches.** Las vallas son segmentos en la lista `WALLS` (se rellena en `buildHighway`, `ciudad.js`) y `wallHit()` (en `mundo-base.js`) las comprueba. El coche del jugador (`driveCar`, en `servicios-trabajos-fisica.js`) **no rebota** contra ellas: la valla lo empuja hacia fuera y solo lo frena según lo de frente que choque, así que no se queda pegado. Los coches del tráfico (`aiStep`) circulan solo por las calles del barrio y no usan la autopista.
 
 ## Ficheros
 
@@ -76,7 +77,7 @@ Estás ayudando a un chaval que no programa a hacer su juego. Usa el plan gratui
 | `js/tiendas-negocios.js` | jugador (`money`, `pl`, `inv`, `flags`), avisos, ventanas, hablar con dependientes (`talk`), taller, comprar, negocios propios, admin, habilidades, horarios (`HRS`), dormir | tiendas, precios, horarios, negocios, habilidades, admin |
 | `js/banco-casas.js` | banco y préstamos, comprar/alquilar/hipotecar casas, inmobiliaria con mapa, hotel, sentarse | banco, casas, inmobiliaria |
 | `js/estudios-gimnasio.js` | minijuegos de biblioteca y gimnasio, universidad, comida basura, lista `IDEF` (objetos con E) | minijuegos, universidad, gimnasio |
-| `js/servicios-trabajos-fisica.js` | gasolina, hotel, ascensores, trabajos (`jobMenu`), teclas, física del jugador | trabajos, teclas, cómo se mueve el jugador |
+| `js/servicios-trabajos-fisica.js` | gasolina, hotel, ascensores, trabajos (`jobMenu`), teclas, física del jugador, **conducción del coche del jugador (`driveCar`, choques con vallas y edificios)** | trabajos, teclas, cómo se mueve el jugador o su coche |
 | `js/construccion.js` | construir por módulos en los terrenos | piezas o editor de construcción |
 | `js/interaccion-mapa-clima.js` | tecla E por dentro, cámara, minimapa, rutas, día/noche y clima | cámara, mapa, clima |
 | `js/multijugador.js` | conexión, chat, mensajes privados, transferencias, cuentas, llaves | chat, transferencias, cuentas (casi siempre con `server.js`) |
