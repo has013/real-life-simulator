@@ -169,7 +169,11 @@ function driveCar(c,dt){const s=c.spec,out=c.fuel<=0&&!s.nf,thr0=(MB.l?1:0)-(MB.
  if(s.nf){}else if(!out){c.fuel=Math.max(0,c.fuel-(.012+Math.abs(c.v)*s.k*(1+Math.abs(thr)))*dt);if(c.fuel<=0)toast('¡Sin gasolina! Busca una gasolinera (G) o compra un bidón');else if(c.fuel<s.tank*.15&&!c.lw){c.lw=1;toast('⛽ Reserva: busca una gasolinera (G en el mapa)')}else if(c.fuel>s.tank*.3)c.lw=0}
  else if(thr0>0&&!(c.tn>tm)){toast('Sin gasolina: el coche no arranca. Compra un bidón en una gasolinera');c.tn=tm+4}
  const ox=c.x,oz=c.z;c.x+=Math.sin(c.h)*c.v*dt;c.z+=Math.cos(c.h)*c.v*dt;
- const q=s.l*.35;let hit=blockHit(c.x+Math.sin(c.h)*q,c.z+Math.cos(c.h)*q,1,c.y)||blockHit(c.x-Math.sin(c.h)*q,c.z-Math.cos(c.h)*q,1,c.y)||wallHit(c.x+Math.sin(c.h)*q,c.z+Math.cos(c.h)*q,1.2,c.y||0)||wallHit(c.x-Math.sin(c.h)*q,c.z-Math.cos(c.h)*q,1.2,c.y||0)||c.x<WLIM0||c.x>WLIM1||c.z<WLIM0||c.z>WLIM1;
+ const q=s.l*.35,sx=Math.sin(c.h)*q,sz=Math.cos(c.h)*q;
+ // vallas de la autopista: en vez de volver atrás (el coche se quedaba pegado), la valla lo empuja hacia fuera y solo frena según lo de frente que choque
+ {const f1={x:0,z:0},f2={x:0,z:0},cy=c.y||0;wallHit(c.x+sx,c.z+sz,1.2,cy,f1);wallHit(c.x-sx,c.z-sz,1.2,cy,f2);const f=Math.hypot(f1.x,f1.z)>=Math.hypot(f2.x,f2.z)?f1:f2,fl=Math.hypot(f.x,f.z);
+  if(fl>1e-4){const mx=Math.min(fl,1.5)/fl;c.x+=f.x*mx;c.z+=f.z*mx;const dn=Math.abs((Math.sin(c.h)*f.x+Math.cos(c.h)*f.z)/fl);c.v*=1-Math.min(1,dn*12*dt)}}
+ let hit=blockHit(c.x+sx,c.z+sz,1,c.y)||blockHit(c.x-sx,c.z-sz,1,c.y)||c.x<WLIM0||c.x>WLIM1||c.z<WLIM0||c.z>WLIM1;
  for(const o of cars)if(o!==c&&Math.abs((o.y||0)-(c.y||0))<2&&Math.hypot(o.x-c.x,o.z-c.z)<9){const g=carGap(c,c.x,c.z,c.h,o);if(g<-.02&&g<carGap(c,ox,oz,c.h,o))hit=true}
  for(const b of BUSES)if(Math.hypot(b.x-c.x,b.z-c.z)<13){const g=carGap(c,c.x,c.z,c.h,b);if(g<-.02&&g<carGap(c,ox,oz,c.h,b))hit=true}
  for(const o of colliders)if(o.on&&!o.car&&o.y1>0&&o.z0<9999&&c.x>o.x0-1&&c.x<o.x1+1&&c.z>o.z0-1&&c.z<o.z1+1&&o.y1<2.7&&o.x1-o.x0<3&&false)hit=true;
@@ -207,4 +211,3 @@ function aiStep(c,dt){const ax=c.axis;let s=ax?c.z:c.x;const prev=s;
  if(c.axis==0)c.z+=(tg-c.z)*k;else c.x+=(tg-c.x)*k;
  const th=c.axis==0?(c.dir>0?Math.PI/2:-Math.PI/2):(c.dir>0?0:Math.PI);c.h+=Math.atan2(Math.sin(th-c.h),Math.cos(th-c.h))*Math.min(1,5*dt);
  c.m.position.set(c.x,0,c.z);c.m.rotation.y=c.h}
-
