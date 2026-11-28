@@ -12,7 +12,18 @@
 // =================================================================================================
 
 // ---------- 21.1 Interacción ----------
-function nearest(){if(seat)return{kind:'stand',txt:'E: levantarte'};if(inCar)return{kind:'exit',txt:'E: salir del coche'+(pumpNear(inCar.x,inCar.z,6.5)?' · R: repostar':'')};
+// ---------- Acompañante en el coche de otro jugador ----------
+// pax = jugador remoto (de MP.players) cuyo coche compartes; null si no vas de acompañante. Máx. 3 acompañantes por coche; las motos y bicis no valen.
+let pax=null;const PAX_CARS=['hatch','sport','van'];
+const paxCar=p=>!!(p&&p.vehicleType&&PAX_CARS.includes(p.vehicleType)&&p.vehicleMesh&&p.vehicleMesh.visible);
+const paxFull=p=>{let n=0;for(const q of MP.players.values())if(q!==p&&q.rid!=null&&String(q.rid)===String(p.id))n++;return n>=3};
+function paxBoard(p){if(!paxCar(p)){toast('Ese coche ya no está disponible');return}if(paxFull(p)){toast('El coche va lleno');return}if((p.spd||0)>4){toast('Espera a que el coche pare para subir');return}
+ pax=p;body.visible=false;vy=0;grounded=true;pl.x=p.mesh.position.x;pl.z=p.mesh.position.z;py=p.mesh.position.y;toast('Vas de acompañante con '+(p.name||'otro jugador')+' · E: bajar')}
+function paxLeave(){const p=pax;pax=null;body.visible=true;vy=0;if(!p)return;const x=p.mesh.position.x,z=p.mesh.position.z,h=p.mesh.rotation.y,y=p.mesh.position.y,
+ sd=[[Math.cos(h)*2.6,-Math.sin(h)*2.6],[-Math.cos(h)*2.6,Math.sin(h)*2.6],[-Math.sin(h)*3.5,-Math.cos(h)*3.5]];let o=sd[0];for(const q of sd)if(!blockHit(x+q[0],z+q[1],.5,y)){o=q;break}
+ pl.x=x+o[0];pl.z=z+o[1];py=y;grounded=false}
+function paxStep(){const p=pax;if(!MP.players.has(p.id)||!paxCar(p)){toast('El coche se ha detenido: te bajas');paxLeave();return}pl.x=p.mesh.position.x;pl.z=p.mesh.position.z;py=p.mesh.position.y;vy=0;grounded=true;body.visible=false}
+function nearest(){if(seat)return{kind:'stand',txt:'E: levantarte'};if(pax)return{kind:'paxoff',txt:'E: bajar del coche de '+(pax.name||'otro jugador')};if(inCar)return{kind:'exit',txt:'E: salir del coche'+(pumpNear(inCar.x,inCar.z,6.5)?' · R: repostar':'')};
  if(riding&&riding.boat)return{kind:'boatoff',txt:(riding.net?'🎣 Pescando · A/D timón · G: recoger la red':Math.abs(riding.v)>1.5?'W/S motor · A/D timón · reduce la velocidad para bajar':'E: bajar '+boatDe(riding)+' '+riding.name)+(riding.type==='pesquero'&&!riding.net?' · G: calar la red':'')};
  if(riding&&riding.avion)return{kind:'avioff',txt:(riding.air||riding.alt>.4||Math.abs(riding.v)>1.5)?'W/S acelerador · A/D timón · Espacio despegar (pista, '+Math.round(AVR*3.6)+' km/h)':'E: bajar de la avioneta '+riding.name};
  if(riding&&riding.heli)return{kind:'helioff',txt:(riding.air||Math.abs(riding.v)>1.5)?'Espacio sube · Mayús baja · W/S avanzar · A/D girar':'E: bajar del helicóptero '+riding.name};
@@ -23,7 +34,7 @@ function nearest(){if(seat)return{kind:'stand',txt:'E: levantarte'};if(inCar)ret
  // dentro de una estación de metro solo cuentan sus cosas (no los coches, puertas o aviones que hay encima, en la superficie)
  if(py<-1&&metroWhere(pl.x,pl.z,py)){INTERACTS.forEach(o=>{if(o.y>py-.2&&o.y<py+2.2)t(o,o.x,o.z,2.3,'obj',IDEF[o.type].txt(o))});return metroNear(t)||best}
  DOORS.forEach(d=>(d.bmy!==undefined&&Math.abs(d.bmy-py)>2.2)?0:t(d,d.x,d.z,d.gar?4.6:3.2,'door',lockedFor(d)?(d.shop?'Cerrado · abre a las '+hrsTxt(d.shop):'🔒 Cerrada con llave · necesitas la llave'):(d.open?'E: cerrar puerta':'E: abrir puerta')+(d.gar?' del garaje':'')+(d.house?((q=>q.local?(q.owned?' (tu local) · L: gestionar':(q.remote?(q.remote.occ?' · OCUPADO · local de '+bizWho(q.remote):' · '+((LTYPES[q.remote.ty]||{}).n||'Negocio')+' de '+bizWho(q.remote)+' · L: comprar'):' · local en venta')):(q.owned?' (tu casa)':''))(HOUSES.find(h=>h.door===d))):'')));
- WORKERS.forEach(w=>t(w,w.x,w.z,3,'talk','E: hablar con '+w.name));INTERACTS.forEach(o=>{if(o.y>py-.2&&o.y<py+2.2)t(o,o.x,o.z,2.3,'obj',IDEF[o.type].txt(o))});cars.forEach(c=>t(c,c.x,c.z,3.5,'car','E: conducir '+c.spec.name));AVIO.forEach(a=>t(a,a.x,a.z,6.2,'avion','E: subir a la avioneta '+a.name));BOATS.forEach(b=>t(b,b.x,b.z,b.L/2+2.4,'boat',b.pilot?'⛵ '+b.name+' · lo pilota '+boatPilotName(b):'E: subir '+boatA(b)+' '+b.name));HELIS.forEach(a=>{if(Math.abs(py-G-a.alt)<3)t(a,a.x,a.z,7,'heli','E: subir al helicóptero '+a.name)});
+ WORKERS.forEach(w=>t(w,w.x,w.z,3,'talk','E: hablar con '+w.name));INTERACTS.forEach(o=>{if(o.y>py-.2&&o.y<py+2.2)t(o,o.x,o.z,2.3,'obj',IDEF[o.type].txt(o))});cars.forEach(c=>t(c,c.x,c.z,3.5,'car','E: conducir '+c.spec.name));MP.players.forEach(p=>{if(paxCar(p))t(p,p.mesh.position.x,p.mesh.position.z,4,'pax',paxFull(p)?'El coche de '+(p.name||'otro jugador')+' va lleno':'E: subir de acompañante con '+(p.name||'otro jugador'))});AVIO.forEach(a=>t(a,a.x,a.z,6.2,'avion','E: subir a la avioneta '+a.name));BOATS.forEach(b=>t(b,b.x,b.z,b.L/2+2.4,'boat',b.pilot?'⛵ '+b.name+' · lo pilota '+boatPilotName(b):'E: subir '+boatA(b)+' '+b.name));HELIS.forEach(a=>{if(Math.abs(py-G-a.alt)<3)t(a,a.x,a.z,7,'heli','E: subir al helicóptero '+a.name)});
  bmNear(t);
  STOPS.forEach(q=>t(q,q.x,q.z,4,'busin','Parada de autobús · '+q.route.name));
  metroNear(t);
@@ -34,7 +45,7 @@ function nearest(){if(seat)return{kind:'stand',txt:'E: levantarte'};if(inCar)ret
 function enterCar(c){inCar=c;c.mode='player';c.v=0;body.visible=false;if(c.m.userData.rider)c.m.userData.rider.visible=true;pl.x=c.x;pl.z=c.z}
 function interact(){if(seat){seat=null;setSit(body,false);return}const n=nearest();if(!n)return;
  if(n.kind==='door'){if(lockedFor(n.o)){toast(n.o.shop?'Cerrado':'🔒 Está cerrada con llave: necesitas la llave (el dueño te puede dar una copia)');return}n.o.open=!n.o.open;n.o.col.on=!n.o.open;if(n.o.col2)n.o.col2.on=n.o.col.on;sfx.door(n.o.open)}
- else if(n.kind==='talk')talk(n.o);else if(n.kind==='obj')IDEF[n.o.type].act(n.o);else if(n.kind==='bterr')bmEnter(n.o);else if(n.kind==='tshop')bsOpen(100000+n.o.id);else if(n.kind==='car')enterCar(n.o);
+ else if(n.kind==='talk')talk(n.o);else if(n.kind==='obj')IDEF[n.o.type].act(n.o);else if(n.kind==='bterr')bmEnter(n.o);else if(n.kind==='tshop')bsOpen(100000+n.o.id);else if(n.kind==='car')enterCar(n.o);else if(n.kind==='pax')paxBoard(n.o);else if(n.kind==='paxoff')paxLeave();
  else if(n.kind==='boat')boardBoat(n.o);else if(n.kind==='boatoff'){if(riding&&riding.net){toast('Recoge la red antes de bajar (G)');return}leaveBoat()}else if(n.kind==='avion')boardAvion(n.o);else if(n.kind==='avioff')leaveAvion();else if(n.kind==='heli')boardHeli(n.o);else if(n.kind==='helioff')leaveHeli();else if(n.kind==='plane')boardPlane(n.o);else if(n.kind==='planeoff')leavePlane();else if(n.kind==='planein'){toast('Abróchate el cinturón: solo puedes bajar en la terminal')}
  else if(n.kind==='mticket')metroMachine(n.o);else if(n.kind==='mboard')metroBoard(n.o);else if(n.kind==='metrooff')metroLeave();else if(n.kind==='metroin')toast('Espera a que el tren pare en la próxima estación');else if(n.kind==='minfo'){}
  else if(n.kind==='bus')boardBus(n.o);else if(n.kind==='busoff')leaveBus();else if(n.kind==='busin'){if(riding)toast('El bus solo para en las paradas')}
@@ -52,12 +63,12 @@ function ceilAt(x,z,y0){let c=99;for(const f of FLOORS){const lo=slabLo(f);if(lo
 let camD=0;
 function updCam(dt){if(riding&&riding.metro&&MT.cab){metroCam();return} // en el metro: vista desde dentro del vagón (10.5)
 
- const rc=inCar||riding;if(rc)yaw+=Math.atan2(Math.sin(rc.h-yaw),Math.cos(rc.h-yaw))*Math.min(1,(riding&&riding.avion?7:riding&&riding.heli?4.5:riding&&riding.boat?3.5:2.5)*dt);
+ const rc=inCar||riding||(pax&&{h:pax.mesh.rotation.y});if(rc)yaw+=Math.atan2(Math.sin(rc.h-yaw),Math.cos(rc.h-yaw))*Math.min(1,(riding&&riding.avion?7:riding&&riding.heli?4.5:riding&&riding.boat?3.5:2.5)*dt);
  if(riding&&riding.avion){const a=riding;pitch+=((.2-a.pt*.7)-pitch)*Math.min(1,4*dt)} // cámara automática tras la avioneta (el ratón no la mueve)
  if(riding&&riding.heli){const a=riding;pitch+=((.32-a.pt*.5)-pitch)*Math.min(1,4*dt)} // ídem tras el helicóptero
- const tx=pl.x,ty=py+(riding?(riding.plane?6:riding.avion?2.8:riding.heli?3.4:riding.boat?2.8:2.4):1.6),tz=pl.z,dist=inCar?9:riding?(riding.plane?38:riding.avion?15+Math.abs(riding.v)*.1:riding.heli?18+Math.abs(riding.v)*.12:riding.boat?12+Math.abs(riding.v)*.2:15):5.5,cp=Math.cos(pitch),dx=-Math.sin(yaw)*cp,dz=-Math.cos(yaw)*cp,dy=Math.sin(pitch);
+ const tx=pl.x,ty=py+(riding?(riding.plane?6:riding.avion?2.8:riding.heli?3.4:riding.boat?2.8:2.4):1.6),tz=pl.z,dist=(inCar||pax)?9:riding?(riding.plane?38:riding.avion?15+Math.abs(riding.v)*.1:riding.heli?18+Math.abs(riding.v)*.12:riding.boat?12+Math.abs(riding.v)*.2:15):5.5,cp=Math.cos(pitch),dx=-Math.sin(yaw)*cp,dz=-Math.cos(yaw)*cp,dy=Math.sin(pitch);
  const dep=(py<-.3&&inPit(tx,tz,py))?clamp(-py/2,0,1):0;let d=dist+((inCar?6.5:3.8)-dist)*dep;
- if((!inCar&&!(riding&&riding.avion)&&!(riding&&riding.plane&&riding.alt>12))||dep>0)for(let s=.5;s<=d;s+=.25){const sx=tx+dx*s,sy=ty+dy*s,sz=tz+dz*s;
+ if((!inCar&&!pax&&!(riding&&riding.avion)&&!(riding&&riding.plane&&riding.alt>12))||dep>0)for(let s=.5;s<=d;s+=.25){const sx=tx+dx*s,sy=ty+dy*s,sz=tz+dz*s;
   if(hits(sx,sy,sz)||(dep>0&&(slabAt(sx,sy,sz,py)||(sy<-.2&&!inPit(sx,sz,sy))))){d=Math.max(riding?(riding.plane?18:7):.9,s-.6);break}}
  // la distancia se acorta al instante pero vuelve despacio (sin tirones)
  camD=(camD<=0||d<camD)?d:camD+(d-camD)*Math.min(1,4*dt);d=camD;
@@ -296,5 +307,3 @@ function updEnv(dt){qMon();
  if(rainMesh.visible){rainMesh.position.set(pl.x,py,pl.z);for(let i=0;i<n;i++){ry[i]-=38*dt;if(ry[i]<0)ry[i]+=40;const o=i*6;rp[o]=rx[i];rp[o+1]=ry[i];rp[o+2]=rz[i];rp[o+3]=rx[i]-.1;rp[o+4]=ry[i]+1.1;rp[o+5]=rz[i]}
   rainGeo.setDrawRange(0,n*2);rainGeo.attributes.position.needsUpdate=true}
  DOORS.forEach(d=>{if(d.shop&&d.open&&!isOpen(d.shop)&&Math.hypot(pl.x-d.x,pl.z-d.z)>3){d.open=false;d.col.on=true}});const hh=Math.floor(tod),mi=Math.floor((tod%1)*60);setTx($('clk'),(hh<10?'0':'')+hh+':'+(mi<10?'0':'')+mi+' '+(d<.3?'🌙 ':'')+T.i+' '+T.n)}
-
-
