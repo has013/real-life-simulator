@@ -183,7 +183,7 @@ const INTERACTS=[];
 function IA(m,type,extra){m.userData.st=0;INTERACTS.push({x:m.position.x,y:m.position.y,z:m.position.z,m,type,extra,use:0,on:false});return m}
 // PITS: huecos en el terreno (parking, metro). Con «top», el hueco solo existe por debajo de esa altura (por encima se camina por la superficie normal)
 const FLOORS=[],RAMPS=[],PITS=[];let grounded=true;function inPit(x,z,y){return PITS.some(p=>x>p.x0&&x<p.x1&&z>p.z0&&z<p.z1&&(p.top===undefined||(y!==undefined&&y<p.top)))}
-function groundH(x,z,cur){let b=inPit(x,z,cur)?-99:heightAt(x,z);{const dk=deckY(x,z);if(dk!==null&&dk<=cur+.6&&dk>b)b=dk}for(const f of FLOORS)if(x>f.x0&&x<f.x1&&z>f.z0&&z<f.z1&&f.y<=cur+.6&&f.y>b)b=f.y;
+function groundH(x,z,cur){let b=inPit(x,z,cur)?-99:heightAt(x,z);{const dk=deckY(x,z);if(dk!==null&&dk<=cur+2.5&&dk>b)b=dk}for(const f of FLOORS)if(x>f.x0&&x<f.x1&&z>f.z0&&z<f.z1&&f.y<=cur+.6&&f.y>b)b=f.y;
  for(const r of RAMPS)if(x>r.x0&&x<r.x1&&z>r.z0&&z<r.z1){const h=r.y0+(r.ax?((r.up>0?x-r.x0:r.x1-x)/(r.x1-r.x0)):((r.up>0?z-r.z0:r.z1-z)/(r.z1-r.z0)))*(r.rise||3);if(h<=cur+.6&&h>b)b=h}return b}
 function aptLevel(px,pz,m){const b=m?3*m:G+.03,B=(x,y,z,sx,sy,sz,c,s)=>box(px+x,b+y,pz+z,sx,sy,sz,c,s),wc=0xf2efe8;
  if(m===0){B(-3,0,5,3,.5,.8,0x6b4a2b,true);B(-4,0,-3,3,1,.9,0x8b5a2b,true);B(-7,0,6.8,.6,.8,.6,0x8a4a2a,false);B(-7,.8,6.8,.7,.8,.7,0x2a8a3a,false);B(-7.4,1,0,.2,.5,3,0x8a8f95,false);B(-1,0,-5.5,6,.02,2,0xaa5555,false);B(-1,2.55,0,.8,.06,.8,0xfffbe0,false);return}
