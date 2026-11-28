@@ -243,6 +243,12 @@ function cleanLook(l) {
     mo: pk(l.mo, ['normal','smile','lips']), ns: pk(l.ns, ['m','s','l']), bd: pk(l.bd, ['none','stubble','mustache','goatee','full']),
     mk: Number(l.mk) < 0 ? -1 : col(l.mk, -1), fr: Number(l.fr) ? 1 : 0 };
 }
+function cleanParked(a) { // coches propios aparcados de un jugador (se ven aunque no los conduzca): máx. 6, solo modelos conocidos
+  if (!Array.isArray(a)) return [];
+  const n = (x, lo, hi) => Number.isFinite(Number(x)) ? Math.max(lo, Math.min(hi, Number(x))) : 0, r1 = x => Math.round(x * 10) / 10;
+  return a.slice(0, 6).filter(q => q && typeof q === 'object' && ['hatch','sport','van','moto','bici','patinete'].includes(q.t))
+    .map(q => ({ t: q.t, col: Number.isFinite(Number(q.col)) ? Math.floor(n(q.col, 0, 0xffffff)) : 0x4477aa, x: r1(n(q.x, -1000, 2000)), y: r1(Math.max(-30, Math.min(300, n(q.y, -30, 300)))), z: r1(n(q.z, -1000, 2000)), h: Math.round(n(q.h, -100, 100) * 100) / 100 }));
+}
 function pub(p) { // versión pública del jugador: sin uid y con rango 9 si es el Alcalde
   const o = Object.assign({}, p); delete o.uid; delete o.vit; // vit (hambre/energía) solo lo ve el administrador
   if (isMayor(p)) o.profile = Object.assign({}, p.profile, { rk: 9 });
@@ -888,7 +894,7 @@ wss.on('connection', ws => {
       ws.joined = true;
       // una cuenta solo puede estar dentro una vez: si ya estaba conectada (otro dispositivo o pestaña), esa conexión se cierra
       for (const [w, q] of players) if (q.uid === ws.account.uid) { send(w, { type: 'kicked', reason: 'Has entrado con esta cuenta desde otro dispositivo o pestaña.' }); w.kicked = true; w.close(4001, 'Sesión abierta en otro sitio'); }
-      const player = { id, uid: ws.account.uid, name: ws.account.name, x:24, y:0, z:1.5, yaw:0, vehicle:false, vType:null, vPt:0, vBk:0, vThr:0, vCol:0x4477aa, outfit:{}, look:null, pets:[], profile:{money:0,rk:0,properties:[],businesses:[],pets:[],career:[]} };
+      const player = { id, uid: ws.account.uid, name: ws.account.name, x:24, y:0, z:1.5, yaw:0, vehicle:false, vType:null, vPt:0, vBk:0, vThr:0, vCol:0x4477aa, outfit:{}, look:null, pk:[], pets:[], profile:{money:0,rk:0,properties:[],businesses:[],pets:[],career:[]} };
       players.set(ws, player); touchKnown(player);
       send(ws, {type:'welcome', id, players:[...players.values()].map(pub), chat:chatHistory, world:{tod:world.tod,wx:world.wx}, features:{boats:1,biz:1,admin:1,dm:1,houses:1}});
       broadcast({type:'joined', player:pub(player)}, ws); send(ws, govMsg(ws)); send(ws, bizMsg(ws)); send(ws, boatsMsg()); send(ws, { type: 'admin_pending', cmds: (adminPending[player.uid] || []).slice(0, 50) }); send(ws, { type: 'biz_pending', sales: (bizPending[player.uid] || []).slice(0, 100) }); if (ownsBiz(player.uid)) broadcastBiz(); sendHouses(ws, player); send(ws, keysMsg(player.uid)); sleepCheck();
@@ -944,6 +950,7 @@ wss.on('connection', ws => {
     p.vPt=Math.max(-1.5,Math.min(1.5,Number(msg.vPt)||0)); p.vBk=Math.max(-1.5,Math.min(1.5,Number(msg.vBk)||0)); p.vThr=Math.max(0,Math.min(1.2,Number(msg.vThr)||0)); // el helicóptero envía hasta 1.2 (régimen de rotor)
     p.outfit=(msg.outfit&&typeof msg.outfit==='object')?Object.fromEntries(Object.entries(msg.outfit).slice(0,12).map(([k,v])=>[String(k).slice(0,12),String(v).slice(0,50)])):{};
     p.look=cleanLook(msg.look); // aspecto de la peluquería y estética
+    p.pk=cleanParked(msg.pk); // coches aparcados del jugador
     p.pets=Array.isArray(msg.pets)?msg.pets.slice(0,3).map(q=>({
       t:['dog','cat','rabbit'].includes(q.t)?q.t:'dog',
       name:String(q.name||'Mascota').replace(/[<>\\u0000-\\u001f]/g,'').slice(0,14),
