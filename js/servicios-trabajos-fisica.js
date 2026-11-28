@@ -1,6 +1,6 @@
 /* ===============================================================================================
    FICHA · servicios-trabajos-fisica.js
-   Qué hay:          Gasolina (16.3), habitaciones del hotel (16.4), ascensores (16.5), trabajos (17), controles de teclado y ratón (18) y física del jugador (19).
+   Qué hay:          Gasolina (16.3), habitaciones del hotel (16.4), ascensores (16.5), trabajos (17), controles de teclado y ratón (18) y física del jugador (19), conducción del coche del jugador (driveCar) y tráfico de IA (aiStep en ciudad, hwStep en la autopista).
    Tócalo si quieres: cambiar la gasolina, añadir o cambiar un trabajo, cambiar teclas, cambiar cómo se mueve el jugador
    Este fichero se carga en el orden de la lista de <script> de index.html y comparte variables con todos los demás.
    =============================================================================================== */
@@ -179,8 +179,19 @@ function driveCar(c,dt){const s=c.spec,out=c.fuel<=0&&!s.nf,thr0=(MB.l?1:0)-(MB.
  for(const o of colliders)if(o.on&&!o.car&&o.y1>0&&o.z0<9999&&c.x>o.x0-1&&c.x<o.x1+1&&c.z>o.z0-1&&c.z<o.z1+1&&o.y1<2.7&&o.x1-o.x0<3&&false)hit=true;
  if(hit){c.x=ox;c.z=oz;c.v*=-.3}
  const gh=groundH(c.x,c.z,(c.y||0)+.3),onW=gh===0&&c.x>=0&&c.x<=CE&&c.z>=0&&c.z<=CE&&c.x%P<=40&&c.z%P<=40,ty2=onW?G:gh;c.y=(c.y||0)+(ty2-(c.y||0))*Math.min(1,12*dt);c.m.position.set(c.x,c.y,c.z);c.m.rotation.y=c.h;if(c.t==='moto'){c.lean=(c.lean||0)+((-str*.32*Math.min(1,Math.abs(c.v)/10))-(c.lean||0))*Math.min(1,8*dt);c.m.rotation.z=c.lean}pl.x=c.x;pl.z=c.z;py=c.y;$('spd').textContent=Math.round(Math.abs(c.v)*3.6)+' km/h'}
+// coche de autopista (c.hw): recorre el anillo por su carril, frena si hay algo delante (otro coche, el jugador en coche o a pie) y baja solo en los pasos inferiores porque su altura es la del anillo
+function hwStep(c,dt){const R=HWR,sg=c.dir,sh=Math.sin(c.h),ch=Math.cos(c.h);let vt=c.spd,lead=1e9,lv=0;
+ for(const o of cars)if(o!==c&&o.hw&&o.dir===sg&&o.off===c.off){const d=(((o.s-c.s)*sg)%R.L+R.L)%R.L;if(d>0&&d<lead){lead=d;lv=o.sp}}
+ const ob=(x,z,y,hw,v)=>{const dx=x-c.x,dz=z-c.z;if(dx>90||dx<-90||dz>90||dz<-90)return;const f=dx*sh+dz*ch,l=dx*ch-dz*sh;if(f>0&&f<lead&&Math.abs(l)<hw&&Math.abs(y-(c.y||0))<2.5){lead=f;lv=v}};
+ for(const o of cars)if(o!==c&&!o.hw)ob(o.x,o.z,o.y||0,2.2,Math.max(0,(o.v||0)*(Math.sin(o.h)*sh+Math.cos(o.h)*ch)));
+ ob(pl.x,pl.z,py,1.8,0);
+ if(lead<110)vt=Math.min(vt,Math.sqrt(lv*lv+12*Math.max(0,lead-8-lv*.7))); // distancia de seguridad: 8 m + 0,7 s
+ if(lead<6)c.sp=0;
+ c.sp=vt<c.sp?Math.max(vt,c.sp-12*dt):Math.min(vt,c.sp+3*dt);
+ c.s=(c.s+sg*c.sp*dt+R.L)%R.L;const p=hwPos(c.s,c.off,sg);c.x=p.x;c.z=p.z;c.y=p.y;c.h=p.h;c.v=c.sp;
+ c.m.position.set(c.x,c.y,c.z);c.m.rotation.y=c.h}
 const TLK=new Map();TLS.forEach(t=>TLK.set(t.i*16+t.j,t)); // cruce (i,j) → semáforo
-function aiStep(c,dt){const ax=c.axis;let s=ax?c.z:c.x;const prev=s;
+function aiStep(c,dt){if(c.hw)return hwStep(c,dt);const ax=c.axis;let s=ax?c.z:c.x;const prev=s;
  if(c.sp===undefined)c.sp=c.spd;
  let vt=c.spd,room=1e9;
  // --- semáforos: busca el próximo cruce cuya línea de detención aún no se ha pasado ---
