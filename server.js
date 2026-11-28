@@ -894,7 +894,7 @@ wss.on('connection', ws => {
       ws.joined = true;
       // una cuenta solo puede estar dentro una vez: si ya estaba conectada (otro dispositivo o pestaña), esa conexión se cierra
       for (const [w, q] of players) if (q.uid === ws.account.uid) { send(w, { type: 'kicked', reason: 'Has entrado con esta cuenta desde otro dispositivo o pestaña.' }); w.kicked = true; w.close(4001, 'Sesión abierta en otro sitio'); }
-      const player = { id, uid: ws.account.uid, name: ws.account.name, x:24, y:0, z:1.5, yaw:0, vehicle:false, vType:null, vPt:0, vBk:0, vThr:0, vCol:0x4477aa, outfit:{}, look:null, pk:[], pets:[], profile:{money:0,rk:0,properties:[],businesses:[],pets:[],career:[]} };
+      const player = { id, uid: ws.account.uid, name: ws.account.name, x:24, y:0, z:1.5, yaw:0, vehicle:false, vType:null, vPt:0, vBk:0, vThr:0, vCol:0x4477aa, outfit:{}, look:null, pk:[], rid:null, pets:[], profile:{money:0,rk:0,properties:[],businesses:[],pets:[],career:[]} };
       players.set(ws, player); touchKnown(player);
       send(ws, {type:'welcome', id, players:[...players.values()].map(pub), chat:chatHistory, world:{tod:world.tod,wx:world.wx}, features:{boats:1,biz:1,admin:1,dm:1,houses:1}});
       broadcast({type:'joined', player:pub(player)}, ws); send(ws, govMsg(ws)); send(ws, bizMsg(ws)); send(ws, boatsMsg()); send(ws, { type: 'admin_pending', cmds: (adminPending[player.uid] || []).slice(0, 50) }); send(ws, { type: 'biz_pending', sales: (bizPending[player.uid] || []).slice(0, 100) }); if (ownsBiz(player.uid)) broadcastBiz(); sendHouses(ws, player); send(ws, keysMsg(player.uid)); sleepCheck();
@@ -951,6 +951,10 @@ wss.on('connection', ws => {
     p.outfit=(msg.outfit&&typeof msg.outfit==='object')?Object.fromEntries(Object.entries(msg.outfit).slice(0,12).map(([k,v])=>[String(k).slice(0,12),String(v).slice(0,50)])):{};
     p.look=cleanLook(msg.look); // aspecto de la peluquería y estética
     p.pk=cleanParked(msg.pk); // coches aparcados del jugador
+    { // acompañante: solo vale si ese jugador existe, es otro y va en un coche de 4 ruedas
+      const dr = msg.rid == null ? null : [...players.values()].find(q => q !== p && String(q.id) === String(msg.rid));
+      p.rid = (dr && dr.vehicle && ['hatch','sport','van'].includes(dr.vType)) ? dr.id : null;
+    }
     p.pets=Array.isArray(msg.pets)?msg.pets.slice(0,3).map(q=>({
       t:['dog','cat','rabbit'].includes(q.t)?q.t:'dog',
       name:String(q.name||'Mascota').replace(/[<>\\u0000-\\u001f]/g,'').slice(0,14),
