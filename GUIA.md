@@ -58,8 +58,8 @@ Estás ayudando a un chaval que no programa a hacer su juego. Usa el plan gratui
 | Fichero | Qué hay | Tócalo si quieres… |
 |---|---|---|
 | `index.html` | CSS (aspecto de HUD, ventanas, chat…), HTML (HUD, pantalla de inicio) y el cartel rojo de errores | cambiar colores o el aspecto de los menús, añadir algo al HUD |
-| `js/mundo-base.js` | configuración, terreno, escena 3D, `box`, `mat`, `rnd`, personajes (incluye peinados: `outfitOpts`, `person`, `refreshLook`) y coches (modelos, tráfico) | cambiar personajes, peinados o coches, añadir un modelo de coche |
-| `js/edificios.js` | edificios y comercios del barrio principal, `SHOPS` (datos de cada tienda), `IA`, fábricas, ropa, peluquería (menú de peinados, 4.3) | añadir un tipo de tienda, cambiar edificios o interiores, la peluquería |
+| `js/mundo-base.js` | configuración, terreno, escena 3D, `box`, `mat`, `rnd`, personajes (incluye aspecto: `outfitOpts`, `lookOpts`, `person`, `refreshLook`) y coches (modelos, tráfico) | cambiar personajes, peinados o coches, añadir un modelo de coche |
+| `js/edificios.js` | edificios y comercios del barrio principal, `SHOPS` (datos de cada tienda), `IA`, fábricas, ropa, peluquería y estética (menú con pestañas, 4.3) | añadir un tipo de tienda, cambiar edificios o interiores, la peluquería |
 | `js/ciudad.js` | calles, manzanas, dónde va cada comercio, señales y semáforos | cambiar calles o dónde está cada tienda |
 | `js/afueras.js` | biblioteca, universidad, aeropuerto y hospital (los edificios) | cambiar esos edificios |
 | `js/puerto.js` | puerto, barcos, navegar y pesca | barcos, pesca, lonja |
@@ -113,7 +113,7 @@ Estás ayudando a un chaval que no programa a hacer su juego. Usa el plan gratui
 | `sfx.cash()`, `sfx.door()`… | sonidos | guardado-sonido-movil.js |
 | `saveGame()` | guardar la partida ahora | guardado-sonido-movil.js |
 | `$('id')` | coger un elemento del HTML | mundo-base.js |
-| `refreshLook()` | rehacer el modelo 3D del jugador tras cambiar `flags.look` (peinado: `{hs:estilo,hc:color}`) | mundo-base.js |
+| `refreshLook()` | rehacer el modelo 3D del jugador tras cambiar `flags.look` (aspecto: peinado, color de pelo, piel, ojos, nariz, boca, barba, maquillaje; campos en `lookOpts`) | mundo-base.js |
 
 ## Ejemplo real: la hamburguesería
 
@@ -127,4 +127,5 @@ Se hizo así (sirve de modelo para cualquier tipo de tienda nueva):
 
 - `edificios.js`: `SHOPS.hair`, su interior `hairIn` (sillones con `IA(...,'hairchair')`) y el menú `hairMenu` con `IDEF.hairchair`. El horario `HRS.hair` se añade desde ahí al terminar de cargar (pendiente de moverlo a `tiendas-negocios.js`).
 - `ciudad.js`: la 2.ª tienda de moda del barrio (`petT`) es la peluquería.
-- `mundo-base.js`: `outfitOpts()` lee `flags.look` y `person()` dibuja los peinados (`hs`: short, buzz, long, ponytail, bun, afro, mohawk, bald).
+- `mundo-base.js`: `outfitOpts()` lee `flags.look` y `person()` dibuja peinados, piel, ojos, nariz, boca, pecas, sombra de ojos y barba. `lookOpts()` traduce `flags.look` a opciones.
+- `multijugador.js` (`mpOpts`) y `server.js` (`cleanLook`): el aspecto viaja con el estado del jugador para que lo vean los demás. Si añades un campo nuevo a `flags.look`, hay que añadirlo en `lookOpts`, en el menú (`HLIST`/`HDEF`) y en `cleanLook`.
