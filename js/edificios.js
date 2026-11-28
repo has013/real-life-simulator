@@ -1,7 +1,7 @@
 /* ===============================================================================================
    FICHA · edificios.js
    Qué hay:          Edificios del barrio principal (sección 4): comercios, casas y sus interiores, fábricas de las afueras (4.1) e imágenes de la tienda de ropa (4.2).
-   Tócalo si quieres: añadir o cambiar un edificio o comercio del barrio principal, cambiar interiores de casas
+   Tócalo si quieres: añadir o cambiar un edificio o comercio del barrio principal, cambiar interiores de casas, la peluquería (4.3)
    Este fichero se carga en el orden de la lista de <script> de index.html y comparte variables con todos los demás.
    =============================================================================================== */
 'use strict';
@@ -63,7 +63,7 @@ function hotelUp(px,pz,w,d){const Y=[0,4.57,7.57,10.57,13.57],Y5=16.57,C=0xcfc8b
  addElev(px,pz,5,{e0,e1,z0,z1,ys:Y,H:Y5-.3-G,bx:e0-.5})}
 function shopIn(key,cx,cz,fz,w,d,zf){
  const S=SHOPS[key],L=d/2-.4,F=(x,y,l,sx,sy,sz,c,s)=>box(cx+x,G+.03+y,cz+fz*l,sx,sy,sz,c,s),big=w>20,bar=key==='bar'||key==='burger'||key==='pizza'||key==='ice',cl=()=>pick([0xd9473a,0x3a9ad9,0xe0b020,0x4aa35a,0xe8e8e8,0xff8a3a]);
- const gym=key==='gym';F(0,0,-L+3.3,bar?9:5,1,.9,gym?0x2b2f33:0x8b5a2b,true);F(0,1,-L+3.3,bar?9.2:5.2,.06,1.05,gym?0xf39c12:0x2f2f2f,false);if(!gym)F(1.5,1.06,-L+3.3,.6,.35,.45,0x222222,false);
+ const gym=key==='gym',hair=key==='hair';F(0,0,-L+3.3,bar?9:5,1,.9,gym?0x2b2f33:0x8b5a2b,true);F(0,1,-L+3.3,bar?9.2:5.2,.06,1.05,gym?0xf39c12:0x2f2f2f,false);if(!gym)F(1.5,1.06,-L+3.3,.6,.35,.45,0x222222,false);
  if(gym)gymIn(F,L,w,cl); // gimnasio: sin estanterías (gymIn gasta los mismos números aleatorios que una tienda, para no alterar el mapa)
  else{F(0,0,-L+.35,w-3,2.4,.5,0xd7dbde,true);for(let r=0;r<4;r++)for(let x=-(w-4)/2;x<=(w-4)/2;x+=1.2)F(x,.35+r*.55,-L+.85,.9,.4,.3,cl(),false)}
  const wk=person(0x2255aa),wz=cz+fz*(-L+1.8);wk.position.set(cx,G+.03,wz);wk.rotation.y=fz>0?0:Math.PI;scene.add(wk);
@@ -85,6 +85,7 @@ function shopIn(key,cx,cz,fz,w,d,zf){
  else if(key==='estate'){[-5,5].forEach(x=>{F(x,0,1.5,2.4,.8,1.2,0x9c7a55,true);F(x,.8,1.5,.8,.5,.06,0x111111,false);F(x,0,3,.5,.5,.5,0x333333,false)});F(-6.5,1.2,L-.1,2.5,1.6,.05,0xdfe6ee,false);F(-6.5,1.2,L-.12,2,1.2,.05,0x4a8a5a,false)}
  else if(key==='shop'){[-5,5].forEach(x=>{F(x,1.5,1,2.4,.05,.05,0x888888,false);F(x-.9,0,1,.05,1.5,.05,0x888888,false);F(x+.9,0,1,.05,1.5,.05,0x888888,false);for(let i=-2;i<=2;i++)F(x+i*.4,.8,1,.25,.7,.1,cl(),false)});
   [-2.5,2.5].forEach(x=>{const m=person(0xdddddd);m.position.set(cx+x,G+.03,cz+fz*4);scene.add(m)})}
+ else if(hair)hairIn(F,L,w,cl);
  else if(!gym)(big?[-14,-10,-6,6,10,14]:[-6,-3.6,3.6,6]).forEach(x=>{F(x,0,.8,1,.1,6,0x999999,false);for(let r=0;r<3;r++)for(let q=0;q<2;q++){const m=F(x,.1+r*.6,-.7+q*3.1,.95,.4,2.8,cl(),true);if(r===1)IA(m,'shelf',key)}});
 }
 // Interior del gimnasio (local de 16x16 que antes era una inmobiliaria). Coordenadas como en shopIn: x a lo ancho, l hacia la puerta (l=-L es la pared del fondo).
@@ -104,6 +105,14 @@ function gymIn(F,L,w,cl){const mt=0x2b2f33,ch=0xb0b6bb,ac=0xf39c12,
   colliders.push({x0:b.position.x-.26,x1:b.position.x+.26,z0:b.position.z-.26,z1:b.position.z+.26,y0:G+.9,y1:G+2.1,on:true})}
  F(7.55,1.1,3,.05,1.2,1.8,0xffffff,false);F(7.52,1.65,3,.03,.12,1.4,ac,false);IA(F(7.25,.8,3,.3,.3,.5,ac,false),'gymtips');
  F(-7.55,.4,4,.04,2,3,0xcfe8f5,false)}
+// Interior de la peluquería: sillones con espejo (oeste), lavacabezas y sala de espera (este). El fondo (estantería con productos) lo pone shopIn.
+// OJO: no usar rnd()/pick(). Se gastan en vacío los mismos cl() que los pasillos de una tienda normal para no mover lo que se construye después.
+function hairIn(F,L,w,cl){for(let i=0;i<(w>20?6:4)*3*2;i++)cl();
+ [-.5,3.2].forEach(l=>{F(-7.55,1,l,.05,1.3,2.2,0xcfe8f5,false);F(-7.5,.9,l,.06,.05,2.3,0xd4af37,false);
+  F(-5.6,0,l,.3,.35,.3,0x9a9a9a,true);IA(F(-5.6,.35,l,.9,.15,.9,0x1a1a1a,false),'hairchair');F(-5.2,.5,l,.15,.8,.9,0x1a1a1a,false);F(-6.2,.2,l,.5,.05,.8,0x777777,false)});
+ F(5.8,0,-1.2,1.2,.9,1.6,0xeeeeee,true);F(5.8,.9,-1.2,1,.06,1.4,0xcfd8dc,false);F(6.3,.9,-1.2,.1,.4,.1,0x888888,false);
+ [2.4,4.2].forEach(l=>IA(F(5.8,0,l,.6,.5,.6,0xc2185b,false),'sit'));F(6.9,0,3.3,.5,.5,.9,0x6b4a2b,true);
+ F(0,2.55,-L+.05,6,.5,.05,0xec407a,false);F(-3.3,0,L-1.2,.8,1.2,.8,0x4a8a5a,true)}
 // Interior de tienda para los locales comerciales: quita los muebles de casa y monta una tienda
 const LTYPES={super:{n:'SUPERMERCADO',i:'🛒',c:'#27ae60',m:1.15,fl:0xe9e9e4,d:'Pasillos con productos, neveras y caja.'},
  bar:{n:'BAR',i:'🍺',c:'#a0522d',m:1.1,fl:0x8a6a48,d:'Barra con taburetes, botellas, mesas y gramola.'},
@@ -231,6 +240,7 @@ burger:{n:'HAMBURGUESERÍA',c:'#c62828',wall:0xfff1c1,floor:0xd9d2c5,L:'🍔',co
 pizza:{n:'PIZZERÍA',c:'#2e7d32',wall:0xfff3e0,floor:0xcdbfa6,L:'🍕',col:'#e53935',worker:'Pizzero',job:['Pizzero',125],items:[['Pizza margarita',8],['Pizza pepperoni',10],['Pizza cuatro quesos',11],['Pizza hawaiana',10],['Porción de pizza',3],['Pan de ajo',4],['Refresco de cola',2],['Cerveza',3]]},
 ice:{n:'HELADERÍA',c:'#00acc1',wall:0xe0f7fa,floor:0xd9e4e6,L:'🍦',col:'#26c6da',worker:'Heladero',job:['Heladero',115],items:[['Helado de vainilla',3],['Helado de chocolate',3],['Helado de fresa',3],['Cucurucho doble',5],['Polo de hielo',2],['Granizado',3],['Batido',4],['Copa de helado',7]]},
 estate:{n:'INMOBILIARIA',c:'#1f5fa8',wall:0xdfe6ee,floor:0xc2c8d0,L:'I',col:'#2f7fe0',worker:'Agente',job:null},
+hair:{n:'PELUQUERÍA Y ESTÉTICA',c:'#ad1457',wall:0xfce4ec,floor:0xe8d5dc,L:'💇',col:'#ec407a',worker:'Peluquera',job:null,items:[]},
 gym:{n:'GIMNASIO',c:'#d35400',wall:0xe9ecef,floor:0x3a3f45,L:'💪',col:'#f39c12',worker:'Monitora',job:null,items:[]},
 hotel:{n:'HOTEL',c:'#6a2c91',wall:0xe8d8c0,floor:0xb08a5a,L:'H',col:'#8e44ad',worker:'Recepcionista',job:['Botones',160],items:[]},
 garage:{n:'TALLER',c:'#37474f',wall:0xe3e6e8,floor:0x9a9fa4,L:'R',col:'#546e7a',worker:'Mecánico'},
@@ -303,6 +313,35 @@ function shopTab(t){SHOPTAB=t;const el=$('sb');if(!el)return;const g=TABS[t][0],
  CK.forEach((n,i)=>{const it=CLOTH[n];if(it.g!==g)return;const own=inv[n]?inv[n].n:0;
   h+=`<div class="card"><img src="${thumbOf(n)}" alt="${n}"><div>${n}</div><b>€${it.price}</b>${own?`<small>Tienes ×${own}</small>`:''}<button onclick="buy('shop',${i})">Comprar</button></div>`});
  el.innerHTML=h+'</div>';dlg.scrollTop=sc}
+
+// ---------- 4.3 Peluquería: elegir peinado y color de pelo ----------
+// El aspecto se guarda en flags.look={hs:estilo,hc:color}; outfitOpts() (mundo-base.js) lo lee y refreshLook() rehace el modelo del jugador.
+const HSTY=[['short','Corto',10],['buzz','Rapado',8],['long','Melena larga',18],['ponytail','Coleta',16],['bun','Moño',16],['afro','Afro',20],['mohawk','Cresta',22],['bald','Calvo',12]],
+ HCOL=[[0x16110d,'Negro',6],[0x2b1a10,'Castaño oscuro',6],[0x3b2314,'Castaño',6],[0x7a4a24,'Cobrizo',6],[0xb98a45,'Rubio oscuro',6],[0xd9c58a,'Rubio',6],[0x8d8d8d,'Gris',6],[0x7b2a14,'Pelirrojo',6],
+  [0xe53935,'Rojo fantasía',14],[0xec407a,'Rosa',14],[0x8e24aa,'Morado',14],[0x1e88e5,'Azul',14],[0x43a047,'Verde',14],[0xf5f5f5,'Blanco',14]],HTC={};let HAIRSEL=null;
+function hairThumb(hs,hc){const k=hs+'_'+hc;if(HTC[k])return HTC[k];let url='';
+ try{if(!THR)thumbOf(CK[0]);const o=outfitOpts({},0x9aa0aa);o.hs=hs;o.hair=hc;const g=person(0x9aa0aa,o);THR.s.add(g);
+  THR.c.position.set(Math.sin(.6)*.9,1.74,Math.cos(.6)*.9);THR.c.lookAt(0,1.74,0);THR.r.render(THR.s,THR.c);
+  url=THR.r.domElement.toDataURL('image/png');THR.s.remove(g);g.traverse(x=>{if(x.geometry)x.geometry.dispose()})}catch(e){url=''}
+ return HTC[k]=url||FALLBACK('💇')}
+function hairCur(){const L=flags.look||{};return{hs:L.hs||'short',hc:L.hc!=null?L.hc:0x3b2314}}
+function hairCost(){const c=hairCur(),S=HAIRSEL;let t=0;if(S.hs!==c.hs)t+=HSTY.find(a=>a[0]===S.hs)[2];if(S.hc!==c.hc){const q=HCOL.find(a=>a[0]===S.hc);t+=q?q[2]:6}return t}
+function hairMenu(){const c=hairCur();HAIRSEL={hs:c.hs,hc:c.hc};hairDraw()}
+function hairPick(k,v){HAIRSEL[k]=v;hairDraw()}
+function hairDraw(){const S=HAIRSEL,cost=hairCost(),sc=dlg.scrollTop;openDlg();
+ let h='<h2>💇 Peluquería y estética</h2><p>Elige peinado y color. Pagas solo lo que cambies.</p><h3>Peinado</h3><div class="grid">';
+ HSTY.forEach(a=>{h+=`<div class="card"${S.hs===a[0]?' style="outline:3px solid #ec407a"':''}><img src="${hairThumb(a[0],S.hc)}" alt="${a[1]}"><div>${a[1]}</div><b>€${a[2]}</b><button onclick="hairPick('hs','${a[0]}')">${S.hs===a[0]?'Elegido':'Elegir'}</button></div>`});
+ h+='</div><h3>Color</h3><div style="display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 10px">';
+ HCOL.forEach(a=>{const hx='#'+a[0].toString(16).padStart(6,'0');h+=`<button title="${a[1]} · €${a[2]}" onclick="hairPick('hc',${a[0]})" style="width:34px;height:34px;border-radius:50%;background:${hx};border:${S.hc===a[0]?'4px solid #ec407a':'2px solid #888'};padding:0"></button>`});
+ h+=`</div><p>Total: <b>€${cost}</b> · Tienes €${Math.floor(money)}</p><button ${cost&&money>=cost?'':'disabled'} onclick="hairApply()">Aplicar cambios</button> <button onclick="closeDlg()">Cerrar</button>`;
+ dlg.innerHTML=h;dlg.scrollTop=sc}
+function hairApply(){const c=hairCost();if(!c)return;if(money<c){toast('No tienes suficiente dinero');return}
+ money-=c;flags.look=Object.assign({},flags.look,{hs:HAIRSEL.hs,hc:HAIRSEL.hc});refreshLook();
+ try{sfx.cash()}catch(e){}toast('¡Nuevo look! -€'+c);try{saveGame()}catch(e){}hairDraw()}
+IDEF.hairchair={txt:o=>'E: sentarte en el sillón (peluquería)',act:o=>{
+ try{if(!isOpen('hair')){toast('Cerrado · '+hrsTxt('hair'));return}}catch(e){}hairMenu()}};
+// horario de la peluquería: HRS vive en tiendas-negocios.js (se carga después), así que se añade cuando ya está todo cargado
+window.addEventListener('load',()=>{try{if(!HRS.hair)HRS.hair=[9,21]}catch(e){}});
 
 // Color de la puerta de una casa (naranja = a la venta, etc.). Está aquí (y no en banco-casas.js) porque se usa al construir el mapa.
 function setHouseColor(h,c){if(!h.om)h.om=h.door.leaf.material;h.door.leaf.material=mat(c)}
