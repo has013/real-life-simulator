@@ -35,7 +35,8 @@ function isl(x,z){return islV(x,z)}
 function mtnH(r){return r>=MR?0:r<=RT?MH:MH*ssm(0,1,(MR-r)/(MR-RT))}
 function mtn(x,z){const d=Math.hypot(x-MX,z-MZ);if(d>=MR)return 0;const u=mtnH(d)/MH;return mtnH(d)*(1+Math.sin(x*.09+z*.05)*Math.cos(z*.08)*.16*u*(1-u)*4)}
 // autopista: anillo con esquinas redondeadas a 30 m de la ciudad + 4 accesos por las calles del barrio.
-// En cada acceso la autopista pasa en puente y la carretera pasa POR DEBAJO; 4 rampas por acceso (2 por cada lado de la autopista, para entrar y salir en ambos sentidos)
+// En cada acceso la carretera pasa a nivel del suelo y la autopista se HUNDE (BR m) para pasar POR DEBAJO de ella; 4 rampas por acceso (2 por cada lado de la autopista, para entrar y salir en ambos sentidos)
+const CUTF=15,RDF0=10,RDF1=52;
 const ssm=(a,b,v)=>{v=clamp((v-a)/(b-a),0,1);return v*v*(3-2*v)},HW={polys:[],junc:[],merge:[],mouth:[]},BR=4.4,WALLS=[];
 function wallHit(x,z,r,y,fix){let hit=false;for(const w of WALLS){if(x<w.x0-r||x>w.x1+r||z<w.z0-r||z>w.z1+r)continue;const dx=w.bx-w.ax,dz=w.bz-w.az,t=clamp(((x-w.ax)*dx+(z-w.az)*dz)/(dx*dx+dz*dz),0,1),cx=w.ax+dx*t,cz=w.az+dz*t,d=Math.hypot(x-cx,z-cz);if(d<r){const b=w.ya+(w.yb-w.ya)*t;if(y<b+1&&y+1.7>b){if(!fix)return true;hit=true;if(d>1e-6){fix.x+=(x-cx)/d*(r-d);fix.z+=(z-cz)/d*(r-d)}}}}return hit}
 function bumpAt(x,z){let d=1e9;for(const j of HW.junc)d=Math.min(d,Math.hypot(x-j[0],z-j[1]));return BR*(1-ssm(8,56,d))}
@@ -57,15 +58,17 @@ function rayRing(ring,c0,s){let best=1e9;const n=ring.length;for(let i=0;i<n;i++
  const yAt=(x,z)=>{let d0=1e9,y=0;for(const p of ring){const d=Math.hypot(p[0]-x,p[1]-z);if(d<d0){d0=d;y=p[2]}}return y};
  for(const[c0,jn,en]of SP){const L1=Math.hypot(jn[0]-c0[0],jn[1]-c0[1]),L2=Math.hypot(en[0]-jn[0],en[1]-jn[1]),s=[(jn[0]-c0[0])/L1,(jn[1]-c0[1])/L1],yj=yAt(jn[0],jn[1]);
   const spY=d=>{if(d<=L1)return yj*ssm(0,L1,d);const x=c0[0]+s[0]*d,z=c0[1]+s[1]*d;return yj+(heightRaw(x,z)-yj)*ssm(0,L2,d-L1)};
-  // puente: la carretera sube BR m para pasar POR ENCIMA de la autopista (tablero p[3]; el terreno p[2] queda a nivel del suelo bajo el puente y sigue al tablero fuera de él, como terraplén)
-  const ZH=10.5,BH=4,mx=t=>{t=clamp(t,0,1);return .5*t+.5*t*t*(3-2*t)},add=d=>d<=L1-ZH?BH*mx(d/(L1-ZH)):d<=L1+ZH?BH:BH*(1-mx((d-L1-ZH)/(L2-ZH))),spD=d=>spY(d)+add(d);
-  const k=Math.round((L1+L2)/st),sp=[];for(let i=0;i<=k;i++){const d=(L1+L2)*i/k;sp.push([c0[0]+s[0]*d,c0[1]+s[1]*d,spY(d),spD(d)])}sp.kind='spur';HW.polys.push(sp);
+  // paso inferior: la carretera va a nivel del suelo (tablero p[3]=spY) y el suelo de debajo p[2] baja BR m justo en el cruce (cutD), donde pasa la autopista hundida; fuera del cruce p[2]=p[3] y no hay tablero
+  const CUT0=10,CUT1=CUTF,cutD=d=>BR*(1-ssm(CUT0,CUT1,Math.abs(d-L1))),spD=spY;
+  const k=Math.round((L1+L2)/st),sp=[];for(let i=0;i<=k;i++){const d=(L1+L2)*i/k;sp.push([c0[0]+s[0]*d,c0[1]+s[1]*d,spY(d)-cutD(d),spD(d)])}sp.kind='spur';HW.polys.push(sp);
   const t=[-s[1],s[0]];
   for(const sg of[-1,1])for(const sl of[1,-1]){const cub=(p0,p1,p2,p3,n,first)=>{const o=[];for(let i=first?0:1;i<=n;i++){const u=i/n,q=1-u,w0=q*q*q,w1=3*q*q*u,w2=3*q*u*u,w3=u*u*u;o.push([w0*p0[0]+w1*p1[0]+w2*p2[0]+w3*p3[0],w0*p0[1]+w1*p1[1]+w2*p2[1]+w3*p3[1]])}return o};
    // (l,q): l = distancia al eje de la autopista hacia la ciudad, q = distancia a lo largo de ella. La rampa va paralela a 10 m hasta salir de la zona del puente y entonces se incorpora
    const EL=3.6,QE=96,l0=sl>0?19:-19,lq=[...cub([l0,0],[sl*16,0],[sl*15,34],[sl*15,54],15,true),...cub([sl*15,54],[sl*15,72],[sl*EL,76],[sl*EL,QE],12,false)],pt=(l,q)=>[jn[0]-s[0]*l+t[0]*sg*q,jn[1]-s[1]*l+t[1]*sg*q],y0=spD(sl>0?L1-19:L1+19),Mc=pt(0,QE),Mr=ring.reduce((b,p)=>Math.hypot(p[0]-Mc[0],p[1]-Mc[1])<Math.hypot(b[0]-Mc[0],b[1]-Mc[1])?p:b),M=[Mr[0],Mr[1]],y3=Mr[2],E=pt(sl*EL,QE),ux=E[0]-Mc[0],uz=E[1]-Mc[1],ul=Math.hypot(ux,uz)||1,dM=[M[0]+ux/ul*EL-E[0],M[1]+uz/ul*EL-E[1]],P0=pt(l0,0);
    const rp=lq.map((v,i)=>{const p=pt(v[0],v[1]),w=ssm(.3,1,i/(lq.length-1));return[p[0]+dM[0]*w,p[1]+dM[1]*w,y0+(y3-y0)*ssm(0,1,i/(lq.length-1))]});
-   rp.kind='ramp';HW.polys.push(rp);HW.merge.push(M);HW.mouth.push(P0)}}})();
+   rp.kind='ramp';HW.polys.push(rp);HW.merge.push(M);HW.mouth.push(P0)}}
+ // la autopista se hunde BR m en cada cruce (a ±RDF0 m del cruce está al fondo y vuelve a subir poco a poco hasta ±RDF1 m, que queda antes de donde se incorporan las rampas)
+ for(const p of ring){let dd=1e9;for(const j of HW.junc)dd=Math.min(dd,Math.hypot(p[0]-j[0],p[1]-j[1]));p[2]-=BR*(1-ssm(RDF0,RDF1,dd))}})();
 // carretera de montaña: sale de la autopista (por el sur de la montaña) y sube en espiral con pendiente constante hasta la cima
 (function(){const Hi=y=>{let a=RT,b=MR;for(let i=0;i<30;i++){const m=(a+b)/2;mtnH(m)>y?a=m:b=m}return(a+b)/2},ring=HW.polys[0],dl=rayRing(ring,[MX,MZ+MR],[0,1]),C=[MX,MZ+MR+dl],yS=ring.reduce((b,p)=>Math.hypot(p[0]-C[0],p[1]-C[1])<Math.hypot(b[0]-C[0],b[1]-C[1])?p:b)[2],pts=[[C[0],C[1],yS]],ds=6;let y=yS,th=Math.PI/2;pts[0]=[C[0],C[1]-9,yS];for(let t=9+ds;t<dl;t+=ds)pts.push([C[0],C[1]-t,yS]);HW.merge.push(C);HW.mouth.push(C);
  for(let k=0;k<500&&y<MH-.3;k++){const r=Hi(y)*(1+.05*Math.sin(th*5));pts.push([MX+Math.cos(th)*r,MZ+Math.sin(th)*r,y]);y+=ds*.14;th+=ds*.99/Math.max(r,8)}
@@ -383,4 +386,3 @@ function carMesh(t,col){const s=SPEC[t],w=s.w,l=s.l,h=s.h,y0=.32,sp=t==='sport',
  g.add(bm);g.userData.beams=bm;return g}
 function spawnCar(t,col,x,z,h,mode,extra){const m=carMesh(t,col);m.userData.col=col;scene.add(m);
  const c=Object.assign({m,t,spec:SPEC[t],x,z,h,v:0,mode,fuel:SPEC[t].tank*(.3+Math.random()*.7)},extra||{});if(c.lm||c.lt)applyUp(c);m.position.set(x,c.y||0,z);m.rotation.y=h;cars.push(c);return c}
-
