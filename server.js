@@ -234,6 +234,15 @@ let gov = { mayor: null, taxes: [], treasury: 0, election: null, nextTid: 1, las
 console.log(gov.election ? '[elecciones] votación en curso restaurada: ' + gov.election.candidates.map(c => c.name).join(' vs ') + ' · ' + Object.keys(gov.election.votes || {}).length + ' votos · termina ' + new Date(gov.election.endsAt).toLocaleString() : gov.mayor ? '[elecciones] alcalde actual: ' + gov.mayor.name : '[elecciones] sin alcalde ni votación abierta');
 function saveGov() { try { writeJsonAtomic(GOV_FILE, gov); } catch (e) { console.warn('No se pudo guardar gov.json', e.message); } }
 const isMayor = p => !!(gov.mayor && p && p.uid === gov.mayor.uid);
+// Aspecto (peluquería y estética): se limpia campo a campo y siempre sale completo, para que todos vean lo mismo.
+function cleanLook(l) {
+  if (!l || typeof l !== 'object') return null;
+  const col = (v, d) => Number.isFinite(Number(v)) ? Math.max(0, Math.min(0xffffff, Math.floor(Number(v)))) : d;
+  const pk = (v, a) => a.includes(String(v)) ? String(v) : a[0];
+  return { hs: pk(l.hs, ['short','buzz','long','ponytail','bun','afro','mohawk','bald']), hc: col(l.hc, 0x3b2314), sk: col(l.sk, 0xe8b98f), ec: col(l.ec, 0x3b2a1a),
+    mo: pk(l.mo, ['normal','smile','lips']), ns: pk(l.ns, ['m','s','l']), bd: pk(l.bd, ['none','stubble','mustache','goatee','full']),
+    mk: Number(l.mk) < 0 ? -1 : col(l.mk, -1), fr: Number(l.fr) ? 1 : 0 };
+}
 function pub(p) { // versión pública del jugador: sin uid y con rango 9 si es el Alcalde
   const o = Object.assign({}, p); delete o.uid; delete o.vit; // vit (hambre/energía) solo lo ve el administrador
   if (isMayor(p)) o.profile = Object.assign({}, p.profile, { rk: 9 });
@@ -934,7 +943,7 @@ wss.on('connection', ws => {
     p.vCol=Number.isFinite(Number(msg.vCol))?Math.max(0,Math.min(0xffffff,Number(msg.vCol))):0x4477aa;
     p.vPt=Math.max(-1.5,Math.min(1.5,Number(msg.vPt)||0)); p.vBk=Math.max(-1.5,Math.min(1.5,Number(msg.vBk)||0)); p.vThr=Math.max(0,Math.min(1.2,Number(msg.vThr)||0)); // el helicóptero envía hasta 1.2 (régimen de rotor)
     p.outfit=(msg.outfit&&typeof msg.outfit==='object')?Object.fromEntries(Object.entries(msg.outfit).slice(0,12).map(([k,v])=>[String(k).slice(0,12),String(v).slice(0,50)])):{};
-    p.look=(msg.look&&typeof msg.look==='object')?{hs:['short','buzz','long','ponytail','bun','afro','mohawk','bald'].includes(String(msg.look.hs))?String(msg.look.hs):'short',hc:Number.isFinite(Number(msg.look.hc))?Math.max(0,Math.min(0xffffff,Math.floor(Number(msg.look.hc)))):0x3b2314}:null; // peinado (peluquería)
+    p.look=cleanLook(msg.look); // aspecto de la peluquería y estética
     p.pets=Array.isArray(msg.pets)?msg.pets.slice(0,3).map(q=>({
       t:['dog','cat','rabbit'].includes(q.t)?q.t:'dog',
       name:String(q.name||'Mascota').replace(/[<>\\u0000-\\u001f]/g,'').slice(0,14),
