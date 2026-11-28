@@ -120,7 +120,8 @@ function makeGas(x0,z0){const X=a=>x0+a,Z=a=>z0+a,S=SHOPS.gas,cb=(x,z,w,d,h,foot
   [26,30].forEach(z=>{IA(box(X(a),G+.25,Z(z),.9,1.5,.6,0xd32f2f,false),'pump');box(X(a),G+1.35,Z(z),.7,.35,.64,0x1a1a1a,false);PUMPS.push({x:X(a),z:Z(z)});cb(X(a),Z(z),.9,.6,1.8,1)})});
  box(X(36.5),G,Z(37),.5,7,.5,0x666666,false);cb(X(36.5),Z(37),.5,.5,7,1);
  sign('GAS · '+PRICE+' €/L',X(36.5),G+7,Z(37),4.4,1,'#c62828');sign('GAS · '+PRICE+' €/L',X(36.5),G+7,Z(37),4.4,-1,'#c62828')}
-let petPlaced=false;const petT=t=>(t==='shop:shop'&&!petPlaced)?(petPlaced=true,'shop:pet'):t;
+// El 1.er local de moda (shop:shop) es la tienda de mascotas y el 2.º es la peluquería; quedan 3 tiendas de moda. Mismo interior base (shopIn), así no cambia nada más del mapa.
+let petPlaced=false,hairPlaced=false;const petT=t=>(t==='shop:shop'&&!petPlaced)?(petPlaced=true,'shop:pet'):(t==='shop:shop'&&!hairPlaced)?(hairPlaced=true,'shop:hair'):t;
 const SEQ=['house','apt','house','shop:food','house','apt','shop:furn','house','tower','shop:bar','house','shop:bank','shop:shop','house','shop:estate'];let si=0;
 // Gimnasios: la 3.ª y la 5.ª inmobiliaria del barrio principal (nº 2 y 4 contando desde 0; en x≈65,z≈244 y x≈173,z≈190) son gimnasios. Quedan 4 inmobiliarias.
 let estN=0;const GYM_AT=[2,4];
