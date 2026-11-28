@@ -21,9 +21,9 @@ const clock=new THREE.Clock();let tm=0,objT=1;
 let fpsCap=0,fpsLast=0;try{const v=+localStorage.getItem('rls_fps');if(v===30||v===45||v===60)fpsCap=v}catch(e){}
 function loop(){requestAnimationFrame(loop);if(fpsCap){const now=performance.now(),iv=1000/fpsCap;if(now-fpsLast<iv-3)return;fpsLast=now}const dt=Math.min(clock.getDelta(),.05);mpTick(dt);
  if(started&&ov.style.display==='none'){tm+=dt;SEA.position.y=-.4+Math.sin(tm*.8)*.04;seaTex.offset.set(tm*.004,tm*.002);WINDT.value=tm;smokeUpd(tm);portUpd(tm);if(SEA.material.uniforms)SEA.material.uniforms.tm.value=tm;if(!dlgOpen||invOpen)hunger=Math.max(0,hunger-dt*.2*(energy<=0?5:1));if(!dlgOpen||invOpen){const wk=(working||task)?.12:0;thirst=100;energy=seat?Math.min(100,energy+dt*.5):Math.max(0,energy-dt*(.1+.5*eff+wk)*(hunger<=0?5:1))}
-  if(hunger<=0&&energy<=0&&!collapsing&&!inCar&&!riding&&!working&&!task&&!dlgOpen)collapse();if(hunger<=0&&(tm%25)<dt)toast('¡Tienes mucha hambre! Come algo (F)');if(energy<=0&&((tm+16)%25)<dt)toast('Estás agotado: siéntate a descansar o toma un café');
+  if(hunger<=0&&energy<=0&&!collapsing&&!inCar&&!pax&&!riding&&!working&&!task&&!dlgOpen)collapse();if(hunger<=0&&(tm%25)<dt)toast('¡Tienes mucha hambre! Come algo (F)');if(energy<=0&&((tm+16)%25)<dt)toast('Estás agotado: siéntate a descansar o toma un café');
   for(const d of DOORS){if(d.gar){d.ang+=((d.open?1:0)-d.ang)*Math.min(1,5*dt);d.leaf.scale.y=Math.max(.03,1-d.ang*.97);continue}const tg=d.open?-d.fz*1.9:0;d.ang+=(tg-d.ang)*Math.min(1,8*dt);d.pv.rotation.y=d.ang}
-  if(!dlgOpen){if(inCar)driveCar(inCar,dt);else if(!riding)stepFoot(dt)}
+  if(pax)paxStep();if(!dlgOpen){if(inCar)driveCar(inCar,dt);else if(!riding&&!pax)stepFoot(dt)}
   microStep(dt);
   for(const c of cars)if(c.mode==='ai')aiStep(c,dt);
   BUSES.forEach(b=>busStep(b,dt));PLANES.forEach(p=>planeStep(p,dt));ELEV.forEach(e=>elStep(e,dt));metroStep();if(riding)rideStep();avionStep(dt);heliStep(dt);boatStep(dt);boatRemoteStep(dt);fishStep(dt);if(!dlgOpen)jobStep(dt);
@@ -70,7 +70,7 @@ function petMesh(t,c){const g=new THREE.Group(),legs=[],
 function addPet(t,name,col,hunger,hap){if(pets.length>=PET_MAX||!PET_T[t])return null;const m=petMesh(t,col);scene.add(m);
  const p={t,name,col,hunger,hap,wear:{},x:pl.x+1.2,z:pl.z+1.2,y:py,ph:0,stuck:0,ry:0,warn:false,m};m.position.set(p.x,p.y,p.z);pets.push(p);return p}
 function petBlocked(x,z,y){for(const o of colliders)if(o.on&&!o.car&&y<o.y1-.05&&y+.5>(o.y0||0)&&x>o.x0-.25&&x<o.x1+.25&&z>o.z0-.25&&z<o.z1+.25)return true;return false}
-function petStep(dt){if(!pets.length||!started||ov.style.display!=='none')return;dt=Math.min(dt,.1);const hid=!!(inCar||riding);
+function petStep(dt){if(!pets.length||!started||ov.style.display!=='none')return;dt=Math.min(dt,.1);const hid=!!(inCar||riding||pax);
  pets.forEach((p,i)=>{const T=PET_T[p.t];p.m.visible=!hid;
   p.hunger=Math.max(0,p.hunger-dt*.035);p.hap=clamp(p.hap-dt*(p.hunger<=0?.08:.01),0,100);
   if(p.hunger<20&&!p.warn){p.warn=true;toast(T.e+' '+p.name+' tiene hambre')}else if(p.hunger>=30)p.warn=false;
@@ -305,4 +305,3 @@ function houseOnConflict(m){const t=TERRENOS.find(q=>q.id===m.id);if(!t||!t.owne
  const back=Math.round(t.price+bmValue(t)+(t.biz&&t.biz.ty?TBIZ_FEE+(t.biz.till||0):0));if(BM.on&&BM.t===t)bmExit();if(dlgOpen)closeDlg();
  bmFReturn(t);t.setOwned(false);t.b=null;t.biz=null;bmRebuild(t);houseSent[t.id]=undefined;money+=back;sfx.cash();estateRefresh();saveGame();
  toast('⚠️ El terreno nº '+t.id+' ya estaba registrado a nombre de '+String(m.owner||'otro jugador').slice(0,18)+'. Se te devuelven €'+back)}
-
